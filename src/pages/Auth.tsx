@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
 const Auth = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('admin@example.com'); // Default to admin email
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -69,6 +69,7 @@ const Auth = () => {
               className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
               required
             />
+            {!password && <p className="text-xs mt-1 text-gray-400">Default password: indra9346</p>}
           </div>
           
           <Button 

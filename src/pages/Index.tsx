@@ -8,7 +8,7 @@ import ProjectsSection from "../components/ProjectsSection";
 import SkillsSection from "../components/SkillsSection";
 import ContactSection from "../components/ContactSection";
 import Footer from "../components/Footer";
-import { supabase } from "@/integrations/supabase/client";
+import { initAdminUser } from "@/utils/initAdminUser";
 
 const Index = () => {
   useEffect(() => {
@@ -26,28 +26,8 @@ const Index = () => {
       });
     });
     
-    // Check admin user creation (for development purposes)
-    const checkAdminUser = async () => {
-      const { data } = await supabase.auth.signInWithPassword({
-        email: 'admin@example.com',
-        password: 'indra9346'
-      });
-      
-      if (!data.session) {
-        // If login fails, sign up the admin user
-        await supabase.auth.signUp({
-          email: 'admin@example.com',
-          password: 'indra9346'
-        });
-        console.log('Admin user created');
-      } else {
-        console.log('Admin user already exists');
-        // Sign out after checking
-        await supabase.auth.signOut();
-      }
-    };
-    
-    checkAdminUser();
+    // Initialize admin user
+    initAdminUser();
     
     // Add return statement to clean up event listeners
     return () => {
