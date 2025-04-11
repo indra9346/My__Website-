@@ -50,13 +50,16 @@ const AdminSettings = () => {
     try {
       const { error } = await supabase.auth.updateUser({
         email: values.email,
+        options: {
+          emailRedirectTo: window.location.origin + '/admin/settings',
+        }
       });
 
       if (error) throw error;
       
       toast({
-        title: "Email update initiated",
-        description: "Please check your new email for a confirmation link",
+        title: "Email updated",
+        description: "Your email has been successfully updated",
       });
       
       emailForm.reset();
@@ -119,9 +122,6 @@ const AdminSettings = () => {
                     <FormControl>
                       <Input placeholder="you@example.com" {...field} />
                     </FormControl>
-                    <FormDescription>
-                      You'll need to confirm the email change via a link sent to your new address
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
