@@ -50,9 +50,6 @@ const AdminSettings = () => {
     try {
       const { error } = await supabase.auth.updateUser({
         email: values.email,
-        options: {
-          emailRedirectTo: window.location.origin + '/admin/settings',
-        }
       });
 
       if (error) throw error;
