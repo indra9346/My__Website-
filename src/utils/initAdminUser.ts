@@ -3,15 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const initAdminUser = async () => {
   try {
-    // Check if admin user exists
-    const { data: existingUser, error: checkError } = await supabase.auth.admin.getUserByEmail('admin@example.com');
+    // Check if admin user exists by trying to sign in
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: 'admin@example.com',
+      password: 'indra9346',
+    });
     
-    if (!checkError && existingUser) {
+    if (!signInError && signInData.user) {
       console.log('Admin user already exists');
+      // Sign out after checking
+      await supabase.auth.signOut();
       return;
     }
 
-    // Create admin user
+    // Create admin user if sign in failed
     const { error } = await supabase.auth.signUp({
       email: 'admin@example.com',
       password: 'indra9346',
