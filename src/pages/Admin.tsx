@@ -16,6 +16,11 @@ const Admin = () => {
           <h3 className="text-xl font-bold mb-2">Manage Projects</h3>
           <p className="text-gray-300">Add, edit, or remove projects from your portfolio</p>
         </Link>
+        
+        <Link to="/admin/settings" className="glass p-6 rounded-lg hover:border-neon-cyan border border-transparent transition-colors">
+          <h3 className="text-xl font-bold mb-2">Account Settings</h3>
+          <p className="text-gray-300">Update your admin email and password</p>
+        </Link>
       </div>
     </div>
   );
