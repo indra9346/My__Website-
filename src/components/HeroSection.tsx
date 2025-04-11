@@ -26,7 +26,7 @@ const HeroSection = () => {
           <div className={`md:w-1/2 transition-all duration-1000 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <h2 className="text-xl font-mono mb-2 text-neon-cyan">Hello, I'm</h2>
             <h1 className="text-4xl md:text-6xl font-bold mb-4">
-              <span className="gradient-text">Student Developer</span>
+              <span className="gradient-text">K S INDRA KUMAR</span>
             </h1>
             <p className="text-lg md:text-xl mb-8 text-gray-300 max-w-lg">
               Building innovative web experiences with cutting-edge technology. 
