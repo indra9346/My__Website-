@@ -19,7 +19,7 @@ export const initAdminUser = async () => {
     // Create admin user if sign in failed
     const { error } = await supabase.auth.signUp({
       email: 'ik9893344@gmail.com',
-      password: 'indra9346',
+      password: 'indra2003',
     });
 
     if (error) {
