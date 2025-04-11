@@ -1,56 +1,42 @@
 
 import { Github, ExternalLink, Code } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
-  image: string;
+  image: string | null;
   tags: string[];
-  github: string;
-  demo: string;
+  github: string | null;
+  demo: string | null;
+  display_order: number;
 }
 
-const projects: Project[] = [
-  {
-    id: 1,
-    title: "Smart Todo App",
-    description: "A productivity application with AI-powered task prioritization, built with React and TensorFlow.js for task analysis.",
-    image: "todo-app.jpg",
-    tags: ["React", "TensorFlow.js", "Firebase", "Tailwind CSS"],
-    github: "#",
-    demo: "#"
-  },
-  {
-    id: 2,
-    title: "Weather Dashboard",
-    description: "Interactive weather visualization tool that displays forecasts, historical data, and climate patterns using D3.js and the OpenWeather API.",
-    image: "weather-app.jpg",
-    tags: ["JavaScript", "D3.js", "API Integration", "SVG Animation"],
-    github: "#",
-    demo: "#"
-  },
-  {
-    id: 3,
-    title: "Virtual Study Room",
-    description: "A collaborative space for students to study together virtually with shared whiteboards, timers, and chat functionality.",
-    image: "study-room.jpg",
-    tags: ["Next.js", "Socket.io", "WebRTC", "MongoDB"],
-    github: "#",
-    demo: "#"
-  },
-];
-
 const ProjectsSection = () => {
-  const [visibleProjects, setVisibleProjects] = useState<number[]>([]);
+  const [visibleProjects, setVisibleProjects] = useState<string[]>([]);
+  
+  const { data: projects, isLoading } = useQuery({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('display_order');
+        
+      if (error) throw error;
+      return data as Project[];
+    }
+  });
   
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            const id = Number(entry.target.getAttribute('data-project-id'));
+            const id = entry.target.getAttribute('data-project-id');
             if (id && !visibleProjects.includes(id)) {
               setVisibleProjects(prev => [...prev, id]);
             }
@@ -66,7 +52,20 @@ const ProjectsSection = () => {
     return () => {
       projectElements.forEach(el => observer.unobserve(el));
     };
-  }, [visibleProjects]);
+  }, [visibleProjects, projects]);
+
+  if (isLoading) {
+    return (
+      <section id="projects" className="py-24 bg-black/30">
+        <div className="container mx-auto px-4">
+          <h2 className="section-title">Projects</h2>
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="projects" className="py-24 bg-black/30">
@@ -77,7 +76,7 @@ const ProjectsSection = () => {
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {projects.map((project) => (
+          {projects?.map((project) => (
             <div 
               key={project.id}
               data-project-id={project.id}
@@ -88,8 +87,15 @@ const ProjectsSection = () => {
               <div className="relative h-48 mb-4 overflow-hidden rounded-lg group">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent z-10 opacity-70 group-hover:opacity-90 transition-opacity"></div>
                 <div className="absolute inset-0 bg-gray-800 flex items-center justify-center text-4xl">
-                  {/* Placeholder for project image */}
-                  <Code size={48} className="text-neon-cyan" />
+                  {project.image ? (
+                    <img 
+                      src={project.image} 
+                      alt={project.title} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Code size={48} className="text-neon-cyan" />
+                  )}
                 </div>
                 
                 <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
@@ -110,28 +116,36 @@ const ProjectsSection = () => {
               </div>
               
               <div className="flex justify-between mt-auto">
-                <a 
-                  href={project.github}
-                  className="text-gray-400 hover:text-neon-cyan transition-colors" 
-                  aria-label="GitHub repository"
-                >
-                  <Github size={20} />
-                </a>
-                <a 
-                  href={project.demo}
-                  className="text-gray-400 hover:text-neon-cyan transition-colors" 
-                  aria-label="Live demo"
-                >
-                  <ExternalLink size={20} />
-                </a>
+                {project.github && (
+                  <a 
+                    href={project.github}
+                    className="text-gray-400 hover:text-neon-cyan transition-colors" 
+                    aria-label="GitHub repository"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Github size={20} />
+                  </a>
+                )}
+                {project.demo && (
+                  <a 
+                    href={project.demo}
+                    className="text-gray-400 hover:text-neon-cyan transition-colors" 
+                    aria-label="Live demo"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink size={20} />
+                  </a>
+                )}
               </div>
             </div>
           ))}
         </div>
         
         <div className="text-center mt-12">
-          <a href="#" className="btn-neon">
-            View All Projects
+          <a href="#contact" className="btn-neon">
+            Contact Me
           </a>
         </div>
       </div>
