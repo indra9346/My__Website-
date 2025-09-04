@@ -1,12 +1,14 @@
-
 import { Mail, MapPin, Phone, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 
+// This component presents the contact section of the portfolio,
+// optimized to clearly state the developer's availability for roles.
 const ContactSection = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [statusMessage, setStatusMessage] = useState(''); // New state for status messages
   const [isVisible, setIsVisible] = useState(false);
   
   useEffect(() => {
@@ -28,17 +30,25 @@ const ContactSection = () => {
     };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handles form submission, replacing the alert() with an on-screen message.
+  const handleSubmit = (e) => {
     e.preventDefault();
-    // Form submission would be handled with Supabase in Phase 2
+    
+    // In a real application, you would send this data to your backend (e.g., Supabase) here.
     console.log({ name, email, message });
     
-    // For now, just clear the form
+    // Provide a visible message to the user instead of an intrusive alert.
+    setStatusMessage('Thank you for your message! This form is for demonstration purposes only and will not be sent to an actual backend.');
+
+    // Clear the form after submission
     setName('');
     setEmail('');
     setMessage('');
     
-    alert('Thank you for your message! This form is not yet functional, but will be connected to a backend in the future.');
+    // Clear the status message after 5 seconds
+    setTimeout(() => {
+      setStatusMessage('');
+    }, 5000);
   };
 
   return (
@@ -46,7 +56,7 @@ const ContactSection = () => {
       <div className="container mx-auto px-4">
         <h2 className="section-title">Contact Me</h2>
         <p className="text-gray-300 mb-12 max-w-2xl">
-          Interested in working together or have questions? Feel free to reach out!
+          I'm actively seeking **internship opportunities** and **full-time roles** as a fresh graduate. Let's connect and build something great together!
         </p>
         
         <div className="flex flex-col md:flex-row gap-10">
@@ -57,7 +67,7 @@ const ContactSection = () => {
                 <Mail className="text-neon-cyan mr-4" size={24} />
                 <div>
                   <h3 className="font-medium mb-1">Email</h3>
-                  <p className="text-gray-300">hello@studentdev.com</p>
+                  <p className="text-gray-300">ik9893344@gmail.com</p>
                 </div>
               </div>
               
@@ -65,7 +75,7 @@ const ContactSection = () => {
                 <MapPin className="text-neon-cyan mr-4" size={24} />
                 <div>
                   <h3 className="font-medium mb-1">Location</h3>
-                  <p className="text-gray-300">San Francisco, California</p>
+                  <p className="text-gray-300">Chikkaballapur, Karnataka, India</p>
                 </div>
               </div>
               
@@ -81,17 +91,22 @@ const ContactSection = () => {
             <div className="mt-12 glass p-6 rounded-lg">
               <h3 className="font-semibold mb-2">Current Availability</h3>
               <p className="text-gray-300">
-                I'm currently available for part-time freelance work and internship opportunities.
+                I am actively seeking **internship opportunities** and **entry-level roles** to launch my career as a Software Developer.
               </p>
               <div className="mt-4 flex items-center">
                 <div className="w-3 h-3 rounded-full bg-green-500 mr-2 animate-pulse"></div>
-                <span className="text-green-400 text-sm">Available for new projects</span>
+                <span className="text-green-400 text-sm">Available for new projects and roles</span>
               </div>
             </div>
           </div>
           
           {/* Contact form */}
           <div className={`md:w-2/3 transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100' : 'opacity-0 translate-x-[20px]'}`}>
+            {statusMessage && (
+              <div className="p-4 mb-4 text-center text-sm font-medium text-green-400 bg-green-900/50 rounded-lg">
+                {statusMessage}
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="glass p-6 md:p-8 rounded-lg">
               <div className="mb-6">
                 <label htmlFor="name" className="block mb-2 text-sm font-medium">

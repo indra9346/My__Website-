@@ -8,18 +8,16 @@ interface Skill {
 }
 
 const skills: Skill[] = [
-  { name: 'JavaScript', level: 90, category: 'frontend' },
-  { name: 'React', level: 85, category: 'frontend' },
-  { name: 'TypeScript', level: 80, category: 'frontend' },
-  { name: 'HTML/CSS', level: 95, category: 'frontend' },
-  { name: 'Tailwind CSS', level: 90, category: 'frontend' },
-  { name: 'Node.js', level: 75, category: 'backend' },
+  { name: 'JavaScript', level: 75, category: 'frontend' },
+  { name: 'React', level: 75, category: 'frontend' },
+  { name: 'TypeScript', level: 75, category: 'frontend' },
+  { name: 'HTML/CSS', level: 75, category: 'frontend' },
+  { name: 'Java', level: 80, category: 'backend' },
   { name: 'Express', level: 70, category: 'backend' },
   { name: 'PostgreSQL', level: 65, category: 'backend' },
   { name: 'MongoDB', level: 60, category: 'backend' },
-  { name: 'Git', level: 85, category: 'other' },
-  { name: 'Docker', level: 60, category: 'other' },
-  { name: 'UI/UX Design', level: 75, category: 'other' },
+  { name: 'Git', level: 60, category: 'other' },
+  { name: 'UI/UX Design', level: 50, category: 'other' },
 ];
 
 const SkillsSection = () => {
@@ -107,7 +105,7 @@ const SkillsSection = () => {
         <div className={`mt-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <h3 className="text-xl font-semibold mb-6">Tools & Frameworks I Love</h3>
           <div className="flex flex-wrap gap-4 justify-center">
-            {['Next.js', 'Three.js', 'Tailwind CSS', 'Figma', 'VS Code', 'GitHub', 'Netlify', 'Firebase', 'Supabase', 'Jest'].map((tool) => (
+            {['Next.js', 'Figma', 'VS Code', 'GitHub','Hibernate', 'Firebase', 'Supabase'].map((tool) => (
               <div 
                 key={tool} 
                 className="glass px-6 py-3 rounded-full border border-gray-800 hover:border-neon-cyan hover:text-neon-cyan transition-colors"
