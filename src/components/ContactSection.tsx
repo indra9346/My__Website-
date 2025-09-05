@@ -8,9 +8,12 @@ const ContactSection = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
-  const [statusMessage, setStatusMessage] = useState(''); // New state for status messages
+  const [statusMessage, setStatusMessage] = useState('');
   const [isVisible, setIsVisible] = useState(false);
-  
+
+  // REPLACE THIS URL WITH YOUR ACTUAL FORMSPREE ENDPOINT
+  const formspreeEndpoint = 'https://formspree.io/f/xeolppkl';
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -30,22 +33,32 @@ const ContactSection = () => {
     };
   }, []);
 
-  // Handles form submission, replacing the alert() with an on-screen message.
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setStatusMessage("Sending message...");
     
-    // In a real application, you would send this data to your backend (e.g., Supabase) here.
-    console.log({ name, email, message });
-    
-    // Provide a visible message to the user instead of an intrusive alert.
-    setStatusMessage('Thank you for your message! This form is for demonstration purposes only and will not be sent to an actual backend.');
+    try {
+      const response = await fetch(formspreeEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ name, email, message })
+      });
 
-    // Clear the form after submission
-    setName('');
-    setEmail('');
-    setMessage('');
-    
-    // Clear the status message after 5 seconds
+      if (response.ok) {
+        setStatusMessage('Message sent successfully! I will get back to you soon.');
+        setName('');
+        setEmail('');
+        setMessage('');
+      } else {
+        setStatusMessage('An error occurred. Please try again or contact me directly via email.');
+      }
+    } catch (error) {
+      setStatusMessage('An error occurred. Please try again or contact me directly via email.');
+    }
+
     setTimeout(() => {
       setStatusMessage('');
     }, 5000);
