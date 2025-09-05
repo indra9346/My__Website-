@@ -5,8 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // 👇 Important for GitHub Pages (project site path)
-  base: "/future-folio-studio-027dd3b7/",
+  // ✅ Use relative paths for Vercel (fixes 404 issues)
+  base: "./",
 
   server: {
     host: "::",
