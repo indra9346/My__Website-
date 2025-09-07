@@ -1,4 +1,4 @@
-import { Github, Linkedin } from 'lucide-react';
+import { Github, Linkedin, Cloud } from 'lucide-react';  // ⬅️ Added Cloud icon
 import { useEffect, useState } from 'react';
 import myPhoto from '../assets/myphoto.jpg'; // <-- Import your photo
 
@@ -62,6 +62,15 @@ const AboutSection = () => {
                 aria-label="LinkedIn"
               >
                 <Linkedin size={20} />
+              </a>
+              <a
+                href="https://www.cloudskillsboost.google/public_profiles/18bad5eb-bfc2-4f59-b0a9-2546e0d921bb"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-700 text-gray-400 hover:text-neon-cyan hover:border-neon-cyan transition-colors"
+                aria-label="Google Cloud Skills Boost"
+              >
+                <Cloud size={20} />
               </a>
             </div>
           </div>
