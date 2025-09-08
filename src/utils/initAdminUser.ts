@@ -1,33 +1,42 @@
-
-import { supabase } from '@/integrations/supabase/client';
+// src/utils/initAdminUser.ts
+import { supabase } from "./supabaseClient";
 
 export const initAdminUser = async () => {
   try {
-    // Check if admin user exists by trying to sign in
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: 'admin@example.com',
-      password: 'indra9346',
-    });
-    
-    if (!signInError && signInData.user) {
-      console.log('Admin user already exists');
-      // Sign out after checking
-      await supabase.auth.signOut();
+    const adminEmail = "admin@example.com"; // change to your admin email
+    const adminPassword = "password123";    // change to a secure password
+
+    // Check if admin user already exists
+    const { data: existing, error: fetchError } = await supabase
+      .from("users") // assuming you have a "users" table
+      .select("*")
+      .eq("email", adminEmail)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      console.error("Error checking admin user:", fetchError);
       return;
     }
 
-    // Create admin user if sign in failed
-    const { error } = await supabase.auth.signUp({
-      email: 'ik9893344@gmail.com',
-      password: 'indra2003',
-    });
+    if (!existing) {
+      // Insert admin user
+      const { data, error } = await supabase.from("users").insert([
+        {
+          email: adminEmail,
+          password: adminPassword,
+          role: "admin",
+        },
+      ]);
 
-    if (error) {
-      throw error;
+      if (error) {
+        console.error("Error creating admin user:", error);
+      } else {
+        console.log("Admin user created:", data);
+      }
+    } else {
+      console.log("Admin user already exists.");
     }
-
-    console.log('Admin user created successfully');
-  } catch (error) {
-    console.error('Error initializing admin user:', error);
+  } catch (err) {
+    console.error("initAdminUser error:", err);
   }
 };

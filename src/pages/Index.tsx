@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
@@ -8,7 +7,7 @@ import ProjectsSection from "../components/ProjectsSection";
 import SkillsSection from "../components/SkillsSection";
 import ContactSection from "../components/ContactSection";
 import Footer from "../components/Footer";
-import { initAdminUser } from "@/utils/initAdminUser";
+import { initAdminUser } from "../utils/initAdminUser"; // <-- changed from "@/utils/initAdminUser"
 
 const Index = () => {
   useEffect(() => {
@@ -29,7 +28,7 @@ const Index = () => {
     // Initialize admin user
     initAdminUser();
     
-    // Add return statement to clean up event listeners
+    // Clean up event listeners
     return () => {
       document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.removeEventListener('click', function () {});

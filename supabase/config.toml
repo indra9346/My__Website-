@@ -1,1 +1,16 @@
-project_id = "xpocpsmjklnykrkrohwr"
+#
+# This file is a project config file for the Supabase CLI.
+# For details on the settings, see: https://supabase.com/docs/guides/cli/config
+#
+[api]
+port = 54321
+url = "https://hhqadycmsxsedlvdfcnn.supabase.co"
+[auth]
+anon_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhocWFkeWNtc3hzZWRsdmRmY25uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczMjE0MDksImV4cCI6MjA3Mjg5NzQwOX0.rOuX2YBS4S8jHhB0ayLTl4R25pstE5twiiQLNp8uc4o"
+[db]
+password = "..."
+[studio]
+port = 54322
+[graphql]
+[storage]
+[realtime]
