@@ -160,7 +160,7 @@ const ContactSection = () => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan text-white h-32 resize-none"
-                  placeholder="Tell me about your project..."
+                  placeholder="Your message..."
                   required
                 ></textarea>
               </div>

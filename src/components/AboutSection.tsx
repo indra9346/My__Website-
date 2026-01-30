@@ -1,6 +1,6 @@
-import { Github, Linkedin, Cloud } from 'lucide-react';  // ⬅️ Added Cloud icon
+import { Github, Linkedin, Cloud } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import myPhoto from '../assets/myphoto.jpg'; // <-- Import your photo
+import myPhoto from '../assets/myphoto.jpg';
 
 const AboutSection = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -36,7 +36,7 @@ const AboutSection = () => {
                 <img
                   src={myPhoto}
                   alt="Indra Kumar"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                 />
               </div>
               {/* Decorative elements */}
@@ -78,13 +78,13 @@ const AboutSection = () => {
             <h3 className="text-2xl font-bold mb-4">Student Developer & Tech Enthusiast</h3>
             <div className="space-y-4 text-gray-300">
               <p>
-                Hey! I’m <strong>Indra Kumar</strong>, currently in my <strong>4th year </strong> of B.E. in 
-                <strong>Artificial Intelligence & Machine Learning</strong>. Over the years, I’ve found myself drawn towards 
+                Hey! I'm <strong>Indra Kumar</strong>, currently in my <strong>4th year </strong> of B.E. in 
+                <strong>Artificial Intelligence & Machine Learning</strong>. Over the years, I've found myself drawn towards 
                 building things that are not only functional but also meaningful.
               </p>
               <p>
-                I’ve got a strong hold on <strong>Java</strong> and <strong>HTML</strong>, I’m pretty comfortable with <strong>CSS</strong>, 
-                and I’ve also worked with <strong>Hibernate</strong> and <strong>PostgreSQL</strong> for handling backend and database stuff.
+                I've got a strong hold on <strong>Java</strong> and <strong>HTML</strong>, I'm pretty comfortable with <strong>CSS</strong>, 
+                and I've also worked with <strong>Hibernate</strong> and <strong>PostgreSQL</strong> for handling backend and database stuff.
               </p>
               <p>
                 Even though my branch is AIML, what excites me the most is exploring <strong>AI tools</strong> and figuring out how 
