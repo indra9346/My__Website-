@@ -3,18 +3,7 @@
 import { Github, ExternalLink, Code } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/utils/supabaseClient";
-
-interface Project {
-  id: string;
-  title: string;
-  Description: string;
-  Image: string | null;
-  Tags: string[]; // We'll parse JSON or comma-separated string
-  github: string | null;
-  Demo: string | null;
-  Display_Order: number;
-}
+import { supabase } from "@/integrations/supabase/client";
 
 const ProjectsSection = () => {
   const [visibleProjects, setVisibleProjects] = useState<string[]>([]);
@@ -28,12 +17,7 @@ const ProjectsSection = () => {
         .order("Display_Order", { ascending: true });
 
       if (error) throw error;
-
-      // Parse Tags if stored as string
-      return data?.map((proj) => ({
-        ...proj,
-        Tags: typeof proj.Tags === "string" ? JSON.parse(proj.Tags) : proj.Tags,
-      })) as Project[];
+      return data;
     },
   });
 
@@ -75,7 +59,7 @@ const ProjectsSection = () => {
     return (
       <section id="projects" className="py-24 bg-black/30">
         <div className="container mx-auto px-4 text-center text-red-400">
-          ❌ Failed to load projects. Check console for details.
+          ❌ Failed to load projects.
         </div>
       </section>
     );
@@ -90,7 +74,7 @@ const ProjectsSection = () => {
         </p>
 
         {projects?.length === 0 && (
-          <p className="text-center text-gray-400">⚠️ No projects found in Supabase.</p>
+          <p className="text-center text-muted-foreground">No projects yet.</p>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -110,7 +94,7 @@ const ProjectsSection = () => {
                   {project.Image ? (
                     <img
                       src={project.Image}
-                      alt={project.title}
+                      alt={project.title || "Project"}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -139,24 +123,12 @@ const ProjectsSection = () => {
 
               <div className="flex justify-between mt-auto">
                 {project.github && (
-                  <a
-                    href={project.github}
-                    className="text-gray-400 hover:text-neon-cyan transition-colors"
-                    aria-label="GitHub repository"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <a href={project.github} className="text-gray-400 hover:text-neon-cyan transition-colors" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
                     <Github size={20} />
                   </a>
                 )}
                 {project.Demo && (
-                  <a
-                    href={project.Demo}
-                    className="text-gray-400 hover:text-neon-cyan transition-colors"
-                    aria-label="Live demo"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <a href={project.Demo} className="text-gray-400 hover:text-neon-cyan transition-colors" target="_blank" rel="noopener noreferrer" aria-label="Live demo">
                     <ExternalLink size={20} />
                   </a>
                 )}

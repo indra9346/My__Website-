@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
 const Auth = () => {
-  const [email, setEmail] = useState('admin@example.com'); // Default to admin email
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -17,23 +17,15 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       
-      toast({
-        title: "Login successful",
-        description: "You are now logged in as admin",
-      });
-      
+      toast({ title: "Login successful", description: "Welcome to the admin dashboard" });
       navigate('/admin');
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Login failed",
-        description: error.message || "An error occurred during login",
+        description: error.message || "Invalid credentials",
         variant: "destructive",
       });
     } finally {
@@ -69,7 +61,6 @@ const Auth = () => {
               className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
               required
             />
-            {!password && <p className="text-xs mt-1 text-gray-400">Default password: indra9346</p>}
           </div>
           
           <Button 

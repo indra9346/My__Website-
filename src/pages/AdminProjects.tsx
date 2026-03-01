@@ -5,33 +5,46 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Pencil, Trash2, Plus } from 'lucide-react';
 
 type Project = {
   id: string;
+  title: string | null;
+  Description: string | null;
+  Image: string | null;
+  Tags: string[] | null;
+  github: string | null;
+  Demo: string | null;
+  Display_Order: number | null;
+  created_at: string;
+};
+
+type ProjectForm = {
   title: string;
-  description: string;
-  image?: string;
-  tags: string[];
-  github?: string;
-  demo?: string;
-  display_order: number;
+  Description: string;
+  Image: string;
+  Tags: string[];
+  github: string;
+  Demo: string;
 };
 
 const AdminProjects = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [newProject, setNewProject] = useState<Omit<Project, 'id'>>({
-    title: '',
-    description: '',
-    tags: [],
-    display_order: 0,
-  });
   const [isEditingSheetOpen, setIsEditingSheetOpen] = useState(false);
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [tagsInput, setTagsInput] = useState('');
   const [newTagsInput, setNewTagsInput] = useState('');
+  const [newProject, setNewProject] = useState<ProjectForm>({
+    title: '',
+    Description: '',
+    Image: '',
+    Tags: [],
+    github: '',
+    Demo: '',
+  });
 
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects'],
@@ -39,108 +52,85 @@ const AdminProjects = () => {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .order('display_order');
-        
+        .order('Display_Order', { ascending: true });
+
       if (error) throw error;
-      return data as Project[];
+      return data;
     }
   });
-  
+
   const updateMutation = useMutation({
     mutationFn: async (project: Project) => {
       const { error } = await supabase
         .from('projects')
         .update({
           title: project.title,
-          description: project.description,
-          image: project.image,
-          tags: project.tags,
+          Description: project.Description,
+          Image: project.Image,
+          Tags: project.Tags,
           github: project.github,
-          demo: project.demo,
-          updated_at: new Date().toISOString(),
+          Demo: project.Demo,
         })
         .eq('id', project.id);
-        
+
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast({
-        title: "Success",
-        description: "Project updated successfully",
-      });
+      toast({ title: "Success", description: "Project updated successfully" });
       setIsEditingSheetOpen(false);
       setEditingProject(null);
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update project",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update project", variant: "destructive" });
     }
   });
 
   const addMutation = useMutation({
-    mutationFn: async (project: Omit<Project, 'id'>) => {
+    mutationFn: async (project: ProjectForm & { Display_Order: number }) => {
       const { error } = await supabase
         .from('projects')
-        .insert([project]);
-        
+        .insert([{
+          title: project.title,
+          Description: project.Description,
+          Image: project.Image || null,
+          Tags: project.Tags,
+          github: project.github || null,
+          Demo: project.Demo || null,
+          Display_Order: project.Display_Order,
+        }]);
+
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast({
-        title: "Success",
-        description: "Project added successfully",
-      });
+      toast({ title: "Success", description: "Project added successfully" });
       setIsAddSheetOpen(false);
-      setNewProject({
-        title: '',
-        description: '',
-        tags: [],
-        display_order: 0,
-      });
+      setNewProject({ title: '', Description: '', Image: '', Tags: [], github: '', Demo: '' });
       setNewTagsInput('');
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to add project",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to add project", variant: "destructive" });
     }
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', id);
-        
+      const { error } = await supabase.from('projects').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast({
-        title: "Success",
-        description: "Project deleted successfully",
-      });
+      toast({ title: "Success", description: "Project deleted successfully" });
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete project",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to delete project", variant: "destructive" });
     }
   });
 
   const handleEdit = (project: Project) => {
-    setEditingProject({...project});
-    setTagsInput(project.tags.join(', '));
+    setEditingProject({ ...project });
+    setTagsInput((project.Tags || []).join(', '));
     setIsEditingSheetOpen(true);
   };
 
@@ -149,21 +139,18 @@ const AdminProjects = () => {
     if (editingProject) {
       updateMutation.mutate({
         ...editingProject,
-        tags: tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag),
+        Tags: tagsInput.split(',').map(tag => tag.trim()).filter(Boolean),
       });
     }
   };
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Get max display order for new project
-    const maxOrder = projects ? Math.max(0, ...projects.map(p => p.display_order)) : 0;
-    
+    const maxOrder = projects ? Math.max(0, ...projects.map(p => p.Display_Order || 0)) : 0;
     addMutation.mutate({
       ...newProject,
-      tags: newTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag),
-      display_order: maxOrder + 1,
+      Tags: newTagsInput.split(',').map(tag => tag.trim()).filter(Boolean),
+      Display_Order: maxOrder + 1,
     });
   };
 
@@ -173,15 +160,14 @@ const AdminProjects = () => {
     }
   };
 
+  const inputClass = "w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan text-foreground";
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold">Manage Projects</h2>
-        <Button 
-          onClick={() => setIsAddSheetOpen(true)}
-          className="bg-neon-cyan hover:bg-neon-cyan/80 text-black"
-        >
-          Add Project
+        <Button onClick={() => setIsAddSheetOpen(true)} className="bg-neon-cyan hover:bg-neon-cyan/80 text-black">
+          <Plus className="w-4 h-4 mr-2" /> Add Project
         </Button>
       </div>
 
@@ -205,26 +191,15 @@ const AdminProjects = () => {
               {projects?.map((project) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">{project.title}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{project.description}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">
-                    {project.tags.join(', ')}
-                  </TableCell>
-                  <TableCell>{project.display_order}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">{project.Description}</TableCell>
+                  <TableCell className="max-w-[150px] truncate">{(project.Tags || []).join(', ')}</TableCell>
+                  <TableCell>{project.Display_Order}</TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleEdit(project)}
-                    >
-                      Edit
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(project)}>
+                      <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => handleDelete(project.id)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      Delete
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(project.id)} disabled={deleteMutation.isPending}>
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -240,99 +215,35 @@ const AdminProjects = () => {
           <SheetHeader>
             <SheetTitle>Edit Project</SheetTitle>
           </SheetHeader>
-
           {editingProject && (
             <form onSubmit={handleUpdate} className="space-y-4 mt-6">
               <div>
-                <label htmlFor="title" className="block mb-2 text-sm font-medium">
-                  Title
-                </label>
-                <input
-                  id="title"
-                  value={editingProject.title}
-                  onChange={(e) => setEditingProject({...editingProject, title: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                />
+                <label className="block mb-2 text-sm font-medium">Title</label>
+                <input value={editingProject.title || ''} onChange={(e) => setEditingProject({ ...editingProject, title: e.target.value })} className={inputClass} />
               </div>
-
               <div>
-                <label htmlFor="description" className="block mb-2 text-sm font-medium">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  value={editingProject.description}
-                  onChange={(e) => setEditingProject({...editingProject, description: e.target.value})}
-                  rows={3}
-                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                />
+                <label className="block mb-2 text-sm font-medium">Description</label>
+                <textarea value={editingProject.Description || ''} onChange={(e) => setEditingProject({ ...editingProject, Description: e.target.value })} rows={3} className={inputClass} />
               </div>
-
               <div>
-                <label htmlFor="tags" className="block mb-2 text-sm font-medium">
-                  Tags (comma separated)
-                </label>
-                <input
-                  id="tags"
-                  value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                  placeholder="React, TypeScript, NextJS"
-                />
+                <label className="block mb-2 text-sm font-medium">Tags (comma separated)</label>
+                <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className={inputClass} placeholder="React, TypeScript, NextJS" />
               </div>
-
               <div>
-                <label htmlFor="image" className="block mb-2 text-sm font-medium">
-                  Image URL
-                </label>
-                <input
-                  id="image"
-                  value={editingProject.image || ''}
-                  onChange={(e) => setEditingProject({...editingProject, image: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                  placeholder="https://example.com/image.jpg"
-                />
+                <label className="block mb-2 text-sm font-medium">Image URL</label>
+                <input value={editingProject.Image || ''} onChange={(e) => setEditingProject({ ...editingProject, Image: e.target.value })} className={inputClass} placeholder="https://example.com/image.jpg" />
               </div>
-
               <div>
-                <label htmlFor="github" className="block mb-2 text-sm font-medium">
-                  GitHub URL
-                </label>
-                <input
-                  id="github"
-                  value={editingProject.github || ''}
-                  onChange={(e) => setEditingProject({...editingProject, github: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                  placeholder="https://github.com/username/repo"
-                />
+                <label className="block mb-2 text-sm font-medium">GitHub URL</label>
+                <input value={editingProject.github || ''} onChange={(e) => setEditingProject({ ...editingProject, github: e.target.value })} className={inputClass} placeholder="https://github.com/username/repo" />
               </div>
-
               <div>
-                <label htmlFor="demo" className="block mb-2 text-sm font-medium">
-                  Demo URL
-                </label>
-                <input
-                  id="demo"
-                  value={editingProject.demo || ''}
-                  onChange={(e) => setEditingProject({...editingProject, demo: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                  placeholder="https://example.com/demo"
-                />
+                <label className="block mb-2 text-sm font-medium">Live Demo URL</label>
+                <input value={editingProject.Demo || ''} onChange={(e) => setEditingProject({ ...editingProject, Demo: e.target.value })} className={inputClass} placeholder="https://example.com" />
               </div>
-
               <div className="flex justify-end gap-3 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsEditingSheetOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-neon-cyan hover:bg-neon-cyan/80 text-black"
-                  disabled={updateMutation.isPending}
-                >
+                <Button type="button" variant="outline" onClick={() => setIsEditingSheetOpen(false)}>Cancel</Button>
+                <Button type="submit" className="bg-neon-cyan hover:bg-neon-cyan/80 text-black" disabled={updateMutation.isPending}>
                   {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
@@ -347,97 +258,34 @@ const AdminProjects = () => {
           <SheetHeader>
             <SheetTitle>Add New Project</SheetTitle>
           </SheetHeader>
-
           <form onSubmit={handleAdd} className="space-y-4 mt-6">
             <div>
-              <label htmlFor="newTitle" className="block mb-2 text-sm font-medium">
-                Title
-              </label>
-              <input
-                id="newTitle"
-                value={newProject.title}
-                onChange={(e) => setNewProject({...newProject, title: e.target.value})}
-                className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                required
-              />
+              <label className="block mb-2 text-sm font-medium">Title</label>
+              <input value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })} className={inputClass} required />
             </div>
-
             <div>
-              <label htmlFor="newDescription" className="block mb-2 text-sm font-medium">
-                Description
-              </label>
-              <textarea
-                id="newDescription"
-                value={newProject.description}
-                onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-                rows={3}
-                className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                required
-              />
+              <label className="block mb-2 text-sm font-medium">Description</label>
+              <textarea value={newProject.Description} onChange={(e) => setNewProject({ ...newProject, Description: e.target.value })} rows={3} className={inputClass} required />
             </div>
-
             <div>
-              <label htmlFor="newTags" className="block mb-2 text-sm font-medium">
-                Tags (comma separated)
-              </label>
-              <input
-                id="newTags"
-                value={newTagsInput}
-                onChange={(e) => setNewTagsInput(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                placeholder="React, TypeScript, NextJS"
-              />
+              <label className="block mb-2 text-sm font-medium">Tags (comma separated)</label>
+              <input value={newTagsInput} onChange={(e) => setNewTagsInput(e.target.value)} className={inputClass} placeholder="React, TypeScript" />
             </div>
-
             <div>
-              <label htmlFor="newImage" className="block mb-2 text-sm font-medium">
-                Image URL
-              </label>
-              <input
-                id="newImage"
-                onChange={(e) => setNewProject({...newProject, image: e.target.value})}
-                className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                placeholder="https://example.com/image.jpg"
-              />
+              <label className="block mb-2 text-sm font-medium">Image URL</label>
+              <input onChange={(e) => setNewProject({ ...newProject, Image: e.target.value })} className={inputClass} placeholder="https://example.com/image.jpg" />
             </div>
-
             <div>
-              <label htmlFor="newGithub" className="block mb-2 text-sm font-medium">
-                GitHub URL
-              </label>
-              <input
-                id="newGithub"
-                onChange={(e) => setNewProject({...newProject, github: e.target.value})}
-                className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                placeholder="https://github.com/username/repo"
-              />
+              <label className="block mb-2 text-sm font-medium">GitHub URL</label>
+              <input onChange={(e) => setNewProject({ ...newProject, github: e.target.value })} className={inputClass} placeholder="https://github.com/username/repo" />
             </div>
-
             <div>
-              <label htmlFor="newDemo" className="block mb-2 text-sm font-medium">
-                Demo URL
-              </label>
-              <input
-                id="newDemo"
-                onChange={(e) => setNewProject({...newProject, demo: e.target.value})}
-                className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan"
-                placeholder="https://example.com/demo"
-              />
+              <label className="block mb-2 text-sm font-medium">Live Demo URL</label>
+              <input onChange={(e) => setNewProject({ ...newProject, Demo: e.target.value })} className={inputClass} placeholder="https://example.com" />
             </div>
-
             <div className="flex justify-end gap-3 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsAddSheetOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-neon-cyan hover:bg-neon-cyan/80 text-black"
-                disabled={addMutation.isPending}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsAddSheetOpen(false)}>Cancel</Button>
+              <Button type="submit" className="bg-neon-cyan hover:bg-neon-cyan/80 text-black" disabled={addMutation.isPending}>
                 {addMutation.isPending ? 'Adding...' : 'Add Project'}
               </Button>
             </div>
