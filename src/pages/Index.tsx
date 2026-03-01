@@ -7,28 +7,22 @@ import ProjectsSection from "../components/ProjectsSection";
 import SkillsSection from "../components/SkillsSection";
 import ContactSection from "../components/ContactSection";
 import Footer from "../components/Footer";
-import { initAdminUser } from "../utils/initAdminUser"; // <-- changed from "@/utils/initAdminUser"
 
 const Index = () => {
   useEffect(() => {
-    // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function (e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href') || '');
         if (target) {
           window.scrollTo({
-            top: target.getBoundingClientRect().top + window.pageYOffset - 80, // Offset for navbar
+            top: target.getBoundingClientRect().top + window.pageYOffset - 80,
             behavior: 'smooth'
           });
         }
       });
     });
-    
-    // Initialize admin user
-    initAdminUser();
-    
-    // Clean up event listeners
+
     return () => {
       document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.removeEventListener('click', function () {});
@@ -46,10 +40,9 @@ const Index = () => {
       <ContactSection />
       <Footer />
       
-      {/* Admin link (only visible in development) */}
       <div className="fixed bottom-4 right-4 z-50">
         <Link 
-          to="/admin" 
+          to="/auth" 
           className="glass text-xs px-3 py-1 rounded-full opacity-50 hover:opacity-100 transition-opacity"
         >
           Admin
