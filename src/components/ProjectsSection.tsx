@@ -21,26 +21,36 @@ const ProjectsSection = () => {
     },
   });
 
+  // ✅ FIXED INTERSECTION OBSERVER (Mobile Safe)
   useEffect(() => {
     if (!projects) return;
 
     const observer = new IntersectionObserver(
-      (entries) => {
+      (entries, observerInstance) => {
         entries.forEach((entry) => {
           const id = entry.target.getAttribute("data-project-id");
-          if (entry.isIntersecting && id && !visibleProjects.includes(id)) {
-            setVisibleProjects((prev) => [...prev, id]);
+
+          if (entry.isIntersecting && id) {
+            setVisibleProjects((prev) =>
+              prev.includes(id) ? prev : [...prev, id]
+            );
+
+            // 🔥 stop observing once visible
+            observerInstance.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.2 }
+      {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px", // helps mobile triggering
+      }
     );
 
-    const projectElements = document.querySelectorAll(".project-card");
-    projectElements.forEach((el) => observer.observe(el));
+    const elements = document.querySelectorAll(".project-card");
+    elements.forEach((el) => observer.observe(el));
 
-    return () => projectElements.forEach((el) => observer.unobserve(el));
-  }, [projects, visibleProjects]);
+    return () => observer.disconnect();
+  }, [projects]); // ✅ removed visibleProjects dependency
 
   if (isLoading) {
     return (
@@ -70,7 +80,8 @@ const ProjectsSection = () => {
       <div className="container mx-auto px-4">
         <h2 className="section-title">Projects</h2>
         <p className="text-gray-300 mb-12 max-w-2xl">
-          Explore some of my recent work. Each project is a unique challenge that I approached with creativity and technical precision.
+          Explore some of my recent work. Each project is a unique challenge
+          that I approached with creativity and technical precision.
         </p>
 
         {projects?.length === 0 && (
@@ -84,12 +95,13 @@ const ProjectsSection = () => {
               data-project-id={project.id}
               className={`project-card card-3d glass p-5 rounded-xl transition-all duration-700 ${
                 visibleProjects.includes(project.id)
-                  ? "opacity-100"
+                  ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-10"
               }`}
             >
               <div className="relative h-48 mb-4 overflow-hidden rounded-lg group">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent z-10 opacity-70 group-hover:opacity-90 transition-opacity"></div>
+
                 <div className="absolute inset-0 bg-gray-800 flex items-center justify-center text-4xl">
                   {project.Image ? (
                     <img
@@ -101,13 +113,18 @@ const ProjectsSection = () => {
                     <Code size={48} className="text-neon-cyan" />
                   )}
                 </div>
+
                 <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-                  <h3 className="text-xl font-bold text-white">{project.title}</h3>
+                  <h3 className="text-xl font-bold text-white">
+                    {project.title}
+                  </h3>
                 </div>
               </div>
 
               <div className="mb-4">
-                <p className="text-gray-300 text-sm">{project.Description}</p>
+                <p className="text-gray-300 text-sm">
+                  {project.Description}
+                </p>
               </div>
 
               <div className="flex flex-wrap gap-2 mb-4">
@@ -123,12 +140,23 @@ const ProjectsSection = () => {
 
               <div className="flex justify-between mt-auto">
                 {project.github && (
-                  <a href={project.github} className="text-gray-400 hover:text-neon-cyan transition-colors" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
+                  <a
+                    href={project.github}
+                    className="text-gray-400 hover:text-neon-cyan transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <Github size={20} />
                   </a>
                 )}
+
                 {project.Demo && (
-                  <a href={project.Demo} className="text-gray-400 hover:text-neon-cyan transition-colors" target="_blank" rel="noopener noreferrer" aria-label="Live demo">
+                  <a
+                    href={project.Demo}
+                    className="text-gray-400 hover:text-neon-cyan transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <ExternalLink size={20} />
                   </a>
                 )}
