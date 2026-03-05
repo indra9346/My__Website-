@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
+const CATEGORIES = ['Client Projects', 'Personal Projects', 'Open Source', 'Freelance'];
+
 type Project = {
   id: string;
   title: string | null;
@@ -17,6 +19,7 @@ type Project = {
   github: string | null;
   Demo: string | null;
   Display_Order: number | null;
+  category: string;
   created_at: string;
 };
 
@@ -27,6 +30,7 @@ type ProjectForm = {
   Tags: string[];
   github: string;
   Demo: string;
+  category: string;
 };
 
 const AdminProjects = () => {
@@ -44,6 +48,7 @@ const AdminProjects = () => {
     Tags: [],
     github: '',
     Demo: '',
+    category: 'Client Projects',
   });
 
   const { data: projects, isLoading } = useQuery({
@@ -53,9 +58,8 @@ const AdminProjects = () => {
         .from('projects')
         .select('*')
         .order('Display_Order', { ascending: true });
-
       if (error) throw error;
-      return data;
+      return data as unknown as Project[];
     }
   });
 
@@ -70,9 +74,9 @@ const AdminProjects = () => {
           Tags: project.Tags,
           github: project.github,
           Demo: project.Demo,
-        })
+          category: project.category,
+        } as any)
         .eq('id', project.id);
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -98,15 +102,15 @@ const AdminProjects = () => {
           github: project.github || null,
           Demo: project.Demo || null,
           Display_Order: project.Display_Order,
-        }]);
-
+          category: project.category,
+        } as any]);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast({ title: "Success", description: "Project added successfully" });
       setIsAddSheetOpen(false);
-      setNewProject({ title: '', Description: '', Image: '', Tags: [], github: '', Demo: '' });
+      setNewProject({ title: '', Description: '', Image: '', Tags: [], github: '', Demo: '', category: 'Client Projects' });
       setNewTagsInput('');
     },
     onError: (error: any) => {
@@ -160,7 +164,77 @@ const AdminProjects = () => {
     }
   };
 
+  // Group projects by category
+  const groupedProjects = projects?.reduce((acc, project) => {
+    const cat = project.category || 'Personal Projects';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(project);
+    return acc;
+  }, {} as Record<string, Project[]>);
+
   const inputClass = "w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan text-foreground";
+  const selectClass = "w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan text-foreground";
+
+  const renderForm = (isEdit: boolean) => {
+    const project = isEdit ? editingProject : newProject;
+    const tags = isEdit ? tagsInput : newTagsInput;
+    if (!project) return null;
+
+    const setField = (field: string, value: string) => {
+      if (isEdit) {
+        setEditingProject({ ...editingProject!, [field]: value });
+      } else {
+        setNewProject({ ...newProject, [field]: value });
+      }
+    };
+
+    return (
+      <form onSubmit={isEdit ? handleUpdate : handleAdd} className="space-y-4 mt-6">
+        <div>
+          <label className="block mb-2 text-sm font-medium">Category</label>
+          <select
+            value={(project as any).category || 'Client Projects'}
+            onChange={(e) => setField('category', e.target.value)}
+            className={selectClass}
+          >
+            {CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium">Title</label>
+          <input value={(project as any).title || ''} onChange={(e) => setField('title', e.target.value)} className={inputClass} required={!isEdit} />
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium">Description</label>
+          <textarea value={(project as any).Description || ''} onChange={(e) => setField('Description', e.target.value)} rows={3} className={inputClass} required={!isEdit} />
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium">Tags (comma separated)</label>
+          <input value={tags} onChange={(e) => isEdit ? setTagsInput(e.target.value) : setNewTagsInput(e.target.value)} className={inputClass} placeholder="React, TypeScript" />
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium">Image URL</label>
+          <input value={(project as any).Image || ''} onChange={(e) => setField('Image', e.target.value)} className={inputClass} placeholder="https://example.com/image.jpg" />
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium">GitHub URL</label>
+          <input value={(project as any).github || ''} onChange={(e) => setField('github', e.target.value)} className={inputClass} placeholder="https://github.com/username/repo" />
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium">Live Demo URL</label>
+          <input value={(project as any).Demo || ''} onChange={(e) => setField('Demo', e.target.value)} className={inputClass} placeholder="https://example.com" />
+        </div>
+        <div className="flex justify-end gap-3 pt-4">
+          <Button type="button" variant="outline" onClick={() => isEdit ? setIsEditingSheetOpen(false) : setIsAddSheetOpen(false)}>Cancel</Button>
+          <Button type="submit" className="bg-neon-cyan hover:bg-neon-cyan/80 text-black" disabled={isEdit ? updateMutation.isPending : addMutation.isPending}>
+            {isEdit ? (updateMutation.isPending ? 'Saving...' : 'Save Changes') : (addMutation.isPending ? 'Adding...' : 'Add Project')}
+          </Button>
+        </div>
+      </form>
+    );
+  };
 
   return (
     <div>
@@ -176,120 +250,55 @@ const AdminProjects = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan"></div>
         </div>
       ) : (
-        <div className="glass rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projects?.map((project) => (
-                <TableRow key={project.id}>
-                  <TableCell className="font-medium">{project.title}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{project.Description}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{(project.Tags || []).join(', ')}</TableCell>
-                  <TableCell>{project.Display_Order}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(project)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(project.id)} disabled={deleteMutation.isPending}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        Object.entries(groupedProjects || {}).map(([category, categoryProjects]) => (
+          <div key={category} className="mb-8">
+            <h3 className="text-lg font-semibold text-neon-cyan mb-3">{category}</h3>
+            <div className="glass rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Tags</TableHead>
+                    <TableHead>Order</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categoryProjects.map((project) => (
+                    <TableRow key={project.id}>
+                      <TableCell className="font-medium">{project.title}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{project.Description}</TableCell>
+                      <TableCell className="max-w-[150px] truncate">{(project.Tags || []).join(', ')}</TableCell>
+                      <TableCell>{project.Display_Order}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(project)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(project.id)} disabled={deleteMutation.isPending}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ))
       )}
 
-      {/* Edit Project Sheet */}
       <Sheet open={isEditingSheetOpen} onOpenChange={setIsEditingSheetOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Edit Project</SheetTitle>
-          </SheetHeader>
-          {editingProject && (
-            <form onSubmit={handleUpdate} className="space-y-4 mt-6">
-              <div>
-                <label className="block mb-2 text-sm font-medium">Title</label>
-                <input value={editingProject.title || ''} onChange={(e) => setEditingProject({ ...editingProject, title: e.target.value })} className={inputClass} />
-              </div>
-              <div>
-                <label className="block mb-2 text-sm font-medium">Description</label>
-                <textarea value={editingProject.Description || ''} onChange={(e) => setEditingProject({ ...editingProject, Description: e.target.value })} rows={3} className={inputClass} />
-              </div>
-              <div>
-                <label className="block mb-2 text-sm font-medium">Tags (comma separated)</label>
-                <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className={inputClass} placeholder="React, TypeScript, NextJS" />
-              </div>
-              <div>
-                <label className="block mb-2 text-sm font-medium">Image URL</label>
-                <input value={editingProject.Image || ''} onChange={(e) => setEditingProject({ ...editingProject, Image: e.target.value })} className={inputClass} placeholder="https://example.com/image.jpg" />
-              </div>
-              <div>
-                <label className="block mb-2 text-sm font-medium">GitHub URL</label>
-                <input value={editingProject.github || ''} onChange={(e) => setEditingProject({ ...editingProject, github: e.target.value })} className={inputClass} placeholder="https://github.com/username/repo" />
-              </div>
-              <div>
-                <label className="block mb-2 text-sm font-medium">Live Demo URL</label>
-                <input value={editingProject.Demo || ''} onChange={(e) => setEditingProject({ ...editingProject, Demo: e.target.value })} className={inputClass} placeholder="https://example.com" />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsEditingSheetOpen(false)}>Cancel</Button>
-                <Button type="submit" className="bg-neon-cyan hover:bg-neon-cyan/80 text-black" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </form>
-          )}
+          <SheetHeader><SheetTitle>Edit Project</SheetTitle></SheetHeader>
+          {renderForm(true)}
         </SheetContent>
       </Sheet>
 
-      {/* Add Project Sheet */}
       <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Add New Project</SheetTitle>
-          </SheetHeader>
-          <form onSubmit={handleAdd} className="space-y-4 mt-6">
-            <div>
-              <label className="block mb-2 text-sm font-medium">Title</label>
-              <input value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })} className={inputClass} required />
-            </div>
-            <div>
-              <label className="block mb-2 text-sm font-medium">Description</label>
-              <textarea value={newProject.Description} onChange={(e) => setNewProject({ ...newProject, Description: e.target.value })} rows={3} className={inputClass} required />
-            </div>
-            <div>
-              <label className="block mb-2 text-sm font-medium">Tags (comma separated)</label>
-              <input value={newTagsInput} onChange={(e) => setNewTagsInput(e.target.value)} className={inputClass} placeholder="React, TypeScript" />
-            </div>
-            <div>
-              <label className="block mb-2 text-sm font-medium">Image URL</label>
-              <input onChange={(e) => setNewProject({ ...newProject, Image: e.target.value })} className={inputClass} placeholder="https://example.com/image.jpg" />
-            </div>
-            <div>
-              <label className="block mb-2 text-sm font-medium">GitHub URL</label>
-              <input onChange={(e) => setNewProject({ ...newProject, github: e.target.value })} className={inputClass} placeholder="https://github.com/username/repo" />
-            </div>
-            <div>
-              <label className="block mb-2 text-sm font-medium">Live Demo URL</label>
-              <input onChange={(e) => setNewProject({ ...newProject, Demo: e.target.value })} className={inputClass} placeholder="https://example.com" />
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsAddSheetOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-neon-cyan hover:bg-neon-cyan/80 text-black" disabled={addMutation.isPending}>
-                {addMutation.isPending ? 'Adding...' : 'Add Project'}
-              </Button>
-            </div>
-          </form>
+          <SheetHeader><SheetTitle>Add New Project</SheetTitle></SheetHeader>
+          {renderForm(false)}
         </SheetContent>
       </Sheet>
     </div>
