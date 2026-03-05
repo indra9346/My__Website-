@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import HeroSection from "../components/HeroSection";
 import AboutSection from "../components/AboutSection";
