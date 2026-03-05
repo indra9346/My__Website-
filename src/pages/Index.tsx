@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import HeroSection from "../components/HeroSection";
 import AboutSection from "../components/AboutSection";
@@ -40,14 +39,7 @@ const Index = () => {
       <ContactSection />
       <Footer />
       
-      <div className="fixed bottom-4 right-4 z-50">
-        <Link 
-          to="/auth" 
-          className="glass text-xs px-3 py-1 rounded-full opacity-50 hover:opacity-100 transition-opacity"
-        >
-          Admin
-        </Link>
-      </div>
+      {/* Admin access via /auth URL only - no visible link */}
     </div>
   );
 };

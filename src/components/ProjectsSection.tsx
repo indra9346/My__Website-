@@ -5,6 +5,18 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+type Project = {
+  id: string;
+  title: string | null;
+  Description: string | null;
+  Image: string | null;
+  Tags: string[] | null;
+  github: string | null;
+  Demo: string | null;
+  Display_Order: number | null;
+  category: string;
+};
+
 const ProjectsSection = () => {
   const [visibleProjects, setVisibleProjects] = useState<string[]>([]);
 
@@ -15,42 +27,37 @@ const ProjectsSection = () => {
         .from("projects")
         .select("*")
         .order("Display_Order", { ascending: true });
-
       if (error) throw error;
-      return data;
+      return data as unknown as Project[];
     },
   });
 
-  // ✅ FIXED INTERSECTION OBSERVER (Mobile Safe)
   useEffect(() => {
     if (!projects) return;
-
     const observer = new IntersectionObserver(
       (entries, observerInstance) => {
         entries.forEach((entry) => {
           const id = entry.target.getAttribute("data-project-id");
-
           if (entry.isIntersecting && id) {
-            setVisibleProjects((prev) =>
-              prev.includes(id) ? prev : [...prev, id]
-            );
-
-            // 🔥 stop observing once visible
+            setVisibleProjects((prev) => prev.includes(id) ? prev : [...prev, id]);
             observerInstance.unobserve(entry.target);
           }
         });
       },
-      {
-        threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px", // helps mobile triggering
-      }
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     );
-
     const elements = document.querySelectorAll(".project-card");
     elements.forEach((el) => observer.observe(el));
-
     return () => observer.disconnect();
-  }, [projects]); // ✅ removed visibleProjects dependency
+  }, [projects]);
+
+  // Group projects by category
+  const groupedProjects = projects?.reduce((acc, project) => {
+    const cat = project.category || 'Personal Projects';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(project);
+    return acc;
+  }, {} as Record<string, Project[]>);
 
   if (isLoading) {
     return (
@@ -75,6 +82,50 @@ const ProjectsSection = () => {
     );
   }
 
+  const renderProjectCard = (project: Project) => (
+    <div
+      key={project.id}
+      data-project-id={project.id}
+      className={`project-card card-3d glass p-5 rounded-xl transition-all duration-700 ${
+        visibleProjects.includes(project.id) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+      }`}
+    >
+      <div className="relative h-48 mb-4 overflow-hidden rounded-lg group">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent z-10 opacity-70 group-hover:opacity-90 transition-opacity"></div>
+        <div className="absolute inset-0 bg-gray-800 flex items-center justify-center text-4xl">
+          {project.Image ? (
+            <img src={project.Image} alt={project.title || "Project"} className="w-full h-full object-cover" />
+          ) : (
+            <Code size={48} className="text-neon-cyan" />
+          )}
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
+          <h3 className="text-xl font-bold text-white">{project.title}</h3>
+        </div>
+      </div>
+      <div className="mb-4">
+        <p className="text-gray-300 text-sm">{project.Description}</p>
+      </div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {project.Tags?.map((tag, index) => (
+          <span key={index} className="text-xs font-mono px-2 py-1 rounded-full bg-neon-blue/20 text-neon-blue">{tag}</span>
+        ))}
+      </div>
+      <div className="flex justify-between mt-auto">
+        {project.github && (
+          <a href={project.github} className="text-gray-400 hover:text-neon-cyan transition-colors" target="_blank" rel="noopener noreferrer">
+            <Github size={20} />
+          </a>
+        )}
+        {project.Demo && (
+          <a href={project.Demo} className="text-gray-400 hover:text-neon-cyan transition-colors" target="_blank" rel="noopener noreferrer">
+            <ExternalLink size={20} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <section id="projects" className="py-24 bg-black/30">
       <div className="container mx-auto px-4">
@@ -84,91 +135,23 @@ const ProjectsSection = () => {
           that I approached with creativity and technical precision.
         </p>
 
-        {projects?.length === 0 && (
+        {(!projects || projects.length === 0) && (
           <p className="text-center text-muted-foreground">No projects yet.</p>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {projects?.map((project) => (
-            <div
-              key={project.id}
-              data-project-id={project.id}
-              className={`project-card card-3d glass p-5 rounded-xl transition-all duration-700 ${
-                visibleProjects.includes(project.id)
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-10"
-              }`}
-            >
-              <div className="relative h-48 mb-4 overflow-hidden rounded-lg group">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent z-10 opacity-70 group-hover:opacity-90 transition-opacity"></div>
-
-                <div className="absolute inset-0 bg-gray-800 flex items-center justify-center text-4xl">
-                  {project.Image ? (
-                    <img
-                      src={project.Image}
-                      alt={project.title || "Project"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Code size={48} className="text-neon-cyan" />
-                  )}
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-                  <h3 className="text-xl font-bold text-white">
-                    {project.title}
-                  </h3>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-gray-300 text-sm">
-                  {project.Description}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-                {project.Tags?.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="text-xs font-mono px-2 py-1 rounded-full bg-neon-blue/20 text-neon-blue"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex justify-between mt-auto">
-                {project.github && (
-                  <a
-                    href={project.github}
-                    className="text-gray-400 hover:text-neon-cyan transition-colors"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Github size={20} />
-                  </a>
-                )}
-
-                {project.Demo && (
-                  <a
-                    href={project.Demo}
-                    className="text-gray-400 hover:text-neon-cyan transition-colors"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink size={20} />
-                  </a>
-                )}
-              </div>
+        {groupedProjects && Object.entries(groupedProjects).map(([category, categoryProjects]) => (
+          <div key={category} className="mb-16">
+            <h3 className="text-2xl font-bold text-neon-cyan mb-8 border-b border-neon-cyan/30 pb-3">
+              {category}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {categoryProjects.map(renderProjectCard)}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
 
         <div className="text-center mt-12">
-          <a href="#contact" className="btn-neon">
-            Contact Me
-          </a>
+          <a href="#contact" className="btn-neon">Contact Me</a>
         </div>
       </div>
     </section>
