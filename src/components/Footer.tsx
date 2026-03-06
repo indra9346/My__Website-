@@ -5,16 +5,21 @@ import { Link } from 'react-router-dom';
 
 const Footer = () => {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setIsAdmin(!!data.session?.user);
-    };
-    checkAuth();
+    // Set up listener FIRST to catch all events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAdmin(!!session?.user);
+      setAuthReady(true);
     });
+
+    // Then check existing session
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAdmin(!!data.session?.user);
+      setAuthReady(true);
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 
