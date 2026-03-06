@@ -9,7 +9,6 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -18,28 +17,14 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin },
-        });
-        if (error) throw error;
-        toast({
-          title: "Account created",
-          description: "Check your email to confirm, then log in.",
-        });
-        setIsSignUp(false);
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast({ title: "Login successful", description: "Welcome to the admin dashboard" });
-        navigate('/admin');
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast({ title: "Login successful", description: "Welcome to the admin dashboard" });
+      navigate('/admin');
     } catch (error: any) {
       toast({
-        title: isSignUp ? "Signup failed" : "Login failed",
-        description: error.message || "Something went wrong",
+        title: "Login failed",
+        description: error.message || "Invalid credentials",
         variant: "destructive",
       });
     } finally {
@@ -50,9 +35,7 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="glass p-8 rounded-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">
-          {isSignUp ? 'Create Admin Account' : 'Admin Login'}
-        </h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Admin Login</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -85,20 +68,9 @@ const Auth = () => {
             className="w-full bg-neon-cyan hover:bg-neon-cyan/80 text-black"
             disabled={loading}
           >
-            {loading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Login'}
+            {loading ? 'Please wait...' : 'Login'}
           </Button>
         </form>
-
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-neon-cyan hover:underline"
-          >
-            {isSignUp ? 'Login' : 'Sign Up'}
-          </button>
-        </p>
       </div>
     </div>
   );
