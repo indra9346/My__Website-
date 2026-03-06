@@ -1,6 +1,23 @@
-import { Github, Linkedin, Twitter, Heart } from 'lucide-react';
+import { Github, Linkedin, Heart, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsAdmin(!!data.session?.user);
+    };
+    checkAuth();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdmin(!!session?.user);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <footer className="py-10 border-t border-gray-800">
       <div className="container mx-auto px-4">
@@ -37,10 +54,18 @@ const Footer = () => {
         </div>
 
         {/* Bottom text */}
-        <div className="mt-8 text-center text-gray-500 text-sm flex items-center justify-center">
-          <span>© {new Date().getFullYear()} | Crafted with</span>
-          <Heart size={14} className="mx-1 text-neon-pink" />
-          <span>by Indra Kumar</span>
+        <div className="mt-8 text-center text-gray-500 text-sm flex items-center justify-center gap-4">
+          <span className="flex items-center">
+            <span>© {new Date().getFullYear()} | Crafted with</span>
+            <Heart size={14} className="mx-1 text-neon-pink" />
+            <span>by Indra Kumar</span>
+          </span>
+          {isAdmin && (
+            <Link to="/admin" className="flex items-center gap-1 text-neon-cyan hover:text-neon-cyan/80 transition-colors">
+              <Settings size={14} />
+              <span>Admin</span>
+            </Link>
+          )}
         </div>
       </div>
     </footer>
