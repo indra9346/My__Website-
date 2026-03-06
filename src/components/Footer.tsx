@@ -1,6 +1,23 @@
-import { Github, Linkedin, Twitter, Heart } from 'lucide-react';
+import { Github, Linkedin, Heart, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsAdmin(!!data.session?.user);
+    };
+    checkAuth();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdmin(!!session?.user);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <footer className="py-10 border-t border-gray-800">
       <div className="container mx-auto px-4">
