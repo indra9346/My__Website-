@@ -1,28 +1,7 @@
 import { Github, Linkedin, Heart, Settings } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
-
-  useEffect(() => {
-    // Set up listener FIRST to catch all events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAdmin(!!session?.user);
-      setAuthReady(true);
-    });
-
-    // Then check existing session
-    supabase.auth.getSession().then(({ data }) => {
-      setIsAdmin(!!data.session?.user);
-      setAuthReady(true);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   return (
     <footer className="py-10 border-t border-gray-800">
       <div className="container mx-auto px-4">
@@ -54,7 +33,6 @@ const Footer = () => {
             >
               <Linkedin size={20} />
             </a>
-           
           </div>
         </div>
 
@@ -65,12 +43,13 @@ const Footer = () => {
             <Heart size={14} className="mx-1 text-neon-pink" />
             <span>by Indra Kumar</span>
           </span>
-          {isAdmin && (
-            <Link to="/admin" className="flex items-center gap-1 text-neon-cyan hover:text-neon-cyan/80 transition-colors">
-              <Settings size={14} />
-              <span>Admin</span>
-            </Link>
-          )}
+          <Link 
+            to="/admin" 
+            className="text-gray-700 hover:text-gray-500 transition-colors opacity-30 hover:opacity-70"
+            aria-label="Admin"
+          >
+            <Settings size={14} />
+          </Link>
         </div>
       </div>
     </footer>
