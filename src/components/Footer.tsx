@@ -45,10 +45,10 @@ const Footer = () => {
           </span>
           <Link 
             to="/admin" 
-            className="text-gray-700 hover:text-gray-500 transition-colors opacity-30 hover:opacity-70"
+            className="text-gray-400 hover:text-neon-cyan transition-colors"
             aria-label="Admin"
           >
-            <Settings size={14} />
+            <Settings size={16} />
           </Link>
         </div>
       </div>
