@@ -84,12 +84,12 @@ const HeroSection = () => {
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Java</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">C</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">DSA</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">Hibernate</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">HTML</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">CSS (Intermediate)</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">SQL</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">PostgreSQL</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">Python (Intermediate)</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Hibernate</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">HTML</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">CSS (Intermediate)</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">SQL</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">PostgreSQL</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Python (Intermediate)</li>
               </ul>
             </div>
 
