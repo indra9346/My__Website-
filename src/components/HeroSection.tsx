@@ -74,7 +74,7 @@ const HeroSection = () => {
             </h3>
             <p className="text-sm sm:text-base text-gray-300 max-w-xl mx-auto leading-relaxed px-1 sm:px-0">
               Java development and web technologies. Skilled in{' '}
-              **Java, HTML, CSS**, with experience in **Hibernate** and **PostgreSQL**. I enjoy exploring **AI tools** to make my work smarter, faster, and more impactful. Always eager to learn, build, and collaborate on ideas that create real-world value.
+              <strong className="text-foreground">Java, HTML, CSS</strong>, with experience in <strong className="text-foreground">Hibernate</strong> and <strong className="text-foreground">PostgreSQL</strong>. I enjoy exploring <strong className="text-foreground">AI tools</strong> to make my work smarter, faster, and more impactful. Always eager to learn, build, and collaborate on ideas that create real-world value.
             </p>
 
             {/* Skills List */}
