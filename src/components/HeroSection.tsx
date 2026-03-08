@@ -82,6 +82,8 @@ const HeroSection = () => {
               <h4 className="font-semibold text-neon-cyan mb-2">Skills:</h4>
               <ul className="flex flex-wrap gap-2 justify-center text-gray-200 text-xs sm:text-sm">
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Java</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">JavaScript</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">React</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">C</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">DSA</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Hibernate</li>
