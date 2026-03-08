@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminProjects from "./pages/AdminProjects";
 import AdminSettings from "./pages/AdminSettings";
+import AdminPromotions from "./pages/AdminPromotions";
 import AdminLayout from "./components/AdminLayout";
 
 const queryClient = new QueryClient();
