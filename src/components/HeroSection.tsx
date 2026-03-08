@@ -99,11 +99,11 @@ const HeroSection = () => {
             <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 pt-4">
               <a
                 href="#projects"
-                className="text-center px-6 py-3 rounded-full font-semibold tracking-wide text-sm sm:text-base transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                className="text-center px-8 py-3 rounded-full font-semibold tracking-wide text-sm sm:text-base transition-all duration-300 hover:scale-105"
                 style={{
                   background: 'linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%)',
-                  color: '#1f2937',
-                  boxShadow: '0 0 10px rgba(0, 201, 255, 0.4)'
+                  color: '#0f172a',
+                  boxShadow: '0 0 15px rgba(0, 201, 255, 0.5), 0 0 30px rgba(146, 254, 157, 0.2)'
                 }}
               >
                 See My Work
@@ -111,7 +111,7 @@ const HeroSection = () => {
 
               <a
                 href="#contact"
-                className="text-center px-6 py-3 rounded-full border border-gray-500 text-gray-300 hover:text-white hover:border-gray-300 transition-all duration-300 hover:scale-105 text-sm sm:text-base"
+                className="text-center px-8 py-3 rounded-full border border-gray-500/60 text-gray-300 hover:text-white hover:border-gray-300 hover:bg-white/5 transition-all duration-300 hover:scale-105 text-sm sm:text-base"
               >
                 Let's Connect
               </a>
@@ -120,7 +120,12 @@ const HeroSection = () => {
                 href="/resume.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-center px-6 py-3 rounded-full border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black transition-all duration-300 hover:scale-105 text-sm sm:text-base"
+                className="text-center px-8 py-3 rounded-full font-semibold tracking-wide text-sm sm:text-base transition-all duration-300 hover:scale-105"
+                style={{
+                  background: 'linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%)',
+                  color: '#0f172a',
+                  boxShadow: '0 0 15px rgba(0, 201, 255, 0.5), 0 0 30px rgba(146, 254, 157, 0.2)'
+                }}
               >
                 View Resume
               </a>
