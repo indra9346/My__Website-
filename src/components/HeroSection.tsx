@@ -97,7 +97,7 @@ const HeroSection = () => {
             <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 pt-4">
               <a
                 href="#projects"
-                className="w-full sm:w-auto text-center px-6 py-3 rounded-lg font-semibold tracking-wide text-sm sm:text-base transition-shadow"
+                className="inline-block px-6 py-3 rounded-lg font-semibold tracking-wide text-sm sm:text-base transition-all duration-300 hover:scale-105"
                 style={{
                   background: 'linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%)',
                   color: '#1f2937',
@@ -106,10 +106,10 @@ const HeroSection = () => {
               >
                 See My Work
               </a>
-               
+
               <a
                 href="#contact"
-                className="w-full sm:w-auto text-center px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:border-gray-400 rounded-lg transition-colors text-sm sm:text-base"
+                className="inline-block px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:border-gray-400 rounded-lg transition-colors text-sm sm:text-base"
               >
                 Let's Connect
               </a>
@@ -118,7 +118,7 @@ const HeroSection = () => {
                 href="/resume.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto text-center px-6 py-3 border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black rounded-lg transition-colors text-sm sm:text-base"
+                className="inline-block px-6 py-3 border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black rounded-lg transition-colors text-sm sm:text-base"
               >
                 View Resume
               </a>
