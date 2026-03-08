@@ -82,6 +82,8 @@ const HeroSection = () => {
               <h4 className="font-semibold text-neon-cyan mb-2">Skills:</h4>
               <ul className="flex flex-wrap gap-2 justify-center text-gray-200 text-xs sm:text-sm">
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Java</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">JavaScript</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">React</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">C</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">DSA</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Hibernate</li>
@@ -97,11 +99,11 @@ const HeroSection = () => {
             <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 pt-4">
               <a
                 href="#projects"
-                className="inline-block px-6 py-3 rounded-lg font-semibold tracking-wide text-sm sm:text-base transition-all duration-300 hover:scale-105"
+                className="text-center px-6 py-3 rounded-full font-semibold tracking-wide text-sm sm:text-base transition-all duration-300 hover:scale-105 hover:shadow-lg"
                 style={{
                   background: 'linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%)',
                   color: '#1f2937',
-                  boxShadow: '0 0 10px rgba(0, 201, 255, 0.5), 0 0 20px rgba(146, 254, 157, 0.3)'
+                  boxShadow: '0 0 10px rgba(0, 201, 255, 0.4)'
                 }}
               >
                 See My Work
@@ -109,7 +111,7 @@ const HeroSection = () => {
 
               <a
                 href="#contact"
-                className="inline-block px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:border-gray-400 rounded-lg transition-colors text-sm sm:text-base"
+                className="text-center px-6 py-3 rounded-full border border-gray-500 text-gray-300 hover:text-white hover:border-gray-300 transition-all duration-300 hover:scale-105 text-sm sm:text-base"
               >
                 Let's Connect
               </a>
@@ -118,7 +120,7 @@ const HeroSection = () => {
                 href="/resume.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block px-6 py-3 border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black rounded-lg transition-colors text-sm sm:text-base"
+                className="text-center px-6 py-3 rounded-full border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black transition-all duration-300 hover:scale-105 text-sm sm:text-base"
               >
                 View Resume
               </a>
