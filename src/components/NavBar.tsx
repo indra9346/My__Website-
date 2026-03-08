@@ -89,7 +89,7 @@ const NavBar = () => {
       
       {/* Mobile Navigation Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full glass py-4 px-6 shadow-lg">
+        <div className="md:hidden absolute top-full left-0 w-full bg-background/95 backdrop-blur-md border border-border py-4 px-6 shadow-lg z-50">
           <nav className="flex flex-col space-y-4">
             {navItems.map((item) => (
               <a 
