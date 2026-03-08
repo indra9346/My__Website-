@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { FolderKanban, Settings } from 'lucide-react';
+import { FolderKanban, Settings, Megaphone } from 'lucide-react';
 
 const Admin = () => {
   return (
