@@ -104,6 +104,54 @@ export type Database = {
         }
         Relationships: []
       }
+      promotions: {
+        Row: {
+          active: boolean
+          bg_image: string | null
+          created_at: string
+          cta_link: string
+          cta_text: string
+          description: string
+          discount_percentage: number | null
+          display_order: number
+          end_date: string | null
+          id: string
+          offer_text: string | null
+          start_date: string | null
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          bg_image?: string | null
+          created_at?: string
+          cta_link?: string
+          cta_text?: string
+          description?: string
+          discount_percentage?: number | null
+          display_order?: number
+          end_date?: string | null
+          id?: string
+          offer_text?: string | null
+          start_date?: string | null
+          title?: string
+        }
+        Update: {
+          active?: boolean
+          bg_image?: string | null
+          created_at?: string
+          cta_link?: string
+          cta_text?: string
+          description?: string
+          discount_percentage?: number | null
+          display_order?: number
+          end_date?: string | null
+          id?: string
+          offer_text?: string | null
+          start_date?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

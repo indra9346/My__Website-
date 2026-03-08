@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { FolderKanban, Settings } from 'lucide-react';
+import { FolderKanban, Settings, Megaphone } from 'lucide-react';
 
 const Admin = () => {
   return (
@@ -16,6 +16,14 @@ const Admin = () => {
           </div>
         </Link>
         
+        <Link to="/admin/promotions" className="glass p-6 rounded-lg hover:border-neon-cyan border border-transparent transition-colors flex items-start gap-4">
+          <Megaphone className="w-8 h-8 text-neon-cyan shrink-0 mt-1" />
+          <div>
+            <h3 className="text-xl font-bold mb-2">Manage Promotions</h3>
+            <p className="text-muted-foreground">Create and manage promotional banners for your portfolio</p>
+          </div>
+        </Link>
+
         <Link to="/admin/settings" className="glass p-6 rounded-lg hover:border-neon-cyan border border-transparent transition-colors flex items-start gap-4">
           <Settings className="w-8 h-8 text-neon-cyan shrink-0 mt-1" />
           <div>

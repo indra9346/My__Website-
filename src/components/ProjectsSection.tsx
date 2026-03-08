@@ -4,6 +4,7 @@ import { Github, ExternalLink, Code } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import PromoBanner from "./PromoBanner";
 
 type Project = {
   id: string;
@@ -144,6 +145,10 @@ const ProjectsSection = () => {
             <h3 className="text-2xl font-bold text-neon-cyan mb-8 border-b border-neon-cyan/30 pb-3">
               {category}
             </h3>
+
+            {/* Show promo banner inside Client Projects */}
+            {category === "Client Projects" && <PromoBanner />}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {categoryProjects.map(renderProjectCard)}
             </div>

@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminProjects from "./pages/AdminProjects";
 import AdminSettings from "./pages/AdminSettings";
+import AdminPromotions from "./pages/AdminPromotions";
 import AdminLayout from "./components/AdminLayout";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Admin />} />
               <Route path="projects" element={<AdminProjects />} />
+              <Route path="promotions" element={<AdminPromotions />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
