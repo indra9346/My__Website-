@@ -74,7 +74,7 @@ const HeroSection = () => {
             </h3>
             <p className="text-sm sm:text-base text-gray-300 max-w-xl mx-auto leading-relaxed px-1 sm:px-0">
               Java development and web technologies. Skilled in{' '}
-              **Java, HTML, CSS**, with experience in **Hibernate** and **PostgreSQL**. I enjoy exploring **AI tools** to make my work smarter, faster, and more impactful. Always eager to learn, build, and collaborate on ideas that create real-world value.
+              <strong className="text-foreground">Java, HTML, CSS</strong>, with experience in <strong className="text-foreground">Hibernate</strong> and <strong className="text-foreground">PostgreSQL</strong>. I enjoy exploring <strong className="text-foreground">AI tools</strong> to make my work smarter, faster, and more impactful. Always eager to learn, build, and collaborate on ideas that create real-world value.
             </p>
 
             {/* Skills List */}
@@ -84,12 +84,12 @@ const HeroSection = () => {
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Java</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">C</li>
                 <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">DSA</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">Hibernate</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">HTML</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">CSS (Intermediate)</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">SQL</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">PostgreSQL</li>
-                <li className="bg-gray-800/80 px-3 py-1 rounded-full">Python (Intermediate)</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Hibernate</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">HTML</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">CSS (Intermediate)</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">SQL</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">PostgreSQL</li>
+                <li className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50">Python (Intermediate)</li>
               </ul>
             </div>
 
@@ -97,7 +97,7 @@ const HeroSection = () => {
             <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 pt-4">
               <a
                 href="#projects"
-                className="w-full sm:w-auto text-center px-6 py-3 rounded-lg font-semibold tracking-wide text-sm sm:text-base transition-shadow"
+                className="inline-block px-6 py-3 rounded-lg font-semibold tracking-wide text-sm sm:text-base transition-all duration-300 hover:scale-105"
                 style={{
                   background: 'linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%)',
                   color: '#1f2937',
@@ -106,10 +106,10 @@ const HeroSection = () => {
               >
                 See My Work
               </a>
-               
+
               <a
                 href="#contact"
-                className="w-full sm:w-auto text-center px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:border-gray-400 rounded-lg transition-colors text-sm sm:text-base"
+                className="inline-block px-6 py-3 border border-gray-600 text-gray-300 hover:text-white hover:border-gray-400 rounded-lg transition-colors text-sm sm:text-base"
               >
                 Let's Connect
               </a>
@@ -118,7 +118,7 @@ const HeroSection = () => {
                 href="/resume.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto text-center px-6 py-3 border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black rounded-lg transition-colors text-sm sm:text-base"
+                className="inline-block px-6 py-3 border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black rounded-lg transition-colors text-sm sm:text-base"
               >
                 View Resume
               </a>
