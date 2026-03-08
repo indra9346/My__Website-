@@ -56,13 +56,13 @@ const NavBar = () => {
 
           {/* Resume Buttons */}
           <div className="flex items-center space-x-2">
-            {/* View Resume */}
-            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer">
-              <Button className="btn-neon">View Resume</Button>
+            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer"
+              className="px-4 py-2 rounded-md font-medium text-sm border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black transition-all">
+              View Resume
             </a>
-            {/* Download Resume */}
-            <a href="/resume.pdf" download="K_S_Indra_Kumar_Resume.pdf">
-              <Button className="bg-neon-purple text-white hover:bg-neon-purple/80">Download Resume</Button>
+            <a href="/resume.pdf" download="K_S_Indra_Kumar_Resume.pdf"
+              className="px-4 py-2 rounded-md font-medium text-sm bg-neon-purple text-white hover:bg-neon-purple/80 transition-all">
+              Download Resume
             </a>
           </div>
 
