@@ -6,31 +6,31 @@ import ProjectsSection from "../components/ProjectsSection";
 import SkillsSection from "../components/SkillsSection";
 import ContactSection from "../components/ContactSection";
 import Footer from "../components/Footer";
+import CustomCursor from "../components/CustomCursor";
 
 const Index = () => {
   useEffect(() => {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href') || '');
-        if (target) {
-          window.scrollTo({
-            top: target.getBoundingClientRect().top + window.pageYOffset - 80,
-            behavior: 'smooth'
-          });
-        }
-      });
-    });
-
-    return () => {
-      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.removeEventListener('click', function () {});
-      });
+    const handleClick = (e: Event) => {
+      const target = e.target as HTMLAnchorElement;
+      const href = target.closest('a')?.getAttribute('href');
+      if (!href?.startsWith('#')) return;
+      e.preventDefault();
+      const el = document.querySelector(href);
+      if (el) {
+        window.scrollTo({
+          top: el.getBoundingClientRect().top + window.pageYOffset - 80,
+          behavior: 'smooth',
+        });
+      }
     };
+
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
   }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <CustomCursor />
       <NavBar />
       <HeroSection />
       <AboutSection />
@@ -38,8 +38,6 @@ const Index = () => {
       <SkillsSection />
       <ContactSection />
       <Footer />
-      
-      {/* Admin access via /auth URL only - no visible link */}
     </div>
   );
 };
