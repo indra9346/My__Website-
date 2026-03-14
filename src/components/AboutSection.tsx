@@ -14,12 +14,12 @@ const AboutSection = () => {
 
   const slideLeft = {
     hidden: { opacity: 0, x: -60 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: 'easeOut' } },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: 'easeOut' as const } },
   };
 
   const slideRight = {
     hidden: { opacity: 0, x: 60 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: 'easeOut' } },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: 'easeOut' as const } },
   };
 
   const staggerItem = {
