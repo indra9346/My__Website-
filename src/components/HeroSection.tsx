@@ -115,7 +115,7 @@ const HeroSection = () => {
       />
 
       <div className="container mx-auto z-10">
-        <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-12 md:gap-20 pt-16 sm:pt-20">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-20 pt-24 sm:pt-20">
           
           {/* Profile Photo Avatar with floating + glowing border */}
           <motion.div

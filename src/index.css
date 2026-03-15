@@ -55,12 +55,12 @@
 
   body {
     @apply bg-background text-foreground;
-    cursor: none;
   }
 
-  @media (hover: none) and (pointer: coarse) {
-    body {
-      cursor: auto;
+  /* Hide native cursor on desktop devices that support hover */
+  @media (hover: hover) and (pointer: fine) {
+    * {
+      cursor: none !important;
     }
   }
 }
