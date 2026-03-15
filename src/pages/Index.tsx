@@ -11,16 +11,17 @@ import CustomCursor from "../components/CustomCursor";
 const Index = () => {
   useEffect(() => {
     const handleClick = (e: Event) => {
-      const target = e.target as HTMLAnchorElement;
-      const href = target.closest('a')?.getAttribute('href');
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+      if (!anchor) return;
+      const href = anchor.getAttribute('href');
       if (!href?.startsWith('#')) return;
       e.preventDefault();
-      const el = document.querySelector(href);
+      const el = document.getElementById(href.slice(1));
       if (el) {
-        window.scrollTo({
-          top: el.getBoundingClientRect().top + window.pageYOffset - 80,
-          behavior: 'smooth',
-        });
+        const offset = 80;
+        const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
       }
     };
 

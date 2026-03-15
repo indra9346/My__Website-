@@ -131,45 +131,50 @@ const NavBar = () => {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation - Full screen overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            className="md:hidden absolute top-full left-0 w-full bg-background border-b border-border py-4 px-6 shadow-xl z-50"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
+            className="md:hidden fixed inset-x-0 top-[56px] bottom-0 bg-background/98 backdrop-blur-xl z-[60] overflow-y-auto"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.25 }}
           >
-            <nav className="flex flex-col space-y-4">
-              {navItems.map((item) => {
+            <nav className="flex flex-col items-center justify-center gap-6 py-10 px-6 min-h-full">
+              {navItems.map((item, i) => {
                 const sectionId = item.href.replace('#', '');
                 const isActive = activeSection === sectionId;
                 return (
-                  <a
+                  <motion.a
                     key={item.name}
                     href={item.href}
-                    className={`text-base font-medium ${isActive ? 'text-neon-cyan' : 'text-muted-foreground'}`}
+                    className={`text-lg font-semibold py-2 px-4 rounded-lg transition-colors ${isActive ? 'text-neon-cyan bg-neon-cyan/10' : 'text-muted-foreground hover:text-foreground'}`}
                     onClick={() => setIsMobileMenuOpen(false)}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
                   >
                     {item.name}
-                  </a>
+                  </motion.a>
                 );
               })}
-              <div className="flex flex-col space-y-2">
+              <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
                 <a href="/resume.pdf" target="_blank" rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-md font-medium text-sm text-center border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black transition-all">
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="px-4 py-3 rounded-full font-medium text-sm text-center border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black transition-all">
                   View Resume
                 </a>
                 <a href="/resume.pdf" download="K_S_Indra_Kumar_Resume.pdf"
-                  className="px-4 py-2 rounded-md font-medium text-sm text-center bg-neon-purple text-white hover:bg-neon-purple/80 transition-all">
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="px-4 py-3 rounded-full font-medium text-sm text-center bg-neon-purple text-white hover:bg-neon-purple/80 transition-all">
                   Download Resume
                 </a>
               </div>
-              <div className="flex space-x-6 pt-2">
-                <a href="https://github.com/indra9346" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground text-xl"><FaGithub /></a>
-                <a href="https://www.linkedin.com/in/k-s-indra-kumar-7049b1289" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground text-xl"><FaLinkedin /></a>
-                <a href="mailto:ik9893344@gmail.com" className="text-muted-foreground hover:text-foreground text-xl"><FaEnvelope /></a>
+              <div className="flex space-x-8 pt-4">
+                <a href="https://github.com/indra9346" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground text-2xl"><FaGithub /></a>
+                <a href="https://www.linkedin.com/in/k-s-indra-kumar-7049b1289" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground text-2xl"><FaLinkedin /></a>
+                <a href="mailto:ik9893344@gmail.com" className="text-muted-foreground hover:text-foreground text-2xl"><FaEnvelope /></a>
               </div>
             </nav>
           </motion.div>
