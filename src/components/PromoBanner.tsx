@@ -41,7 +41,7 @@ const PromoBanner = () => {
         {visiblePromos.map((promo) => (
           <motion.div
             key={promo.id}
-            className="relative group mb-8"
+            className="relative group mb-8 overflow-hidden"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20, height: 0 }}

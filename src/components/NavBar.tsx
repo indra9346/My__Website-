@@ -6,6 +6,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileMenuOpen]);
+
+  const handleMobileNavClick = (href: string) => {
+    setIsMobileMenuOpen(false);
+    // Small delay to let menu close, then scroll
+    setTimeout(() => {
+      const id = href.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        const offset = 80;
+        const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    }, 100);
+  };
   const [activeSection, setActiveSection] = useState('home');
 
   const navItems = [
@@ -150,7 +174,7 @@ const NavBar = () => {
                     key={item.name}
                     href={item.href}
                     className={`text-lg font-semibold py-2 px-4 rounded-lg transition-colors ${isActive ? 'text-neon-cyan bg-neon-cyan/10' : 'text-muted-foreground hover:text-foreground'}`}
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={(e) => { e.preventDefault(); handleMobileNavClick(item.href); }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}

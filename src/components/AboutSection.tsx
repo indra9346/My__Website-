@@ -46,27 +46,25 @@ const AboutSection = () => {
         <div className="flex flex-col md:flex-row gap-10 mt-10">
           {/* Image side */}
           <motion.div variants={slideLeft} className="md:w-2/5">
-            <div className="relative">
+            <div className="relative overflow-hidden p-4">
               <motion.div
                 className="relative w-64 h-64 mx-auto overflow-hidden rounded-xl"
                 whileHover={{ scale: 1.03 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Animated border glow */}
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-blue opacity-70 blur-sm animate-glow" />
                 <div className="relative w-full h-full rounded-xl border-2 border-neon-cyan/50 overflow-hidden shadow-[0_0_20px_rgba(3,233,244,0.3)]">
                   <img src={myPhoto} alt="Indra Kumar" className="w-full h-full object-cover object-top" />
                 </div>
               </motion.div>
-              {/* Decorative corners */}
               <motion.div
-                className="absolute top-[-15px] right-[-15px] w-32 h-32 border-t-2 border-r-2 border-neon-purple"
+                className="absolute top-0 right-0 w-24 h-24 border-t-2 border-r-2 border-neon-purple"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={isInView ? { opacity: 1, scale: 1 } : {}}
                 transition={{ delay: 0.5, duration: 0.5 }}
               />
               <motion.div
-                className="absolute bottom-[-15px] left-[-15px] w-32 h-32 border-b-2 border-l-2 border-neon-blue"
+                className="absolute bottom-0 left-0 w-24 h-24 border-b-2 border-l-2 border-neon-blue"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={isInView ? { opacity: 1, scale: 1 } : {}}
                 transition={{ delay: 0.6, duration: 0.5 }}
