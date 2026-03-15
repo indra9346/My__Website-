@@ -6,6 +6,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileMenuOpen]);
+
+  const handleMobileNavClick = (href: string) => {
+    setIsMobileMenuOpen(false);
+    // Small delay to let menu close, then scroll
+    setTimeout(() => {
+      const id = href.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        const offset = 80;
+        const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    }, 100);
+  };
   const [activeSection, setActiveSection] = useState('home');
 
   const navItems = [
