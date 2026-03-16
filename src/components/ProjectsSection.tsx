@@ -151,20 +151,8 @@ const ProjectsSection = () => {
   return (
     <section id="projects" className="py-24 bg-black/30" ref={sectionRef}>
       <div className="container mx-auto px-4">
-        <motion.h2
-          className="section-title"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
-        >
-          Projects
-        </motion.h2>
-        <motion.p
-          className="text-gray-300 mb-12 max-w-2xl"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
+        <h2 className="section-title">Projects</h2>
+        <p className="text-gray-300 mb-12 max-w-2xl">
           Explore some of my recent work. Each project is a unique challenge
           that I approached with creativity and technical precision.
         </motion.p>

@@ -7,6 +7,7 @@ import SkillsSection from "../components/SkillsSection";
 import ContactSection from "../components/ContactSection";
 import Footer from "../components/Footer";
 import CustomCursor from "../components/CustomCursor";
+import ParticlesBackground from "../components/ParticlesBackground";
 
 const Index = () => {
   useEffect(() => {
@@ -30,7 +31,8 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
+      <ParticlesBackground />
       <CustomCursor />
       <NavBar />
       <HeroSection />

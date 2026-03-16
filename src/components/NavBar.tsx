@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Menu, X } from 'lucide-react';
 import { FaGithub, FaLinkedin, FaEnvelope } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,31 +6,37 @@ import { motion, AnimatePresence } from 'framer-motion';
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
   }, [isMobileMenuOpen]);
 
-  const handleMobileNavClick = (href: string) => {
+  const scrollToSection = useCallback((sectionId: string) => {
     setIsMobileMenuOpen(false);
-    // Small delay to let menu close, then scroll
-    setTimeout(() => {
-      const id = href.replace('#', '');
-      const el = document.getElementById(id);
-      if (el) {
-        const offset = 80;
-        const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
-        window.scrollTo({ top, behavior: 'smooth' });
-      }
-    }, 100);
-  };
-  const [activeSection, setActiveSection] = useState('home');
+    // Use rAF + timeout to ensure menu closes first
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          const offset = 80;
+          const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+          window.scrollTo({ top, behavior: 'smooth' });
+        }
+      }, 50);
+    });
+  }, []);
 
   const navItems = [
     { name: 'Home', href: '#home' },
