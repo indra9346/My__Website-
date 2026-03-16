@@ -180,7 +180,7 @@ const NavBar = () => {
                     key={item.name}
                     href={item.href}
                     className={`text-lg font-semibold py-2 px-4 rounded-lg transition-colors ${isActive ? 'text-neon-cyan bg-neon-cyan/10' : 'text-muted-foreground hover:text-foreground'}`}
-                    onClick={(e) => { e.preventDefault(); handleMobileNavClick(item.href); }}
+                    onClick={(e) => { e.preventDefault(); scrollToSection(sectionId); }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
