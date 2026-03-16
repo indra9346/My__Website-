@@ -155,7 +155,7 @@ const ProjectsSection = () => {
         <p className="text-gray-300 mb-12 max-w-2xl">
           Explore some of my recent work. Each project is a unique challenge
           that I approached with creativity and technical precision.
-        </motion.p>
+        </p>
 
         {(!projects || projects.length === 0) && (
           <p className="text-center text-muted-foreground">No projects yet.</p>
