@@ -1,41 +1,87 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Menu, X } from 'lucide-react';
 import { FaGithub, FaLinkedin, FaEnvelope } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import MobileNavOverlay from './nav/MobileNavOverlay';
 
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
+  const [pendingSectionId, setPendingSectionId] = useState<string | null>(null);
 
-  // Lock body scroll when mobile menu is open
+  const scrollToSection = useCallback((sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (!el) return;
+
+    const offset = 80;
+    const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }, []);
+
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    }
+    if (!isMobileMenuOpen) return;
+
+    const scrollY = window.scrollY;
+
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
     return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
+      window.scrollTo(0, scrollY);
     };
   }, [isMobileMenuOpen]);
 
-  const scrollToSection = useCallback((sectionId: string) => {
-    setIsMobileMenuOpen(false);
-    // Use rAF + timeout to ensure menu closes first
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobileMenuOpen || !pendingSectionId) return;
+
+    const nextSectionId = pendingSectionId;
+    setPendingSectionId(null);
+
     requestAnimationFrame(() => {
-      setTimeout(() => {
-        const el = document.getElementById(sectionId);
-        if (el) {
-          const offset = 80;
-          const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
-          window.scrollTo({ top, behavior: 'smooth' });
-        }
-      }, 50);
+      scrollToSection(nextSectionId);
     });
+  }, [isMobileMenuOpen, pendingSectionId, scrollToSection]);
+
+  const handleMobileNavSelect = useCallback((sectionId: string) => {
+    setPendingSectionId(sectionId);
+    setIsMobileMenuOpen(false);
   }, []);
 
   const navItems = [
@@ -44,6 +90,12 @@ const NavBar = () => {
     { name: 'Work', href: '#projects' },
     { name: 'Skills', href: '#skills' },
     { name: 'Contact', href: '#contact' },
+  ];
+
+  const socialLinks = [
+    { href: 'https://github.com/indra9346', icon: <FaGithub />, label: 'GitHub' },
+    { href: 'https://www.linkedin.com/in/k-s-indra-kumar-7049b1289', icon: <FaLinkedin />, label: 'LinkedIn' },
+    { href: 'mailto:ik9893344@gmail.com', icon: <FaEnvelope />, label: 'Email' },
   ];
 
   useEffect(() => {
@@ -64,6 +116,7 @@ const NavBar = () => {
       }
     };
 
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -84,6 +137,11 @@ const NavBar = () => {
         <motion.a
           href="#home"
           className="text-lg font-bold gradient-text tracking-wide"
+          onClick={(event) => {
+            event.preventDefault();
+            setIsMobileMenuOpen(false);
+            scrollToSection('home');
+          }}
           whileHover={{ scale: 1.03 }}
         >
           K S INDRA KUMAR
@@ -137,13 +195,9 @@ const NavBar = () => {
           </div>
 
           {/* Social Links */}
-          {[
-            { href: 'https://github.com/indra9346', icon: <FaGithub /> },
-            { href: 'https://www.linkedin.com/in/k-s-indra-kumar-7049b1289', icon: <FaLinkedin /> },
-            { href: 'mailto:ik9893344@gmail.com', icon: <FaEnvelope /> },
-          ].map((s, i) => (
+          {socialLinks.map((s) => (
             <motion.a
-              key={i}
+              key={s.label}
               href={s.href}
               target={s.href.startsWith('mailto') ? undefined : '_blank'}
               rel="noopener noreferrer"
@@ -156,61 +210,27 @@ const NavBar = () => {
         </nav>
 
         {/* Mobile Menu Button */}
-        <button className="md:hidden text-muted-foreground hover:text-foreground" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+        <button
+          type="button"
+          aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-navigation"
+          className="md:hidden text-muted-foreground hover:text-foreground"
+          onClick={() => setIsMobileMenuOpen((open) => !open)}
+        >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
-
-      {/* Mobile Navigation - Full screen overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            className="md:hidden fixed inset-x-0 top-[56px] bottom-0 bg-background/98 backdrop-blur-xl z-[60] overflow-y-auto"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25 }}
-          >
-            <nav className="flex flex-col items-center justify-center gap-6 py-10 px-6 min-h-full">
-              {navItems.map((item, i) => {
-                const sectionId = item.href.replace('#', '');
-                const isActive = activeSection === sectionId;
-                return (
-                  <motion.a
-                    key={item.name}
-                    href={item.href}
-                    className={`text-lg font-semibold py-2 px-4 rounded-lg transition-colors ${isActive ? 'text-neon-cyan bg-neon-cyan/10' : 'text-muted-foreground hover:text-foreground'}`}
-                    onClick={(e) => { e.preventDefault(); scrollToSection(sectionId); }}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                  >
-                    {item.name}
-                  </motion.a>
-                );
-              })}
-              <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
-                <a href="/resume.pdf" target="_blank" rel="noopener noreferrer"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="px-4 py-3 rounded-full font-medium text-sm text-center border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black transition-all">
-                  View Resume
-                </a>
-                <a href="/resume.pdf" download="K_S_Indra_Kumar_Resume.pdf"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="px-4 py-3 rounded-full font-medium text-sm text-center bg-neon-purple text-white hover:bg-neon-purple/80 transition-all">
-                  Download Resume
-                </a>
-              </div>
-              <div className="flex space-x-8 pt-4">
-                <a href="https://github.com/indra9346" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground text-2xl"><FaGithub /></a>
-                <a href="https://www.linkedin.com/in/k-s-indra-kumar-7049b1289" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground text-2xl"><FaLinkedin /></a>
-                <a href="mailto:ik9893344@gmail.com" className="text-muted-foreground hover:text-foreground text-2xl"><FaEnvelope /></a>
-              </div>
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.header>
+
+    <MobileNavOverlay
+      isOpen={isMobileMenuOpen}
+      activeSection={activeSection}
+      navItems={navItems}
+      socialLinks={socialLinks}
+      onClose={() => setIsMobileMenuOpen(false)}
+      onSectionSelect={handleMobileNavSelect}
+    />
   );
 };
 

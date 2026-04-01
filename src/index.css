@@ -55,6 +55,11 @@
 
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+  }
+
+  html {
+    overflow-x: hidden;
   }
 
   /* Hide native cursor on desktop devices that support hover */
@@ -101,6 +106,42 @@
     background: linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%);
     color: #0f172a;
     box-shadow: 0 0 15px rgba(0, 201, 255, 0.5), 0 0 30px rgba(146, 254, 157, 0.2);
+  }
+
+  .nav-mobile-backdrop {
+    @apply fixed inset-0 z-40 bg-background/92 backdrop-blur-2xl md:hidden;
+    background-image:
+      radial-gradient(circle at top, hsl(var(--primary) / 0.18), transparent 42%),
+      radial-gradient(circle at bottom, hsl(var(--accent) / 0.14), transparent 36%);
+  }
+
+  .nav-mobile-panel {
+    @apply flex min-h-screen flex-col justify-center gap-8 px-6 pb-8 pt-28;
+  }
+
+  .nav-mobile-link {
+    @apply flex w-full items-center justify-between rounded-2xl border border-border/70 bg-card/40 px-5 py-4 text-left text-xl font-semibold text-muted-foreground transition-all duration-300;
+  }
+
+  .nav-mobile-link-active {
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--primary) / 0.35);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--secondary) / 0.12));
+    box-shadow: 0 18px 38px -24px hsl(var(--primary) / 0.75);
+  }
+
+  .nav-cta-primary {
+    @apply inline-flex w-full items-center justify-center rounded-2xl px-5 py-4 text-sm font-semibold text-primary-foreground transition-all duration-300;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    box-shadow: 0 20px 40px -22px hsl(var(--primary) / 0.7);
+  }
+
+  .nav-cta-secondary {
+    @apply inline-flex w-full items-center justify-center rounded-2xl border border-border bg-card/50 px-5 py-4 text-sm font-semibold text-foreground transition-all duration-300;
+  }
+
+  .nav-icon-link {
+    @apply inline-flex h-12 w-12 items-center justify-center rounded-full border border-border/70 bg-card/40 text-muted-foreground transition-all duration-300;
   }
 }
 
