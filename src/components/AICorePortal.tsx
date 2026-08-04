@@ -1145,38 +1145,55 @@ Status: CONFIDENCE OPTIMIZED`;
   };
 
   const queryDatabase = (query: string): string => {
-    const q = query.toLowerCase();
+    const q = query.toLowerCase().trim();
 
-    if (q.includes('predict') || q.includes('interest') || q.includes('similarity') || modelTrained) {
-      const isStandardCat = ['skills', 'projects', 'education', 'contact', 'resume', 'experience'].some(cat => q.includes(cat));
-      if (!isStandardCat) {
-        const topic = query
-          .replace(/predict/i, '')
-          .replace(/interest/i, '')
-          .replace(/for/i, '')
-          .replace(/about/i, '')
-          .trim();
-        return predictInterest(topic || "Web Development");
-      }
+    // 1. Bio/Introduction
+    if (q.includes('who is') || q.includes('about indra') || q.includes('profile') || q.includes('biography') || q.includes('who are you') || q.includes('tell me about him')) {
+      return `Indra Kumar Bio`;
     }
 
-    if (q.includes('project') || q.includes('work') || q.includes('built') || q.includes('develop')) {
+    // 2. Supreme Cart specifically
+    if (q.includes('supreme cart') || q.includes('cart') || q.includes('e-commerce') || q.includes('ecommerce')) {
+      return `Supreme Cart Project Info`;
+    }
+
+    // 3. Projects general
+    if (q.includes('project') || q.includes('work') || q.includes('built') || q.includes('develop') || q.includes('repo')) {
       return `Selected Repositories`;
     }
 
-    if (q.includes('skill') || q.includes('language') || q.includes('technology') || q.includes('database') || q.includes('stack') || q.includes('tool')) {
+    // 4. Skills stack
+    if (q.includes('skill') || q.includes('language') || q.includes('technology') || q.includes('database') || q.includes('stack') || q.includes('tool') || q.includes('java') || q.includes('react') || q.includes('postgres')) {
       return `Technical Stack Verification`;
     }
 
-    if (q.includes('education') || q.includes('graduate') || q.includes('college') || q.includes('school') || q.includes('degree') || q.includes('study')) {
+    // 5. Education / College
+    if (q.includes('education') || q.includes('graduate') || q.includes('college') || q.includes('school') || q.includes('degree') || q.includes('study') || q.includes('cgpa') || q.includes('sjc')) {
       return `Academic Matrix Verification`;
     }
 
+    // 6. Contact
     if (q.includes('contact') || q.includes('email') || q.includes('connect') || q.includes('reach') || q.includes('linkedin') || q.includes('github')) {
       return `Connection Channels`;
     }
 
-    return `ACCESSING KNOWLEDGE DATABASE...\nNotice: Search returned 0 matching nodes. Please select one of the database categories.`;
+    // 7. Resume
+    if (q.includes('resume') || q.includes('cv') || q.includes('pdf')) {
+      return `Resume Access Link`;
+    }
+
+    // 8. ML prediction trigger
+    if (q.includes('predict') || q.includes('interest') || q.includes('similarity') || modelTrained) {
+      const topic = query
+        .replace(/predict/i, '')
+        .replace(/interest/i, '')
+        .replace(/for/i, '')
+        .replace(/about/i, '')
+        .trim();
+      return predictInterest(topic || "Web Development");
+    }
+
+    return `ACCESSING KNOWLEDGE DATABASE...\nNotice: Search returned 0 matching nodes for "${query}".\n\nI can provide verified records on Indra Kumar's:\n• Profile Biography\n• Core Projects (Supreme Cart)\n• Technical Skills Stack\n• Academic History (SJC)\n• Contact & Resume details.`;
   };
 
   const handleSendMessage = () => {
@@ -1210,6 +1227,39 @@ Status: CONFIDENCE OPTIMIZED`;
   const renderMessageContent = (msg: { sender: 'ai' | 'user'; text: string; formatted?: boolean }) => {
     if (msg.sender === 'user') {
       return <div className="text-right text-neon-cyan">{msg.text}</div>;
+    }
+
+    if (msg.text.includes('Indra Kumar Bio')) {
+      return (
+        <div className="border border-neon-cyan/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
+          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
+            <Shield size={10} />
+            <span>[ INDRA KUMAR - BIOGRAPHY ]</span>
+          </div>
+          <p className="text-slate-300 leading-relaxed">
+            Hi! I'm Indra Kumar, a B.E. graduate in Artificial Intelligence & Machine Learning with a passion for building modern, scalable, and user-friendly web applications.
+          </p>
+          <p className="text-slate-400 text-[8px] sm:text-[10px] leading-relaxed">
+            I have hands-on experience developing end-to-end web applications using Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, and Supabase.
+          </p>
+        </div>
+      );
+    }
+
+    if (msg.text.includes('Supreme Cart Project Info')) {
+      return (
+        <div className="border border-neon-cyan/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
+          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider">
+            <span>[ PROJECT: SUPREME CART ]</span>
+          </div>
+          <div className="text-slate-300 mt-1 flex flex-col gap-1.5">
+            <div>• <b>Architecture</b>: E-commerce shopping web application.</div>
+            <div>• <b>Backend Engine</b>: Built using Java and Hibernate ORM.</div>
+            <div>• <b>Frontend Layer</b>: Designed using HTML, CSS, and JavaScript.</div>
+            <div>• <b>Storage Nodes</b>: Managed via PostgreSQL databases.</div>
+          </div>
+        </div>
+      );
     }
 
     if (msg.text.includes('Technical Stack Verification')) {
@@ -1290,8 +1340,31 @@ Status: CONFIDENCE OPTIMIZED`;
           </div>
           <div className="flex flex-col gap-1 mt-1 text-slate-300">
             <div>Email: <span className="text-white">ik9893344@gmail.com</span></div>
-            <div>GitHub: <a href="https://github.com/indra9346" target="_blank" className="text-neon-cyan hover:underline">github.com/indra9346</a></div>
-            <div>LinkedIn: <a href="https://linkedin.com/in/k-s-indra-kumar-7049b1289" target="_blank" className="text-neon-cyan hover:underline">indra-kumar</a></div>
+            <div>GitHub: <a href="https://github.com/indra9346" target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline">github.com/indra9346</a></div>
+            <div>LinkedIn: <a href="https://linkedin.com/in/k-s-indra-kumar-7049b1289" target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline">indra-kumar</a></div>
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.text.includes('Resume Access Link')) {
+      return (
+        <div className="border border-neon-pink/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
+          <div className="text-neon-pink border-b border-neon-pink/20 pb-1 font-bold tracking-wider">
+            <span>[ SYSTEM: RESUME DECK ]</span>
+          </div>
+          <div className="text-slate-300 mt-1">
+            Indra Kumar's resume is validated and ready for download:
+            <div className="mt-2.5">
+              <a 
+                href="/resume.pdf" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="border border-neon-cyan text-neon-cyan px-3 py-1.5 rounded hover:bg-neon-cyan hover:text-black transition-all inline-block text-[8px] sm:text-[9px] font-bold"
+              >
+                📥 DOWNLOAD RESUME (PDF)
+              </a>
+            </div>
           </div>
         </div>
       );
