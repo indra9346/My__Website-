@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AIModeState = 'inactive' | 'activating' | 'portal' | 'world' | 'deactivating';
+export type AIModeState = 
+  | 'inactive' 
+  | 'activating' 
+  | 'video_forward' 
+  | 'portal' 
+  | 'world' 
+  | 'video_reverse' 
+  | 'deactivating';
 
 interface AIContextProps {
   aiModeState: AIModeState;
@@ -24,7 +31,7 @@ export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const exitAIMode = () => {
     if (aiModeState !== 'world') return;
-    setAiModeState('deactivating');
+    setAiModeState('video_reverse');
   };
 
   useEffect(() => {

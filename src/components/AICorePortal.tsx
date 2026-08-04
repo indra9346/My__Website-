@@ -91,7 +91,6 @@ class PortaSfxSynth {
     this.init();
     if (!this.ctx || this.osc1) return;
     try {
-      // Breathing space hum (Daft Punk / Hans Zimmer style)
       this.osc1 = this.ctx.createOscillator();
       this.osc2 = this.ctx.createOscillator();
       this.lfo = this.ctx.createOscillator();
@@ -103,8 +102,8 @@ class PortaSfxSynth {
       this.lfo.type = 'sine';
 
       this.osc1.frequency.setValueAtTime(110, this.ctx.currentTime); // Low A
-      this.osc2.frequency.setValueAtTime(165, this.ctx.currentTime); // E3 (fifth)
-      this.lfo.frequency.setValueAtTime(0.2, this.ctx.currentTime); // LFO Lull
+      this.osc2.frequency.setValueAtTime(165, this.ctx.currentTime); // E3
+      this.lfo.frequency.setValueAtTime(0.2, this.ctx.currentTime);
 
       this.lfoGain.gain.setValueAtTime(0.015, this.ctx.currentTime);
       
@@ -159,7 +158,7 @@ const GLTFModel = ({ url, fallback, scale = 1, position = [0, 0, 0], rotation = 
   }, [url]);
 
   if (failed) return <>{fallback}</>;
-  if (!model) return <>{fallback}</>; // render fallback during load phase
+  if (!model) return <>{fallback}</>;
   return <primitive object={model} scale={scale} position={position} rotation={rotation} />;
 };
 
@@ -223,7 +222,6 @@ const HeavyWelderRobot = ({ position, color, tipColor, isFlipped }: { position: 
     const weldingActive = Math.sin(t * 3.5) > 0.45;
     setSparkActive(weldingActive);
 
-    // Dynamic sparks logic with guards
     if (sparkParticlesRef.current && weldingActive) {
       const geom = sparkParticlesRef.current.geometry;
       const posAttr = geom.getAttribute('position');
@@ -382,7 +380,7 @@ const HeavyInspectionDrone = ({ i, xOffset }: { i: number; xOffset: number }) =>
         <meshBasicMaterial color="#FF2E63" />
       </mesh>
 
-      {/* Carbon Booms (4 arms outrigger) */}
+      {/* Carbon Booms */}
       {[
         [-Math.PI / 4, -0.4, 0.4],
         [Math.PI / 4, 0.4, 0.4],
@@ -409,7 +407,7 @@ const HeavyInspectionDrone = ({ i, xOffset }: { i: number; xOffset: number }) =>
         </group>
       ))}
 
-      {/* Volumetric Spotlight Cone (Visual scan beam) */}
+      {/* Volumetric Spotlight Cone */}
       <mesh position={[0, -1.8, 0]}>
         <cylinderGeometry args={[0.02, 1.3, 3.6, 16, 1, true]} />
         <meshBasicMaterial color="#03e9f4" transparent opacity={0.12} side={THREE.DoubleSide} />
@@ -425,9 +423,156 @@ const HeavyInspectionDrone = ({ i, xOffset }: { i: number; xOffset: number }) =>
 };
 
 // ==========================================
-// 6. Detailed Humanoid Hologram (White AI)
+// 6. Volumetric Metropolis Skyline & Traffic
 // ==========================================
-const WhiteAIHologram = () => {
+const FuturisticCityscape = () => {
+  const towers = useRef(
+    Array.from({ length: 35 }).map((_, i) => {
+      const angle = (i / 35) * Math.PI * 2;
+      const radius = 22 + Math.random() * 18;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const height = 12 + Math.random() * 22;
+      const width = 2.0 + Math.random() * 3.5;
+      const color = i % 3 === 0 ? '#03e9f4' : i % 3 === 1 ? '#7B2CBF' : '#FF2E63';
+      return { x, z, height, width, color };
+    })
+  );
+
+  return (
+    <group>
+      {towers.current.map((t, idx) => (
+        <group key={idx} position={[t.x, t.height / 2 - 2, t.z]}>
+          <mesh>
+            <boxGeometry args={[t.width, t.height, t.width]} />
+            <meshStandardMaterial color={t.color} wireframe emissive={t.color} emissiveIntensity={0.8} />
+          </mesh>
+          <mesh scale={0.96}>
+            <boxGeometry args={[t.width, t.height, t.width]} />
+            <meshStandardMaterial color="#020617" roughness={0.2} metalness={0.9} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+};
+
+const CyberTraffic = () => {
+  const trafficRef = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (trafficRef.current) {
+      trafficRef.current.children.forEach((child, idx) => {
+        const speed = 0.4 + (idx % 3) * 0.2;
+        const pathRadius = 18 + (idx % 4) * 3;
+        const height = 1.5 + (idx % 3) * 2;
+        const angle = t * speed + (idx * Math.PI / 4);
+        
+        child.position.x = Math.cos(angle) * pathRadius;
+        child.position.z = Math.sin(angle) * pathRadius;
+        child.position.y = height;
+      });
+    }
+  });
+
+  return (
+    <group>
+      {/* Sky highways */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -1.95, 0]}>
+        <ringGeometry args={[17.5, 18, 32]} />
+        <meshBasicMaterial color="#03e9f4" transparent opacity={0.25} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 3.5, 0]}>
+        <ringGeometry args={[22.5, 23, 32]} />
+        <meshBasicMaterial color="#7B2CBF" transparent opacity={0.25} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Swarming traffic nodes */}
+      <group ref={trafficRef}>
+        {Array.from({ length: 15 }).map((_, idx) => {
+          const color = idx % 2 === 0 ? '#03e9f4' : '#FF2E63';
+          return (
+            <mesh key={idx}>
+              <boxGeometry args={[0.3, 0.15, 0.5]} />
+              <meshBasicMaterial color={color} />
+            </mesh>
+          );
+        })}
+      </group>
+    </group>
+  );
+};
+
+// ==========================================
+// 7. Mechanical Elevators & Gantry Cranes
+// ==========================================
+const CyberElevator = ({ x, z, maxHeight }: { x: number; z: number; maxHeight: number }) => {
+  const liftRef = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (liftRef.current) {
+      liftRef.current.position.y = (Math.sin(t * 0.8) + 1.0) * (maxHeight / 2) - 2;
+    }
+  });
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, maxHeight / 2 - 2, 0]}>
+        <boxGeometry args={[0.15, maxHeight, 0.15]} />
+        <meshStandardMaterial color="#1e293b" wireframe />
+      </mesh>
+      <mesh ref={liftRef}>
+        <boxGeometry args={[0.6, 0.8, 0.6]} />
+        <meshStandardMaterial color="#03e9f4" wireframe emissive="#03e9f4" />
+      </mesh>
+    </group>
+  );
+};
+
+const GantryCrane = ({ position }: { position: [number, number, number] }) => {
+  const craneRef = useRef<THREE.Group>(null);
+  const trolleyRef = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (craneRef.current) {
+      craneRef.current.rotation.y = Math.sin(t * 0.4) * 0.4;
+    }
+    if (trolleyRef.current) {
+      trolleyRef.current.position.x = 2.0 + Math.sin(t * 0.8) * 1.5;
+    }
+  });
+  return (
+    <group position={position} ref={craneRef}>
+      <mesh position={[0, 3, 0]}>
+        <cylinderGeometry args={[0.2, 0.25, 6, 8]} />
+        <meshStandardMaterial color="#1e293b" wireframe />
+      </mesh>
+      <group position={[0, 6, 0]}>
+        <mesh position={[2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.15, 0.15, 5, 6]} />
+          <meshStandardMaterial color="#03e9f4" wireframe />
+        </mesh>
+        <group ref={trolleyRef}>
+          <mesh>
+            <boxGeometry args={[0.5, 0.3, 0.5]} />
+            <meshStandardMaterial color="#FF2E63" />
+          </mesh>
+          <mesh position={[0, -1.0, 0]}>
+            <boxGeometry args={[0.4, 0.4, 0.4]} />
+            <meshStandardMaterial color="#7B2CBF" wireframe />
+          </mesh>
+          <mesh position={[0, -0.5, 0]}>
+            <cylinderGeometry args={[0.02, 0.02, 1.0, 4]} />
+            <meshBasicMaterial color="#03e9f4" />
+          </mesh>
+        </group>
+      </group>
+    </group>
+  );
+};
+
+// ==========================================
+// 8. Staged Humanoid Hologram (White AI)
+// ==========================================
+const WhiteAIHologram = ({ progress }: { progress: number }) => {
   const groupRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
@@ -436,16 +581,13 @@ const WhiteAIHologram = () => {
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (groupRef.current) {
-      // Floating oscillation
       groupRef.current.position.y = 1.6 + Math.sin(t * 1.5) * 0.1;
-      groupRef.current.rotation.y = t * 0.25; // Slow rotation
+      groupRef.current.rotation.y = t * 0.25;
     }
-
     if (headRef.current) {
       headRef.current.rotation.x = Math.sin(t * 2) * 0.04;
       headRef.current.rotation.y = Math.cos(t * 1.2) * 0.08;
     }
-
     if (leftArmRef.current) {
       leftArmRef.current.rotation.x = -Math.PI / 4 + Math.sin(t * 2.5) * 0.1;
     }
@@ -454,107 +596,111 @@ const WhiteAIHologram = () => {
     }
   });
 
+  // Calculate distinct phase opacities based on progress (0 to 1)
+  const particlesOpacity = Math.min(1.0, progress * 2.0); // complete at 0.5
+  const skeletonOpacity = Math.max(0.0, Math.min(1.0, (progress - 0.25) * 2.5)); // starts at 0.25, complete at 0.65
+  const coreOpacity = Math.max(0.0, Math.min(1.0, (progress - 0.5) * 3.0)); // starts at 0.5, complete at 0.83
+  const visorOpacity = Math.max(0.0, Math.min(1.0, (progress - 0.75) * 4.0)); // starts at 0.75, complete at 1.0
+
   return (
     <group ref={groupRef}>
       {/* Light Shaft Beam */}
       <mesh position={[0, -0.8, 0]}>
         <cylinderGeometry args={[0.3, 0.7, 1.6, 16, 1, true]} />
-        <meshBasicMaterial color="#03e9f4" transparent opacity={0.12} side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#03e9f4" transparent opacity={0.12 * particlesOpacity} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Floating Emitter Plate */}
       <mesh position={[0, -0.75, 0]}>
         <torusGeometry args={[0.5, 0.04, 6, 16]} />
-        <meshBasicMaterial color="#03e9f4" transparent opacity={0.6} />
+        <meshBasicMaterial color="#03e9f4" transparent opacity={0.6 * particlesOpacity} />
       </mesh>
 
-      {/* Segmented Spine */}
-      {[0, 1, 2].map((i) => (
-        <group key={i} position={[0, -0.45 + i * 0.25, 0]}>
-          <mesh>
-            <sphereGeometry args={[0.08, 8, 8]} />
-            <meshStandardMaterial color="#03e9f4" wireframe emissive="#03e9f4" />
+      {/* Segmented Spine (Skeleton Phase) */}
+      {skeletonOpacity > 0 && (
+        <group>
+          {[0, 1, 2].map((i) => (
+            <group key={i} position={[0, -0.45 + i * 0.25, 0]}>
+              <mesh>
+                <sphereGeometry args={[0.08, 8, 8]} />
+                <meshStandardMaterial color="#03e9f4" wireframe emissive="#03e9f4" transparent opacity={skeletonOpacity} />
+              </mesh>
+              <mesh rotation={[Math.PI / 2, 0, 0]}>
+                <torusGeometry args={[0.22 - i * 0.03, 0.015, 4, 12]} />
+                <meshBasicMaterial color="#7B2CBF" transparent opacity={0.5 * skeletonOpacity} />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      )}
+
+      {/* Floating Core and Chest Armor (Core Phase) */}
+      {coreOpacity > 0 && (
+        <group>
+          <mesh position={[0, 0.1, 0]}>
+            <sphereGeometry args={[0.16, 12, 12]} />
+            <meshBasicMaterial color="#FF2E63" transparent opacity={coreOpacity} />
           </mesh>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.22 - i * 0.03, 0.015, 4, 12]} />
-            <meshBasicMaterial color="#7B2CBF" transparent opacity={0.5} />
+          <mesh position={[0, 0.1, 0]}>
+            <torusGeometry args={[0.26, 0.01, 4, 16]} />
+            <meshBasicMaterial color="#03e9f4" transparent opacity={0.8 * coreOpacity} />
+          </mesh>
+          <mesh position={[0, 0.4, 0]}>
+            <coneGeometry args={[0.35, 0.5, 5]} />
+            <meshStandardMaterial color="#020617" wireframe emissive="#03e9f4" emissiveIntensity={0.6} transparent opacity={coreOpacity} />
           </mesh>
         </group>
-      ))}
+      )}
 
-      {/* Floating Spark core */}
-      <group position={[0, 0.1, 0]}>
-        <mesh>
-          <sphereGeometry args={[0.16, 12, 12]} />
-          <meshBasicMaterial color="#FF2E63" />
-        </mesh>
-        <mesh>
-          <torusGeometry args={[0.26, 0.01, 4, 16]} />
-          <meshBasicMaterial color="#03e9f4" transparent opacity={0.8} />
-        </mesh>
-      </group>
+      {/* Head and Visor assembly (Visor Phase) */}
+      {visorOpacity > 0 && (
+        <group>
+          <group ref={headRef} position={[0, 0.75, 0]}>
+            <mesh position={[0, -0.1, 0]}>
+              <cylinderGeometry args={[0.06, 0.08, 0.15, 8]} />
+              <meshStandardMaterial color="#03e9f4" wireframe transparent opacity={visorOpacity} />
+            </mesh>
+            <mesh>
+              <sphereGeometry args={[0.25, 12, 12]} />
+              <meshStandardMaterial color="#020617" wireframe emissive="#03e9f4" emissiveIntensity={0.5} transparent opacity={visorOpacity} />
+            </mesh>
+            <mesh position={[0, 0.02, 0.2]}>
+              <boxGeometry args={[0.28, 0.1, 0.08]} />
+              <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.5} transparent opacity={visorOpacity} />
+            </mesh>
+          </group>
 
-      {/* Cyber Chest Armor */}
-      <mesh position={[0, 0.4, 0]}>
-        <coneGeometry args={[0.35, 0.5, 5]} />
-        <meshStandardMaterial color="#020617" wireframe emissive="#03e9f4" emissiveIntensity={0.6} />
-      </mesh>
+          {/* Left arm */}
+          <group ref={leftArmRef} position={[-0.38, 0.4, 0]}>
+            <mesh>
+              <sphereGeometry args={[0.08, 6, 6]} />
+              <meshBasicMaterial color="#03e9f4" transparent opacity={visorOpacity} />
+            </mesh>
+            <mesh position={[-0.15, -0.2, 0]} rotation={[0, 0, Math.PI / 6]}>
+              <cylinderGeometry args={[0.04, 0.03, 0.4, 6]} />
+              <meshStandardMaterial color="#03e9f4" wireframe transparent opacity={visorOpacity} />
+            </mesh>
+          </group>
 
-      {/* Humanoid Head with visor screen and sensors */}
-      <group ref={headRef} position={[0, 0.75, 0]}>
-        <mesh position={[0, -0.1, 0]}>
-          <cylinderGeometry args={[0.06, 0.08, 0.15, 8]} />
-          <meshStandardMaterial color="#03e9f4" wireframe />
-        </mesh>
-        <mesh>
-          <sphereGeometry args={[0.25, 12, 12]} />
-          <meshStandardMaterial color="#020617" wireframe emissive="#03e9f4" emissiveIntensity={0.5} />
-        </mesh>
-        {/* Visor */}
-        <mesh position={[0, 0.02, 0.2]}>
-          <boxGeometry args={[0.28, 0.1, 0.08]} />
-          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.5} />
-        </mesh>
-        {/* Side Ear scanners */}
-        <mesh position={[0.26, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.06, 0.06, 0.08, 6]} />
-          <meshBasicMaterial color="#7B2CBF" />
-        </mesh>
-        <mesh position={[-0.26, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.06, 0.06, 0.08, 6]} />
-          <meshBasicMaterial color="#7B2CBF" />
-        </mesh>
-      </group>
-
-      {/* Left arm */}
-      <group ref={leftArmRef} position={[-0.38, 0.4, 0]}>
-        <mesh>
-          <sphereGeometry args={[0.08, 6, 6]} />
-          <meshBasicMaterial color="#03e9f4" />
-        </mesh>
-        <mesh position={[-0.15, -0.2, 0]} rotation={[0, 0, Math.PI / 6]}>
-          <cylinderGeometry args={[0.04, 0.03, 0.4, 6]} />
-          <meshStandardMaterial color="#03e9f4" wireframe />
-        </mesh>
-      </group>
-
-      {/* Right arm */}
-      <group ref={rightArmRef} position={[0.38, 0.4, 0]}>
-        <mesh>
-          <sphereGeometry args={[0.08, 6, 6]} />
-          <meshBasicMaterial color="#03e9f4" />
-        </mesh>
-        <mesh position={[0.15, -0.2, 0]} rotation={[0, 0, -Math.PI / 6]}>
-          <cylinderGeometry args={[0.04, 0.03, 0.4, 6]} />
-          <meshStandardMaterial color="#03e9f4" wireframe />
-        </mesh>
-      </group>
+          {/* Right arm */}
+          <group ref={rightArmRef} position={[0.38, 0.4, 0]}>
+            <mesh>
+              <sphereGeometry args={[0.08, 6, 6]} />
+              <meshBasicMaterial color="#03e9f4" transparent opacity={visorOpacity} />
+            </mesh>
+            <mesh position={[0.15, -0.2, 0]} rotation={[0, 0, -Math.PI / 6]}>
+              <cylinderGeometry args={[0.04, 0.03, 0.4, 6]} />
+              <meshStandardMaterial color="#03e9f4" wireframe transparent opacity={visorOpacity} />
+            </mesh>
+          </group>
+        </group>
+      )}
     </group>
   );
 };
 
 // ==========================================
-// 7. Robotics Civilization Grid Container (R3F)
+// 9. Metropolis Scene Grid & Entities
 // ==========================================
 const RoboticCity = () => {
   const conveyorPartsRef = useRef<THREE.Group>(null);
@@ -574,7 +720,7 @@ const RoboticCity = () => {
 
   return (
     <group>
-      {/* 3D Grid */}
+      {/* Base Grid */}
       <gridHelper args={[120, 80, '#03e9f4', '#112233']} position={[0, -2, 0]} />
 
       <fog attach="fog" args={['#030712', 8, 35]} />
@@ -583,38 +729,28 @@ const RoboticCity = () => {
       <pointLight position={[0, 4, 2]} intensity={3.0} color="#03e9f4" distance={25} />
       <pointLight position={[-4, 2, -3]} intensity={2.0} color="#7B2CBF" distance={15} />
 
-      {/* Skylines */}
-      {[
-        { pos: [-15, 6, -20], size: [5, 16, 5], color: '#03e9f4' },
-        { pos: [15, 8, -25], size: [6, 20, 6], color: '#7B2CBF' },
-        { pos: [-25, 5, -10], size: [6, 14, 6], color: '#5B8FB9' },
-        { pos: [22, 6, -12], size: [5, 16, 5], color: '#FF2E63' },
-        { pos: [0, 12, -35], size: [8, 30, 8], color: '#03e9f4' },
-      ].map((b, i) => (
-        <group key={i} position={b.pos as any}>
-          <mesh>
-            <boxGeometry args={b.size as any} />
-            <meshStandardMaterial color={b.color} wireframe emissive={b.color} emissiveIntensity={1.2} />
-          </mesh>
-          <mesh scale={0.97}>
-            <boxGeometry args={b.size as any} />
-            <meshStandardMaterial color="#020617" roughness={0.1} metalness={0.9} />
-          </mesh>
-        </group>
-      ))}
+      {/* Volumetric Skyscrapers skyline */}
+      <FuturisticCityscape />
+      <CyberTraffic />
 
-      {/* Industrial Assembly Robots */}
+      {/* Gantry cranes & Elevators */}
+      <GantryCrane position={[-6, -2, -8]} />
+      <GantryCrane position={[8, -2, -12]} />
+      <CyberElevator x={-15} z={-20} maxHeight={16} />
+      <CyberElevator x={15} z={-25} maxHeight={20} />
+
+      {/* Heavy assembler weld units */}
       <HeavyWelderRobot position={[-2.5, -2, 0.5]} color="#03e9f4" tipColor="#ff5500" isFlipped={false} />
       <HeavyWelderRobot position={[2.5, -2, -1]} color="#7B2CBF" tipColor="#03e9f4" isFlipped={true} />
 
-      {/* Conveyor Belt System */}
+      {/* Conveyor Tracks */}
       <group position={[0, -2, 0.5]}>
         <mesh position={[0, 0.15, 0]}>
           <boxGeometry args={[14, 0.3, 1.4]} />
           <meshStandardMaterial color="#111827" emissive="#03e9f4" emissiveIntensity={0.15} wireframe />
         </mesh>
         <group ref={conveyorPartsRef}>
-          {/* Robot Head chassis */}
+          {/* Robot Head */}
           <group position={[-5, 0.7, 0]}>
             <mesh>
               <sphereGeometry args={[0.4, 12, 12]} />
@@ -629,7 +765,7 @@ const RoboticCity = () => {
               <meshBasicMaterial color="#FF2E63" />
             </mesh>
           </group>
-          {/* Robot Torso */}
+          {/* Torso */}
           <mesh position={[0, 0.7, 0]}>
             <cylinderGeometry args={[0.5, 0.3, 0.8, 8, 4, true]} />
             <meshStandardMaterial color="#7B2CBF" wireframe emissive="#7B2CBF" emissiveIntensity={0.6} />
@@ -642,7 +778,7 @@ const RoboticCity = () => {
         </group>
       </group>
 
-      {/* Patrolling Quadcopters */}
+      {/* Quadcopters */}
       {[-4.5, 0, 4.5].map((xOffset, i) => (
         <HeavyInspectionDrone key={i} i={i} xOffset={xOffset} />
       ))}
@@ -651,41 +787,55 @@ const RoboticCity = () => {
 };
 
 // ==========================================
-// 8. Dynamic Camera Controller (GSAP)
+// 10. Automated Movie Drone Camera Controller
 // ==========================================
 const SceneController = ({ state }: { state: string }) => {
   const { camera } = useThree();
 
-  useEffect(() => {
+  useFrame((stateData) => {
+    const t = stateData.clock.getElapsedTime();
+    
     if (state === 'portal') {
-      camera.position.set(0, 0, 0);
-      gsap.to(camera.position, {
-        z: -90,
-        duration: 5.5,
-        ease: 'power1.inOut',
-        overwrite: 'auto'
-      });
+      // High-speed portal traversal Z glide
+      camera.position.set(0, 0, -t * 15);
+      camera.lookAt(0, 0, -t * 15 - 10);
     } else if (state === 'world') {
-      camera.position.set(0, 15, 25);
-      camera.lookAt(0, 0, 0);
-      gsap.to(camera.position, {
-        x: 0,
-        y: 2,
-        z: 10,
-        duration: 4.5,
-        ease: 'power2.out',
-        overwrite: 'auto'
-      });
+      // Loop sequence or clamp path
+      const s = t % 60;
+      
+      if (s < 4.5) {
+        // Phase 1: High skyline swoop looking down on the metropolis
+        const progress = s / 4.5;
+        const startPos = new THREE.Vector3(22, 16, 28);
+        const endPos = new THREE.Vector3(-12, 10, 22);
+        camera.position.lerpVectors(startPos, endPos, progress);
+        camera.lookAt(0, 2, -4);
+      } else if (s < 9.5) {
+        // Phase 2: Low-altitude factory glide under structural gantry pillars
+        const progress = (s - 4.5) / 5.0;
+        const startPos = new THREE.Vector3(-12, 10, 22);
+        const endPos = new THREE.Vector3(0, 3.2, 13);
+        camera.position.lerpVectors(startPos, endPos, progress);
+        camera.lookAt(0, 1.2, 3);
+      } else {
+        // Phase 3: Orbital lock-on slowly sweeping and breathing around vault
+        const progress = s - 9.5;
+        const orbitAngle = progress * 0.12;
+        camera.position.x = Math.sin(orbitAngle) * 9.5;
+        camera.position.z = Math.cos(orbitAngle) * 9.5 + 4.0;
+        camera.position.y = 2.4 + Math.sin(progress * 0.4) * 0.15;
+        camera.lookAt(0, -0.6, 4);
+      }
     }
-  }, [state, camera]);
+  });
 
   return null;
 };
 
 // ==========================================
-// 9. Holographic Quantum Vault (R3F)
+// 11. Holographic Quantum Vault (R3F)
 // ==========================================
-const QuantumVault = ({ isOpened, onClick }: { isOpened: boolean; onClick: () => void }) => {
+const QuantumVault = ({ isOpened, progress, onClick }: { isOpened: boolean; progress: number; onClick: () => void }) => {
   const vaultRef = useRef<THREE.Group>(null);
   const ringRef = useRef<THREE.Mesh>(null);
   const lidRef = useRef<THREE.Group>(null);
@@ -760,11 +910,11 @@ const QuantumVault = ({ isOpened, onClick }: { isOpened: boolean; onClick: () =>
         <meshBasicMaterial color="#03e9f4" transparent opacity={0.3} />
       </mesh>
 
-      {/* Hologram project beam AND full body White AI hologram */}
+      {/* Hologram project core & White AI materialized humanoid */}
       {isOpened && (
         <>
           <HologramBeam />
-          <WhiteAIHologram />
+          <WhiteAIHologram progress={progress} />
         </>
       )}
     </group>
@@ -816,7 +966,7 @@ const HologramBeam = () => {
 };
 
 // ==========================================
-// 10. Main Interactive Portal Overlay
+// 12. Main Interactive Portal
 // ==========================================
 export default function AICorePortal() {
   const { aiModeState, setAiModeState, exitAIMode } = useAI();
@@ -829,7 +979,9 @@ export default function AICorePortal() {
   const [isTyping, setIsTyping] = useState(false);
   const [modelTrained, setModelTrained] = useState(false);
 
-  // Sync mute state with synth engine
+  // Materialization progress: slides 0 to 1 over 6 seconds
+  const [holoProgress, setHoloProgress] = useState(0);
+
   useEffect(() => {
     sfx.isMuted = isMuted;
     if (isMuted) {
@@ -839,32 +991,31 @@ export default function AICorePortal() {
     }
   }, [isMuted, aiModeState]);
 
-  // Sound triggers based on states
+  // Transition controller
   useEffect(() => {
     if (aiModeState === 'activating') {
       sfx.playWarp(false);
       setTerminalLogs([]);
 
-      const intervals = [1000, 2000, 3000, 4200, 5200];
+      const intervals = [1000, 2000, 3000];
       const logTexts = [
-        "> Initializing AI Core Security Shield...",
-        "> Establishing Quantum Session tunnel...",
-        "> Analyzing local network nodes... Access Approved.",
-        "> Defragmenting DOM matrix structures...",
-        "> Fictional scan protocol loaded... Fading reality...",
+        "> INITIALIZING AI SECURE DECK...",
+        "> ENGAGING DIRECT COGNITIVE PATHWAY...",
+        "> REALITY DECONSTRUCTION OVERRIDE SEQUENCE LOADED.",
       ];
 
       intervals.forEach((time, index) => {
         setTimeout(() => {
           setTerminalLogs((prev) => [...prev, logTexts[index]]);
-          sfx.playBeep(550 + index * 40, 0.06, 0.01);
+          sfx.playBeep(550 + index * 40, 0.06, 0.015);
         }, time);
       });
 
       const timer = setTimeout(() => {
         document.body.classList.remove('ai-portal-glitch');
-        setAiModeState('portal');
-      }, 6200);
+        // Slide directly to the video forward player transition
+        setAiModeState('video_forward');
+      }, 3500);
 
       return () => clearTimeout(timer);
     } else if (aiModeState === 'portal') {
@@ -875,24 +1026,27 @@ export default function AICorePortal() {
       return () => clearTimeout(timer);
     } else if (aiModeState === 'world') {
       sfx.startHum();
-    } else if (aiModeState === 'deactivating') {
-      sfx.stopHum();
-      sfx.playWarp(true);
-      setVaultOpened(false);
-      setIsBotVisible(false);
-
-      const timer = setTimeout(() => {
-        setAiModeState('inactive');
-      }, 5200);
-      return () => clearTimeout(timer);
     }
   }, [aiModeState, setAiModeState]);
 
+  // Materialization progression tick
   useEffect(() => {
-    return () => {
-      sfx.stopHum();
+    if (!vaultOpened) return;
+    let start: number | null = null;
+    const duration = 5500; // 5.5 seconds for complete sequence
+
+    const tick = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const progress = Math.min(1.0, elapsed / duration);
+      setHoloProgress(progress);
+
+      if (progress < 1.0) {
+        requestAnimationFrame(tick);
+      }
     };
-  }, []);
+    requestAnimationFrame(tick);
+  }, [vaultOpened]);
 
   const handleVaultClick = () => {
     if (vaultOpened) return;
@@ -903,11 +1057,9 @@ export default function AICorePortal() {
       sfx.playBeep(900, 0.25, 0.02);
 
       const lines = [
-        "Initializing AI Core...",
-        "Establishing Secure Session...",
-        "Loading Professional Profile...",
-        "Knowledge Database Ready.",
-        "Welcome to AI Core. I have securely loaded the professional profile of Indra Kumar.\n\nI can assist you with:\n• Projects\n• Skills\n• Education\n• Experience\n• Resume\n• GitHub\n• Contact\n\nSelect a category below, train my prediction model, or ask me naturally."
+        "[ SECURE CONNECT ESTABLISHED ]",
+        "WHITE AI HOLOGRAPHIC FRAME: ASSEMBLED",
+        "WELCOME TO MISSION CONTROL TERMINAL.\n\nI have verified the credentials of Engineer Indra Kumar.\n\n[ MODULE DATA LOGS ]:\n- Projects Database\n- Skills Inventory\n- Academic Records\n- Contact Channels\n\nAsk me to predict interests or select a database below."
       ];
 
       lines.forEach((line, index) => {
@@ -916,7 +1068,7 @@ export default function AICorePortal() {
           sfx.playBeep(440 + index * 40, 0.05, 0.01);
         }, index * 600);
       });
-    }, 2000);
+    }, 5500); // Trigger panel open exactly when materialization finishes
   };
 
   const predictInterest = (topic: string): string => {
@@ -991,7 +1143,6 @@ Status: CONFIDENCE OPTIMIZED`;
   const queryDatabase = (query: string): string => {
     const q = query.toLowerCase();
 
-    // Trigger interest predictor model
     if (q.includes('predict') || q.includes('interest') || q.includes('similarity') || modelTrained) {
       const isStandardCat = ['skills', 'projects', 'education', 'contact', 'resume', 'experience'].some(cat => q.includes(cat));
       if (!isStandardCat) {
@@ -1005,105 +1156,24 @@ Status: CONFIDENCE OPTIMIZED`;
       }
     }
 
-    // 1. Projects
     if (q.includes('project') || q.includes('work') || q.includes('built') || q.includes('develop')) {
-      return `ACCESSING KNOWLEDGE DATABASE...
-██████████████ 100%
-Profile Loaded
-
---------------------------------
-Selected Repositories & Work
-• Supreme Cart (E-commerce app):
-  Built end-to-end shopping catalog, user auth, and cart modules using Java, Hibernate, HTML, CSS, and PostgreSQL.
-• Admin Dashboard:
-  Designed a responsive panel for system configuration, settings management, and promotion overrides.
-• Supabase Integrations:
-  Configured real-time triggers and secure client sessions.
-
-Status: CORE REPOSITORIES VERIFIED`;
+      return `Technical Stack Verification\nSelected Repositories`;
     }
 
-    // 2. Skills
     if (q.includes('skill') || q.includes('language') || q.includes('technology') || q.includes('database') || q.includes('stack') || q.includes('tool')) {
-      return `ACCESSING KNOWLEDGE DATABASE...
-██████████████ 100%
-Profile Loaded
-
---------------------------------
-Technical Stack Verification
-• Primary Languages:
-  Java, JavaScript, HTML, CSS
-• Frameworks & ORMs:
-  React.js, Hibernate
-• Databases & BaaS:
-  PostgreSQL, Supabase, SQL
-• Core Topics:
-  Data Structures & Algorithms (DSA)
-• AI & Productivity Tools:
-  ChatGPT, Gemini, Antigravity IDE
-
-Status: VERIFICATION COMPLETE`;
+      return `Technical Stack Verification`;
     }
 
-    // 3. Education
     if (q.includes('education') || q.includes('graduate') || q.includes('college') || q.includes('school') || q.includes('degree') || q.includes('study')) {
-      return `ACCESSING KNOWLEDGE DATABASE...
-██████████████ 100%
-Profile Loaded
-
---------------------------------
-Academic Matrix Verification
-• SJC Institute of Technology (2026)
-  B.E. in Artificial Intelligence & Machine Learning (CGPA: 8.59)
-• LRG Naidu JR. College (2022)
-  PUC - PCMC (Score: 85.3%)
-• LRG Vidyalayam (EM) (2020)
-  SSLC (Score: 78.5%)
-
-Status: ACCREDITATIONS VALIDATED`;
+      return `Academic Matrix Verification`;
     }
 
-    // 4. Contact
     if (q.includes('contact') || q.includes('email') || q.includes('connect') || q.includes('reach') || q.includes('linkedin') || q.includes('github')) {
-      return `ACCESSING KNOWLEDGE DATABASE...
-██████████████ 100%
-Profile Loaded
-
---------------------------------
-Connection Channels
-• Email: ik9893344@gmail.com
-• GitHub: github.com/indra9346
-• LinkedIn: linkedin.com/in/k-s-indra-kumar-7049b1289
-
-Status: COMMUNICATIONS ONLINE`;
+      return `Connection Channels`;
     }
 
-    // 5. Resume
-    if (q.includes('resume') || q.includes('cv') || q.includes('pdf')) {
-      return `ACCESSING KNOWLEDGE DATABASE...
-██████████████ 100%
-Profile Loaded
-
---------------------------------
-Resume Core Access
-• View Resume: available at /resume.pdf
-• Status: Downloadable in PDF format from the portfolio headers.
-
-Status: ACCESS URL ATTACHED`;
-    }
-
-    return `ACCESSING KNOWLEDGE DATABASE...
---------------------------------
-Notice: Search returned 0 matching nodes.
-I only have access to Indra Kumar's professional data (Skills, Education, Projects, Experience, and Contact information). 
-
-Please select one of the core categories below or specify a topic:
-- Projects
-- Skills
-- Education
-- Experience
-- Contact`;
-  }
+    return `ACCESSING KNOWLEDGE DATABASE...\nNotice: Search returned 0 matching nodes. Please select one of the database categories.`;
+  };
 
   const handleSendMessage = () => {
     if (!chatInput.trim() || isTyping) return;
@@ -1116,7 +1186,7 @@ Please select one of the core categories below or specify a topic:
 
     setTimeout(() => {
       const response = queryDatabase(userText);
-      setChatMessages((prev) => [...prev, { sender: 'ai', text: response, formatted: response.includes('ACCESSING') }]);
+      setChatMessages((prev) => [...prev, { sender: 'ai', text: response, formatted: true }]);
       setIsTyping(false);
       sfx.playBeep(660, 0.08, 0.01);
     }, 1200);
@@ -1124,47 +1194,138 @@ Please select one of the core categories below or specify a topic:
 
   const handleTriggerReturn = () => {
     sfx.playBeep(330, 0.25, 0.02);
-    setChatMessages((prev) => [...prev, { sender: 'ai', text: "Mission Completed. Returning you to reality..." }]);
+    setChatMessages((prev) => [...prev, { sender: 'ai', text: "Your session has ended. Returning you to your world..." }]);
     
     setTimeout(() => {
-      exitAIMode();
+      // Trigger reverse video bridge playback
+      setAiModeState('video_reverse');
     }, 1500);
+  };
+
+  // Structured High-Tech Card renderer for HUD Terminal
+  const renderMessageContent = (msg: { sender: 'ai' | 'user'; text: string; formatted?: boolean }) => {
+    if (msg.sender === 'user') {
+      return <div className="text-right text-neon-cyan">{msg.text}</div>;
+    }
+
+    if (msg.text.includes('Technical Stack Verification')) {
+      return (
+        <div className="border border-neon-cyan/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
+          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
+            <Shield size={10} />
+            <span>[ SYSTEM: INVENTORY LOADED ]</span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1 text-slate-300">
+            <div>Java:</div><div className="text-green-400">██████████ 96%</div>
+            <div>React:</div><div className="text-green-400">████████░░ 80%</div>
+            <div>PostgreSQL:</div><div className="text-green-400">████████░░ 80%</div>
+            <div>Supabase:</div><div className="text-green-400">████████░░ 80%</div>
+            <div>Python (AIML):</div><div className="text-green-400">█████████░ 90%</div>
+            <div>DSA Concepts:</div><div className="text-green-400">████████░░ 80%</div>
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.text.includes('Academic Matrix Verification')) {
+      return (
+        <div className="border border-neon-purple/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
+          <div className="text-neon-purple border-b border-neon-purple/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
+            <Activity size={10} />
+            <span>[ SYSTEM: ACADEMIC CREDENTIALS ]</span>
+          </div>
+          <div className="flex flex-col gap-2 mt-1 text-slate-300">
+            <div className="border-l-2 border-neon-purple pl-2">
+              <div className="font-bold text-white text-[10px] sm:text-xs">B.E. in AI & Machine Learning (2026)</div>
+              <div className="text-gray-400">SJC Institute of Technology | CGPA: 8.59/10</div>
+            </div>
+            <div className="border-l-2 border-neon-purple pl-2">
+              <div className="font-bold text-white text-[10px] sm:text-xs">PUC - PCMC (2022)</div>
+              <div className="text-gray-400">LRG Naidu JR. College | Score: 85.3%</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.text.includes('Selected Repositories')) {
+      return (
+        <div className="border border-neon-cyan/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs w-full">
+          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider">
+            <span>[ SYSTEM: REPOSITORY LOGS ]</span>
+          </div>
+          <div className="flex flex-col gap-2 mt-1.5 w-full">
+            <div className="border border-slate-800 p-2 rounded bg-black/40">
+              <div className="text-white font-bold flex justify-between items-center text-[10px] sm:text-xs">
+                <span>🛒 SUPREME CART</span>
+                <span className="text-[8px] border border-green-500/30 text-green-400 px-1 rounded">PROD</span>
+              </div>
+              <div className="text-slate-400 text-[8px] sm:text-[10px] mt-1 leading-relaxed">
+                Full-stack shopping application built with Java, Hibernate, and PostgreSQL. Handles catalogs and secure checkout sessions.
+              </div>
+            </div>
+            <div className="border border-slate-800 p-2 rounded bg-black/40">
+              <div className="text-white font-bold flex justify-between items-center text-[10px] sm:text-xs">
+                <span>📊 PORTFOLIO CONFIG v4.0</span>
+                <span className="text-[8px] border border-neon-cyan/30 text-neon-cyan px-1 rounded">ACTIVE</span>
+              </div>
+              <div className="text-slate-400 text-[8px] sm:text-[10px] mt-1 leading-relaxed">
+                Interactive control panel configuring client settings, real-time Supabase triggers, and promotions.
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.text.includes('Connection Channels')) {
+      return (
+        <div className="border border-neon-pink/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
+          <div className="text-neon-pink border-b border-neon-pink/20 pb-1 font-bold tracking-wider">
+            <span>[ SYSTEM: COMMS NODE ]</span>
+          </div>
+          <div className="flex flex-col gap-1 mt-1 text-slate-300">
+            <div>Email: <span className="text-white">ik9893344@gmail.com</span></div>
+            <div>GitHub: <a href="https://github.com/indra9346" target="_blank" className="text-neon-cyan hover:underline">github.com/indra9346</a></div>
+            <div>LinkedIn: <a href="https://linkedin.com/in/k-s-indra-kumar-7049b1289" target="_blank" className="text-neon-cyan hover:underline">indra-kumar</a></div>
+          </div>
+        </div>
+      );
+    }
+
+    return <div className="whitespace-pre-wrap text-slate-300 leading-relaxed">{msg.text}</div>;
   };
 
   return (
     <div className="fixed inset-0 w-screen h-screen z-[9990] bg-[#020617] text-white overflow-hidden font-sans select-none">
       
-      {/* 1. THREE.JS PORTAL / WORLD CANVAS VIEW */}
+      {/* 3D Canvas Viewport */}
       {(aiModeState === 'portal' || aiModeState === 'world' || aiModeState === 'deactivating') && (
         <div className="absolute top-0 left-0 w-screen h-screen z-10">
           <Canvas camera={{ position: [0, 0, 0], fov: 60 }} shadows>
             <Suspense fallback={null}>
               <SceneController state={aiModeState} />
 
-              {/* 3D cylindrical code space tunnel */}
               {(aiModeState === 'portal' || aiModeState === 'deactivating') && (
-                <SpaceTunnel speed={aiModeState === 'deactivating' ? -25 : 30} />
+                <SpaceTunnel speed={30} />
               )}
 
-              {/* Denser Glowing Robotics World Scene */}
               {aiModeState === 'world' && (
                 <>
                   <RoboticCity />
-                  <QuantumVault isOpened={vaultOpened} onClick={handleVaultClick} />
+                  <QuantumVault isOpened={vaultOpened} progress={holoProgress} onClick={handleVaultClick} />
                 </>
               )}
             </Suspense>
           </Canvas>
-
           <div className="absolute inset-0 pointer-events-none z-20 bg-scanlines opacity-10" />
         </div>
       )}
 
-      {/* 2. ACTIVATION OVERLAY SCREEN */}
+      {/* Activation logs screen */}
       {aiModeState === 'activating' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-[#030712] z-50">
           <div className="border border-neon-cyan/30 bg-black/80 max-w-sm sm:max-w-md w-[92%] rounded-lg p-5 font-mono text-sm shadow-[0_0_20px_rgba(3,233,244,0.1)] relative">
-            
             <div className="absolute -top-1 -left-1 w-4 h-4 border-t border-l border-neon-cyan" />
             <div className="absolute -top-1 -right-1 w-4 h-4 border-t border-r border-neon-cyan" />
             <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b border-l border-neon-cyan" />
@@ -1179,7 +1340,7 @@ Please select one of the core categories below or specify a topic:
             </div>
 
             <div className="h-36 sm:h-44 flex flex-col gap-2 overflow-y-auto text-green-400 text-[10px] sm:text-xs leading-relaxed">
-              <div>&gt; Portal core initializing...</div>
+              <div>&gt; System override initialized...</div>
               {terminalLogs.map((log, idx) => (
                 <div key={idx} className="animate-fade-in">{log}</div>
               ))}
@@ -1189,22 +1350,20 @@ Please select one of the core categories below or specify a topic:
         </div>
       )}
 
-      {/* 3. ROBOTICS WORLD INTERACTIVE HUDS */}
+      {/* metropolis HUD controls */}
       {aiModeState === 'world' && (
         <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-4 sm:p-6 w-screen h-screen">
-          
-          {/* Top Panel Actions */}
           <div className="flex justify-between items-start w-full gap-2 z-50">
             <div className="border border-neon-cyan/20 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-md font-mono text-[9px] sm:text-[10px] text-neon-cyan flex items-center gap-2">
               <Radio size={10} className="animate-pulse" />
-              <span>WHITE AI SIGHT v4.0</span>
+              <span>WHITE AI CONTROLLER v4.0</span>
             </div>
             
             <div className="flex items-center gap-2 pointer-events-auto">
               <button
                 onClick={() => setIsMuted(!isMuted)}
                 className="border border-gray-700 text-gray-400 hover:text-neon-cyan bg-black/60 p-2 rounded-md transition-colors"
-                aria-label={isMuted ? 'Unmute Portal Sounds' : 'Mute Portal Sounds'}
+                aria-label={isMuted ? 'Mute Portal Sounds' : 'Unmute Portal Sounds'}
               >
                 {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
               </button>
@@ -1219,21 +1378,19 @@ Please select one of the core categories below or specify a topic:
             </div>
           </div>
 
-          {/* Prompt to click the vault */}
           {!vaultOpened && (
             <div className="w-full flex justify-center mb-6 sm:mb-10 z-50">
               <div className="border border-neon-cyan/30 bg-black/80 backdrop-blur-md p-3.5 rounded-lg text-center max-w-xs animate-bounce pointer-events-auto cursor-pointer" onClick={handleVaultClick}>
                 <p className="font-mono text-[10px] sm:text-xs text-neon-cyan mb-1.5 uppercase font-bold tracking-wider">🔒 Quantum Vault Detected</p>
-                <p className="text-[10px] sm:text-[11px] text-gray-400">Click the central rotating vault to release the White AI holographic core.</p>
+                <p className="text-[10px] sm:text-[11px] text-gray-400 font-mono">Click the central rotating vault to release the White AI holographic core.</p>
               </div>
             </div>
           )}
 
-          {/* Height-constrained Responsive Holographic Chatboard (Z-index 50) */}
+          {/* Sci-Fi Mission Control Terminal Card Dashboard */}
           {isBotVisible && (
-            <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-3 sm:p-6 bg-black/40">
-              <div className="w-[94%] sm:w-full max-w-md max-h-[80vh] sm:max-h-[75vh] border border-neon-cyan/30 bg-[#020617]/95 backdrop-blur-2xl rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(3,233,244,0.15)] flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
-                
+            <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-3 sm:p-6 bg-black/50">
+              <div className="w-[94%] sm:w-full max-w-md max-h-[82vh] sm:max-h-[75vh] border border-neon-cyan/30 bg-[#020617]/95 backdrop-blur-2xl rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(3,233,244,0.15)] flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
                 <button
                   onClick={() => { sfx.playClick(); setVaultOpened(false); setIsBotVisible(false); }}
                   className="absolute top-4 right-4 text-gray-400 hover:text-neon-cyan transition-colors"
@@ -1246,25 +1403,19 @@ Please select one of the core categories below or specify a topic:
                     <Database size={14} />
                   </div>
                   <div>
-                    <h3 className="font-mono text-xs sm:text-sm font-bold text-white leading-tight">WHITE AI TERMINAL</h3>
+                    <h3 className="font-mono text-xs sm:text-sm font-bold text-white leading-tight">WHITE AI CORE</h3>
                     <p className="text-[8px] sm:text-[9px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1 mt-0.5">
-                      <span className="inline-block w-1 h-1 rounded-full bg-green-500 animate-ping" />
-                      <span>SECURE NEURAL ACCESS</span>
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
+                      <span>MISSION CONTROL ENGAGED</span>
                     </p>
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2.5 font-mono text-[10px] sm:text-[11px] p-2 bg-black/60 border border-gray-900 rounded-md">
+                {/* Structured command feed */}
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-3 font-mono text-[10px] sm:text-[11px] p-2 bg-black/60 border border-gray-900 rounded-md">
                   {chatMessages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`max-w-[90%] rounded px-2.5 py-1.5 leading-relaxed ${
-                        msg.sender === 'user'
-                          ? 'bg-neon-cyan/10 border border-neon-cyan/20 text-neon-cyan self-end'
-                          : 'bg-slate-800/40 text-slate-200 self-start w-full border border-slate-900/60'
-                      } ${msg.formatted ? 'whitespace-pre-wrap text-green-400' : ''}`}
-                    >
-                      {msg.text}
+                    <div key={idx} className="w-full flex flex-col">
+                      {renderMessageContent(msg)}
                     </div>
                   ))}
                   {isTyping && (
@@ -1316,12 +1467,12 @@ Please select one of the core categories below or specify a topic:
         </div>
       )}
 
-      {/* 4. DEACTIVATING MOVIE EXIT SCREEN */}
+      {/* exit screen */}
       {aiModeState === 'deactivating' && (
         <div className="absolute inset-0 bg-[#020617] z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in pointer-events-none">
           <div className="border border-neon-pink/20 bg-black/85 p-5 rounded-lg max-w-xs w-full text-center shadow-[0_0_20px_rgba(255,46,99,0.1)]">
             <Shield className="mx-auto text-neon-pink animate-pulse mb-3" size={20} />
-            <p className="font-mono text-xs text-neon-pink uppercase font-bold tracking-wider mb-1">🔌 Connection Terminated</p>
+            <p className="font-mono text-xs text-neon-pink uppercase font-bold tracking-wider mb-1">🔌 Reconstructing Reality</p>
             <p className="text-[9px] sm:text-[10px] text-gray-500 font-mono">Restoring original coordinates in 3D spacetime...</p>
           </div>
         </div>

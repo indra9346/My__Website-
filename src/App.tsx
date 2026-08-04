@@ -15,6 +15,7 @@ import AdminPromotions from "./pages/AdminPromotions";
 import AdminLayout from "./components/AdminLayout";
 import CustomCursor from "./components/CustomCursor";
 import { AIContextProvider, useAI } from "./context/AIContext";
+import VideoBridge from "./components/VideoBridge";
 
 const AICorePortal = lazy(() => import("./components/AICorePortal"));
 
@@ -47,6 +48,7 @@ const AppContent = () => {
           <AICorePortal />
         </Suspense>
       )}
+      <VideoBridge />
     </TooltipProvider>
   );
 };
