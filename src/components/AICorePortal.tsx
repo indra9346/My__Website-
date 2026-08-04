@@ -1,18 +1,21 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useAI } from '../context/AIContext';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
-import { Terminal, Send, X, Shield, Activity, Radio, Database } from 'lucide-react';
+import { Terminal, Send, X, Shield, Activity, Volume2, VolumeX, Database } from 'lucide-react';
 
 // ==========================================
-// 1. Web Audio Synth (Spatial/SFX Synth)
+// 1. Soft Ambient Web Audio Synth
 // ==========================================
 class PortaSfxSynth {
   private ctx: AudioContext | null = null;
-  private humNode: OscillatorNode | null = null;
+  private osc1: OscillatorNode | null = null;
+  private osc2: OscillatorNode | null = null;
+  private lfo: OscillatorNode | null = null;
+  private lfoGain: GainNode | null = null;
   private humGain: GainNode | null = null;
+  public isMuted = false;
 
   init() {
     if (this.ctx) return;
@@ -23,91 +26,112 @@ class PortaSfxSynth {
     }
   }
 
-  playBeep(freq = 880, duration = 0.1, gainVal = 0.05) {
+  playBeep(freq = 550, duration = 0.08, gainVal = 0.015) {
+    if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-    gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+      osc.type = 'sine'; // Soft sine wave instead of harsh sawtooth
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
 
-    osc.start();
-    osc.stop(this.ctx.currentTime + duration);
+      osc.start();
+      osc.stop(this.ctx.currentTime + duration);
+    } catch (e) {}
   }
 
   playClick() {
-    this.playBeep(220, 0.08, 0.1);
+    this.playBeep(330, 0.06, 0.02);
   }
 
   playWarp(reverse = false) {
+    if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const filter = this.ctx.createBiquadFilter();
-    const gain = this.ctx.createGain();
+    try {
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
 
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
 
-    osc.type = 'sawtooth';
-    filter.type = 'lowpass';
+      osc.type = 'sine'; // Soft sine glide
+      filter.type = 'lowpass';
 
-    const duration = 5.0;
-    const startFreq = reverse ? 800 : 80;
-    const endFreq = reverse ? 50 : 1200;
+      const duration = 5.0;
+      const startFreq = reverse ? 600 : 100;
+      const endFreq = reverse ? 80 : 660;
 
-    osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(endFreq, this.ctx.currentTime + duration);
+      osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(endFreq, this.ctx.currentTime + duration);
 
-    filter.frequency.setValueAtTime(200, this.ctx.currentTime);
-    filter.frequency.exponentialRampToValueAtTime(2500, this.ctx.currentTime + duration);
+      filter.frequency.setValueAtTime(200, this.ctx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(1500, this.ctx.currentTime + duration);
 
-    gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+      gain.gain.setValueAtTime(0.05, this.ctx.currentTime); // Lower gain for pleasant sound
+      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
 
-    osc.start();
-    osc.stop(this.ctx.currentTime + duration);
+      osc.start();
+      osc.stop(this.ctx.currentTime + duration);
+    } catch (e) {}
   }
 
   startHum() {
+    if (this.isMuted) return;
     this.init();
-    if (!this.ctx || this.humNode) return;
+    if (!this.ctx || this.osc1) return;
     try {
-      this.humNode = this.ctx.createOscillator();
+      // Create a gorgeous two-note space pad synth (Interstellar hum)
+      this.osc1 = this.ctx.createOscillator();
+      this.osc2 = this.ctx.createOscillator();
+      this.lfo = this.ctx.createOscillator();
+      this.lfoGain = this.ctx.createGain();
       this.humGain = this.ctx.createGain();
 
-      this.humNode.connect(this.humGain);
+      this.osc1.type = 'sine';
+      this.osc2.type = 'sine';
+      this.lfo.type = 'sine';
+
+      this.osc1.frequency.setValueAtTime(110, this.ctx.currentTime); // Low A
+      this.osc2.frequency.setValueAtTime(165, this.ctx.currentTime); // E3 (fifth)
+      this.lfo.frequency.setValueAtTime(0.2, this.ctx.currentTime); // Slow 5s cycle
+
+      this.lfoGain.gain.setValueAtTime(0.015, this.ctx.currentTime); // Soft volume swell
+      
+      // Connect LFO to hum gain for breathing volume effect
+      this.lfo.connect(this.lfoGain);
+      this.lfoGain.connect(this.humGain.gain);
+
+      this.osc1.connect(this.humGain);
+      this.osc2.connect(this.humGain);
       this.humGain.connect(this.ctx.destination);
 
-      this.humNode.type = 'triangle';
-      this.humNode.frequency.setValueAtTime(55, this.ctx.currentTime); // Low A hum
-      this.humGain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-      this.humNode.start();
+      this.humGain.gain.setValueAtTime(0.02, this.ctx.currentTime); // Baseline volume
+
+      this.osc1.start();
+      this.osc2.start();
+      this.lfo.start();
     } catch (e) {
-      console.error(e);
+      console.error("Failed to start ambient hum", e);
     }
   }
 
   stopHum() {
-    if (this.humNode) {
-      try {
-        this.humNode.stop();
-        this.humNode.disconnect();
-      } catch (e) {}
-      this.humNode = null;
-    }
-    if (this.humGain) {
-      try {
-        this.humGain.disconnect();
-      } catch (e) {}
-      this.humGain = null;
-    }
+    try {
+      if (this.osc1) { this.osc1.stop(); this.osc1.disconnect(); this.osc1 = null; }
+      if (this.osc2) { this.osc2.stop(); this.osc2.disconnect(); this.osc2 = null; }
+      if (this.lfo) { this.lfo.stop(); this.lfo.disconnect(); this.lfo = null; }
+      if (this.lfoGain) { this.lfoGain.disconnect(); this.lfoGain = null; }
+      if (this.humGain) { this.humGain.disconnect(); this.humGain = null; }
+    } catch (e) {}
   }
 }
 
@@ -118,17 +142,16 @@ const sfx = new PortaSfxSynth();
 // ==========================================
 const SpaceTunnel = ({ speed }: { speed: number }) => {
   const pointsRef = useRef<THREE.Points>(null);
-  const particleCount = 2200;
+  const particleCount = 2000;
 
   const positions = Array.from({ length: particleCount * 3 }, (_, i) => {
     if (i % 3 === 2) {
-      // Z depth
       return Math.random() * -120;
     }
     const theta = Math.random() * Math.PI * 2;
     const r = 8 + Math.random() * 4;
-    if (i % 3 === 0) return Math.sin(theta) * r; // X
-    return Math.cos(theta) * r; // Y
+    if (i % 3 === 0) return Math.sin(theta) * r;
+    return Math.cos(theta) * r;
   });
 
   const float32Positions = new Float32Array(positions);
@@ -140,7 +163,7 @@ const SpaceTunnel = ({ speed }: { speed: number }) => {
     for (let i = 2; i < pos.length; i += 3) {
       pos[i] += speed * delta * 60;
       if (pos[i] > 10) {
-        pos[i] = -120; // reset
+        pos[i] = -120;
       }
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
@@ -157,7 +180,7 @@ const SpaceTunnel = ({ speed }: { speed: number }) => {
       </bufferGeometry>
       <pointsMaterial
         color="#03e9f4"
-        size={0.16}
+        size={0.18}
         transparent
         opacity={0.8}
         blending={THREE.AdditiveBlending}
@@ -167,7 +190,7 @@ const SpaceTunnel = ({ speed }: { speed: number }) => {
 };
 
 // ==========================================
-// 3. Robotic Arms, Conveyor & City (R3F)
+// 3. Glowing Neon Robotics Civilization (R3F)
 // ==========================================
 const RoboticCity = () => {
   const arm1Ref = useRef<THREE.Group>(null);
@@ -175,7 +198,7 @@ const RoboticCity = () => {
   const conveyorPartsRef = useRef<THREE.Group>(null);
   const sparksRef = useRef<THREE.Points>(null);
   const [sparkActive, setSparkActive] = useState(false);
-  const sparksCount = 120;
+  const sparksCount = 200;
 
   // Initialize sparks
   const sparkPositions = new Float32Array(sparksCount * 3);
@@ -184,58 +207,56 @@ const RoboticCity = () => {
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
 
-    // 1. Animate Robotic Arms joints
+    // 1. Jointed robotic assembly arms rotations
     if (arm1Ref.current) {
-      arm1Ref.current.rotation.y = Math.sin(t * 1.5) * 0.4;
-      const shoulder = arm1Ref.current.children[1] as THREE.Group;
-      if (shoulder) {
-        shoulder.rotation.z = -Math.PI / 4 + Math.sin(t * 2) * 0.15;
+      arm1Ref.current.rotation.y = Math.sin(t * 1.2) * 0.4;
+      const baseJoint = arm1Ref.current.children[1] as THREE.Group;
+      if (baseJoint) {
+        baseJoint.rotation.z = -Math.PI / 4.5 + Math.sin(t * 1.8) * 0.12;
       }
     }
     if (arm2Ref.current) {
-      arm2Ref.current.rotation.y = Math.cos(t * 1.2) * 0.3;
-      const shoulder = arm2Ref.current.children[1] as THREE.Group;
-      if (shoulder) {
-        shoulder.rotation.z = Math.PI / 4 + Math.cos(t * 1.8) * 0.1;
+      arm2Ref.current.rotation.y = Math.cos(t * 1.0) * 0.3;
+      const baseJoint = arm2Ref.current.children[1] as THREE.Group;
+      if (baseJoint) {
+        baseJoint.rotation.z = Math.PI / 4.5 + Math.cos(t * 1.5) * 0.1;
       }
     }
 
-    // Trigger sparks at intervals (welding)
-    const weldingInterval = Math.sin(t * 5) > 0.6;
-    setSparkActive(weldingInterval);
+    // Trigger sparks at intervals (welding parts together)
+    const weldingActive = Math.sin(t * 4) > 0.4;
+    setSparkActive(weldingActive);
 
-    // 2. Animate Conveyor Belt parts moving along X axis
+    // 2. Conveyor belt assembly parts movement (X axis)
     if (conveyorPartsRef.current) {
       conveyorPartsRef.current.children.forEach((child) => {
-        child.position.x += 0.04;
+        child.position.x += 0.05;
+        child.rotation.y += 0.01;
         if (child.position.x > 8) {
           child.position.x = -8;
         }
       });
     }
 
-    // 3. Spark Particle Physics (gravity-affected falling particles)
-    if (sparksRef.current && weldingInterval) {
+    // 3. Sparks particle gravity physics
+    if (sparksRef.current && weldingActive) {
       const pos = sparksRef.current.geometry.attributes.position.array as Float32Array;
       const vels = sparkVelocities.current;
 
-      // Arm 1 welding tip location (approx)
-      const tipX = -2.5 + Math.sin(t * 1.5) * 0.3;
-      const tipY = -0.4 + Math.sin(t * 2) * 0.1;
+      const tipX = -2.5 + Math.sin(t * 1.2) * 0.3;
+      const tipY = -0.3 + Math.sin(t * 1.8) * 0.08;
       const tipZ = 0.5;
 
       for (let i = 0; i < pos.length; i += 3) {
-        // If particle has fallen too far, reset it to welding tip
-        if (pos[i + 1] < -2 || Math.random() < 0.05) {
+        if (pos[i + 1] < -2 || Math.random() < 0.04) {
           pos[i] = tipX;
           pos[i + 1] = tipY;
           pos[i + 2] = tipZ;
 
-          vels[i] = (Math.random() - 0.5) * 4;
-          vels[i + 1] = Math.random() * 5 + 1; // vertical launch
-          vels[i + 2] = (Math.random() - 0.5) * 4;
+          vels[i] = (Math.random() - 0.5) * 6;
+          vels[i + 1] = Math.random() * 6 + 2; // Vertical projection
+          vels[i + 2] = (Math.random() - 0.5) * 6;
         } else {
-          // Apply velocities + gravity
           pos[i] += vels[i] * 0.016;
           vels[i + 1] -= 9.8 * 0.016; // gravity
           pos[i + 1] += vels[i + 1] * 0.016;
@@ -248,118 +269,124 @@ const RoboticCity = () => {
 
   return (
     <group>
-      {/* 3D Grid floor */}
+      {/* 3D Cyber Matrix Grid Floor */}
       <gridHelper args={[120, 80, '#03e9f4', '#112233']} position={[0, -2, 0]} />
 
-      {/* Volumetric Fog & Cyber Lighting */}
-      <fog attach="fog" args={['#030712', 6, 40]} />
-      <ambientLight intensity={0.12} />
-      <directionalLight position={[10, 20, 10]} intensity={0.8} castShadow />
-      <pointLight position={[0, 5, 2]} intensity={2.5} color="#03e9f4" distance={25} />
-      <pointLight position={[-4, 2, -5]} intensity={1.5} color="#7B2CBF" distance={15} />
+      {/* Atmospheric Fog and Lighting */}
+      <fog attach="fog" args={['#030712', 8, 35]} />
+      <ambientLight intensity={0.15} />
+      <directionalLight position={[10, 20, 10]} intensity={1.0} />
+      <pointLight position={[0, 4, 2]} intensity={3.0} color="#03e9f4" distance={25} />
+      <pointLight position={[-4, 2, -3]} intensity={2.0} color="#7B2CBF" distance={15} />
 
-      {/* Futuristic Skyscrapers (Procedural wireframes with PBR textures) */}
+      {/* Volumetric Glowing Skylines (Procedural buildings with emissive glows) */}
       {[
-        { pos: [-15, 6, -20], size: [4, 16, 4], color: '#03e9f4' },
+        { pos: [-15, 6, -20], size: [5, 16, 5], color: '#03e9f4' },
         { pos: [15, 8, -25], size: [6, 20, 6], color: '#7B2CBF' },
-        { pos: [-25, 5, -10], size: [5, 14, 5], color: '#5B8FB9' },
-        { pos: [22, 6, -12], size: [4, 16, 4], color: '#FF2E63' },
+        { pos: [-25, 5, -10], size: [6, 14, 6], color: '#5B8FB9' },
+        { pos: [22, 6, -12], size: [5, 16, 5], color: '#FF2E63' },
         { pos: [0, 12, -35], size: [8, 30, 8], color: '#03e9f4' },
       ].map((b, i) => (
         <group key={i} position={b.pos as any}>
-          {/* Wireframe Tower */}
+          {/* Outer glowing wireframe mesh */}
           <mesh>
             <boxGeometry args={b.size as any} />
             <meshStandardMaterial
               color={b.color}
               wireframe
               emissive={b.color}
-              emissiveIntensity={0.6}
+              emissiveIntensity={1.2} // Denser glow
             />
           </mesh>
-          {/* Core Solid building block */}
-          <mesh scale={0.96}>
+          {/* Inner solid mechanical block */}
+          <mesh scale={0.97}>
             <boxGeometry args={b.size as any} />
             <meshStandardMaterial
-              color="#0b1329"
-              roughness={0.2}
+              color="#020617"
+              roughness={0.1}
               metalness={0.9}
             />
           </mesh>
         </group>
       ))}
 
-      {/* Robotic Arm 1 (Jointed Group) */}
+      {/* High-visibility Jointed Mechanical Robotic Arm 1 (Glowing Neon Cyan) */}
       <group ref={arm1Ref} position={[-2.5, -2, 0.5]}>
         {/* Base */}
-        <mesh position={[0, 0.3, 0]}>
-          <cylinderGeometry args={[0.5, 0.6, 0.6, 12]} />
-          <meshStandardMaterial color="#1f2937" metalness={0.9} roughness={0.3} />
+        <mesh position={[0, 0.4, 0]}>
+          <cylinderGeometry args={[0.65, 0.75, 0.8, 12]} />
+          <meshStandardMaterial color="#111827" emissive="#03e9f4" emissiveIntensity={0.25} wireframe />
         </mesh>
-        {/* Joint 1 (Shoulder) */}
-        <group position={[0, 0.6, 0]}>
+        {/* Shoulder Joint */}
+        <group position={[0, 0.8, 0]}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.25, 0.25, 0.6, 8]} />
-            <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={0.5} />
+            <cylinderGeometry args={[0.4, 0.4, 0.8, 8]} />
+            <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.0} wireframe />
           </mesh>
-          {/* Segment 1 */}
-          <mesh position={[0, 1, 0]}>
-            <boxGeometry args={[0.2, 1.8, 0.2]} />
-            <meshStandardMaterial color="#374151" metalness={0.8} />
+          {/* Primary Arm Segment */}
+          <mesh position={[0, 1.25, 0]}>
+            <boxGeometry args={[0.3, 2.5, 0.3]} />
+            <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} wireframe />
           </mesh>
-          {/* Joint 2 (Elbow) */}
-          <group position={[0, 1.9, 0]}>
+          {/* Elbow Joint */}
+          <group position={[0, 2.4, 0]}>
             <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.2, 0.2, 0.5, 8]} />
-              <meshStandardMaterial color="#03e9f4" />
+              <cylinderGeometry args={[0.3, 0.3, 0.7, 8]} />
+              <meshStandardMaterial color="#FF2E63" emissive="#FF2E63" emissiveIntensity={1.0} wireframe />
             </mesh>
-            {/* Segment 2 (Forearm) */}
-            <mesh position={[0, 0.7, 0]}>
-              <boxGeometry args={[0.15, 1.2, 0.15]} />
-              <meshStandardMaterial color="#4b5563" />
+            {/* Secondary Forearm Segment */}
+            <mesh position={[0, 0.9, 0]}>
+              <boxGeometry args={[0.22, 1.8, 0.22]} />
+              <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} wireframe />
             </mesh>
-            {/* Welding Tip */}
-            <mesh position={[0, 1.3, 0]}>
-              <coneGeometry args={[0.1, 0.4, 6]} />
-              <meshStandardMaterial color="#FF2E63" emissive="#FF2E63" emissiveIntensity={1} />
+            {/* Hot welding tip */}
+            <mesh position={[0, 1.8, 0]}>
+              <coneGeometry args={[0.15, 0.5, 6]} />
+              <meshBasicMaterial color="#ff5500" />
             </mesh>
           </group>
         </group>
       </group>
 
-      {/* Robotic Arm 2 (Assembly Arm) */}
+      {/* High-visibility Jointed Mechanical Robotic Arm 2 (Glowing Neon Purple) */}
       <group ref={arm2Ref} position={[2.5, -2, -1]}>
-        <mesh position={[0, 0.3, 0]}>
-          <cylinderGeometry args={[0.5, 0.6, 0.6, 12]} />
-          <meshStandardMaterial color="#1f2937" metalness={0.9} />
+        {/* Base */}
+        <mesh position={[0, 0.4, 0]}>
+          <cylinderGeometry args={[0.65, 0.75, 0.8, 12]} />
+          <meshStandardMaterial color="#111827" emissive="#7B2CBF" emissiveIntensity={0.25} wireframe />
         </mesh>
-        <group position={[0, 0.6, 0]}>
+        {/* Shoulder Joint */}
+        <group position={[0, 0.8, 0]}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.25, 0.25, 0.6, 8]} />
-            <meshStandardMaterial color="#03e9f4" />
+            <cylinderGeometry args={[0.4, 0.4, 0.8, 8]} />
+            <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={1.0} wireframe />
           </mesh>
-          <mesh position={[0, 1, 0]}>
-            <boxGeometry args={[0.2, 1.8, 0.2]} />
-            <meshStandardMaterial color="#374151" />
+          {/* Primary Arm Segment */}
+          <mesh position={[0, 1.25, 0]}>
+            <boxGeometry args={[0.3, 2.5, 0.3]} />
+            <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={0.8} wireframe />
           </mesh>
-          <group position={[0, 1.9, 0]}>
+          {/* Elbow Joint */}
+          <group position={[0, 2.4, 0]}>
             <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.2, 0.2, 0.5, 8]} />
-              <meshStandardMaterial color="#7B2CBF" />
+              <cylinderGeometry args={[0.3, 0.3, 0.7, 8]} />
+              <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.0} wireframe />
             </mesh>
-            <mesh position={[0, 0.7, 0]}>
-              <boxGeometry args={[0.15, 1.2, 0.15]} />
-              <meshStandardMaterial color="#4b5563" />
+            {/* Secondary Forearm Segment */}
+            <mesh position={[0, 0.9, 0]}>
+              <boxGeometry args={[0.22, 1.8, 0.22]} />
+              <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={0.8} wireframe />
             </mesh>
-            <mesh position={[0, 1.3, 0]}>
-              <sphereGeometry args={[0.18, 8, 8]} />
-              <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} />
+            {/* Assembly Claws */}
+            <mesh position={[0, 1.8, 0]}>
+              <sphereGeometry args={[0.2, 8, 8]} />
+              <meshBasicMaterial color="#03e9f4" />
             </mesh>
           </group>
         </group>
       </group>
 
-      {/* Gravity sparks points */}
+      {/* Gravity sparks emitter */}
       {sparkActive && (
         <points ref={sparksRef}>
           <bufferGeometry>
@@ -369,41 +396,55 @@ const RoboticCity = () => {
             />
           </bufferGeometry>
           <pointsMaterial
-            color="#ff7b00"
-            size={0.12}
+            color="#ffa500"
+            size={0.22} // Larger, highly visible sparks
             transparent
-            opacity={0.9}
+            opacity={1.0}
             blending={THREE.AdditiveBlending}
           />
         </points>
       )}
 
-      {/* Moving Conveyor Belt Assembly System */}
+      {/* Assembly Conveyor Belt carrying robot heads and parts */}
       <group position={[0, -2, 0.5]}>
-        {/* Belt base */}
-        <mesh rotation={[0, 0, 0]} position={[0, 0.1, 0]}>
-          <boxGeometry args={[12, 0.2, 1.2]} />
-          <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.6} />
+        {/* Conveyor track */}
+        <mesh position={[0, 0.15, 0]}>
+          <boxGeometry args={[14, 0.3, 1.4]} />
+          <meshStandardMaterial color="#111827" emissive="#03e9f4" emissiveIntensity={0.15} wireframe />
         </mesh>
-        {/* Conveyor parts group */}
+        {/* Moving items on conveyor belt */}
         <group ref={conveyorPartsRef}>
-          <mesh position={[-4, 0.35, 0]}>
-            <boxGeometry args={[0.8, 0.4, 0.8]} />
-            <meshStandardMaterial color="#4b5563" wireframe />
+          {/* Robot Head chassis */}
+          <group position={[-5, 0.7, 0]}>
+            <mesh>
+              <sphereGeometry args={[0.4, 12, 12]} />
+              <meshStandardMaterial color="#03e9f4" wireframe emissive="#03e9f4" emissiveIntensity={0.5} />
+            </mesh>
+            {/* Glowing Red Eyes */}
+            <mesh position={[0.15, 0.1, 0.3]} scale={0.06}>
+              <sphereGeometry args={[1, 6, 6]} />
+              <meshBasicMaterial color="#FF2E63" />
+            </mesh>
+            <mesh position={[-0.15, 0.1, 0.3]} scale={0.06}>
+              <sphereGeometry args={[1, 6, 6]} />
+              <meshBasicMaterial color="#FF2E63" />
+            </mesh>
+          </group>
+          {/* Robot Torso/Ribs */}
+          <mesh position={[0, 0.7, 0]}>
+            <cylinderGeometry args={[0.5, 0.3, 0.8, 8, 4, true]} />
+            <meshStandardMaterial color="#7B2CBF" wireframe emissive="#7B2CBF" emissiveIntensity={0.6} />
           </mesh>
-          <mesh position={[0, 0.35, 0]}>
-            <cylinderGeometry args={[0.4, 0.4, 0.5, 8]} />
-            <meshStandardMaterial color="#7b2cbf" wireframe />
-          </mesh>
-          <mesh position={[4, 0.35, 0]}>
-            <sphereGeometry args={[0.35, 8, 8]} />
-            <meshStandardMaterial color="#03e9f4" wireframe />
+          {/* Drone energy capsule */}
+          <mesh position={[5, 0.6, 0]}>
+            <dodecahedronGeometry args={[0.35]} />
+            <meshStandardMaterial color="#ffaa00" wireframe emissive="#ffaa00" emissiveIntensity={0.8} />
           </mesh>
         </group>
       </group>
 
-      {/* Patrolling Security/Delivery Drones */}
-      {[-4, 0, 4].map((xOffset, i) => (
+      {/* Patrolling Drones with glowing spotlight sensors scanning the floor */}
+      {[-4.5, 0, 4.5].map((xOffset, i) => (
         <group key={i}>
           <Drone i={i} xOffset={xOffset} />
         </group>
@@ -412,42 +453,46 @@ const RoboticCity = () => {
   );
 };
 
-// Drone subcomponent
+// Drone with high-visibility disc design and sweeping scanner spotlight
 const Drone = ({ i, xOffset }: { i: number; xOffset: number }) => {
   const droneRef = useRef<THREE.Group>(null);
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (droneRef.current) {
-      // Fly in a sine wave path
-      droneRef.current.position.y = 3 + Math.sin(t * 1.5 + i) * 0.8;
-      droneRef.current.position.x = xOffset + Math.cos(t * 0.8 + i) * 3;
-      droneRef.current.position.z = -5 + Math.sin(t * 0.8 + i) * 2;
+      droneRef.current.position.y = 3.5 + Math.sin(t * 1.2 + i) * 0.7;
+      droneRef.current.position.x = xOffset + Math.cos(t * 0.6 + i) * 2.5;
+      droneRef.current.position.z = -4 + Math.sin(t * 0.6 + i) * 2;
     }
   });
 
   return (
     <group ref={droneRef}>
-      {/* Drone body */}
+      {/* Heavy Hover Disc body */}
       <mesh>
-        <sphereGeometry args={[0.3, 8, 8]} />
-        <meshStandardMaterial color="#1f2937" metalness={0.9} roughness={0.1} />
+        <cylinderGeometry args={[0.7, 0.8, 0.25, 8]} />
+        <meshStandardMaterial color="#1e293b" emissive="#03e9f4" emissiveIntensity={0.2} wireframe />
       </mesh>
-      {/* Glowing visor */}
-      <mesh position={[0, 0, 0.25]}>
-        <boxGeometry args={[0.2, 0.08, 0.1]} />
-        <meshStandardMaterial color="#FF2E63" emissive="#FF2E63" />
+      {/* Scanning visor */}
+      <mesh position={[0, 0, 0.65]}>
+        <boxGeometry args={[0.3, 0.08, 0.1]} />
+        <meshBasicMaterial color="#FF2E63" />
       </mesh>
-      {/* Rotating quad rotors */}
+      {/* Volumetric Scanning Spotlight cone pointing to floor */}
+      <mesh position={[0, -1.8, 0]} rotation={[0, 0, 0]}>
+        <cylinderGeometry args={[0.02, 1.2, 3.6, 16, 1, true]} />
+        <meshBasicMaterial color="#03e9f4" transparent opacity={0.12} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Rotors */}
       {[
-        [-0.4, 0.4],
-        [0.4, 0.4],
-        [-0.4, -0.4],
-        [0.4, -0.4],
+        [-0.7, 0.7],
+        [0.7, 0.7],
+        [-0.7, -0.7],
+        [0.7, -0.7],
       ].map((pos, rIdx) => (
-        <group key={rIdx} position={[pos[0], 0.1, pos[1]]}>
+        <group key={rIdx} position={[pos[0], 0.15, pos[1]]}>
           <mesh>
-            <cylinderGeometry args={[0.02, 0.02, 0.1, 4]} />
-            <meshStandardMaterial color="#4b5563" />
+            <cylinderGeometry args={[0.03, 0.03, 0.15, 4]} />
+            <meshStandardMaterial color="#475569" />
           </mesh>
           <Rotor />
         </group>
@@ -459,12 +504,12 @@ const Drone = ({ i, xOffset }: { i: number; xOffset: number }) => {
 const Rotor = () => {
   const rotorRef = useRef<THREE.Mesh>(null);
   useFrame(() => {
-    if (rotorRef.current) rotorRef.current.rotation.y += 0.6;
+    if (rotorRef.current) rotorRef.current.rotation.y += 0.8;
   });
   return (
-    <mesh ref={rotorRef} position={[0, 0.05, 0]}>
-      <boxGeometry args={[0.4, 0.01, 0.04]} />
-      <meshStandardMaterial color="#374151" />
+    <mesh ref={rotorRef} position={[0, 0.08, 0]}>
+      <boxGeometry args={[0.6, 0.015, 0.06]} />
+      <meshBasicMaterial color="#03e9f4" />
     </mesh>
   );
 };
@@ -477,7 +522,6 @@ const SceneController = ({ state }: { state: string }) => {
 
   useEffect(() => {
     if (state === 'portal') {
-      // Zoom out spline during portal warp
       camera.position.set(0, 0, 0);
       gsap.to(camera.position, {
         z: -90,
@@ -485,7 +529,6 @@ const SceneController = ({ state }: { state: string }) => {
         ease: 'power1.inOut',
       });
     } else if (state === 'world') {
-      // Reset camera to city outskirts and do cinematic sweep
       camera.position.set(0, 15, 25);
       gsap.to(camera.position, {
         x: 0,
@@ -511,11 +554,9 @@ const QuantumVault = ({ isOpened, onClick }: { isOpened: boolean; onClick: () =>
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (vaultRef.current) {
-      // Idle float
       vaultRef.current.position.y = -1.2 + Math.sin(t * 1.5) * 0.08;
     }
     if (ringRef.current) {
-      // Lock rings spin
       ringRef.current.rotation.z = isOpened ? t * 4 : t * 0.5;
     }
   });
@@ -524,7 +565,6 @@ const QuantumVault = ({ isOpened, onClick }: { isOpened: boolean; onClick: () =>
     if (!lidRef.current) return;
     if (isOpened) {
       sfx.playClick();
-      // Animate lock open
       gsap.to(lidRef.current.rotation, {
         x: -Math.PI / 1.5,
         duration: 1.8,
@@ -544,13 +584,13 @@ const QuantumVault = ({ isOpened, onClick }: { isOpened: boolean; onClick: () =>
       {/* 3D Capsule Vault Base */}
       <mesh castShadow receiveShadow>
         <cylinderGeometry args={[1.2, 1.3, 1.0, 16]} />
-        <meshStandardMaterial color="#111827" metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.1} wireframe />
       </mesh>
 
       {/* Locking ring */}
       <mesh ref={ringRef} position={[0, 0.52, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.9, 0.08, 8, 24]} />
-        <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.5} />
+        <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} />
       </mesh>
 
       {/* Hydraulic Lock brackets */}
@@ -558,7 +598,7 @@ const QuantumVault = ({ isOpened, onClick }: { isOpened: boolean; onClick: () =>
         <group key={idx} rotation={[0, rot, 0]} position={[0, 0.4, 0]}>
           <mesh position={[0.9, 0, 0]}>
             <boxGeometry args={[0.3, 0.15, 0.15]} />
-            <meshStandardMaterial color="#4b5563" metalness={0.9} />
+            <meshStandardMaterial color="#475569" />
           </mesh>
         </group>
       ))}
@@ -568,7 +608,7 @@ const QuantumVault = ({ isOpened, onClick }: { isOpened: boolean; onClick: () =>
         {/* Top Dome of Vault */}
         <mesh position={[0, 0, 0.6]}>
           <sphereGeometry args={[1.2, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color="#1f2937" metalness={0.95} roughness={0.2} />
+          <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.1} wireframe />
         </mesh>
         {/* Top Handle ring */}
         <mesh position={[0, 1.25, 0.6]} rotation={[0, 0, 0]}>
@@ -602,12 +642,12 @@ const HologramBeam = () => {
     const t = state.clock.getElapsedTime();
 
     for (let i = 0; i < pos.length; i += 3) {
-      pos[i + 1] += 0.03; // rise
+      pos[i + 1] += 0.03;
       pos[i] = Math.sin(t * 3 + i) * 0.4;
       pos[i + 2] = Math.cos(t * 3 + i) * 0.4;
 
       if (pos[i + 1] > 2.5) {
-        pos[i + 1] = 0.5; // loop
+        pos[i + 1] = 0.5;
       }
     }
     particlesRef.current.geometry.attributes.position.needsUpdate = true;
@@ -673,27 +713,35 @@ const HoloCube = () => {
 // ==========================================
 export default function AICorePortal() {
   const { aiModeState, setAiModeState, exitAIMode } = useAI();
-  const [glitchProgress, setGlitchProgress] = useState(0);
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
   const [vaultOpened, setVaultOpened] = useState(false);
   const [isBotVisible, setIsBotVisible] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'ai' | 'user'; text: string; formatted?: boolean }>>([]);
   const [isTyping, setIsTyping] = useState(false);
+
+  // Sync mute state with synth engine
+  useEffect(() => {
+    sfx.isMuted = isMuted;
+    if (isMuted) {
+      sfx.stopHum();
+    } else if (aiModeState === 'world') {
+      sfx.startHum();
+    }
+  }, [isMuted, aiModeState]);
 
   // Sound triggers based on states
   useEffect(() => {
     if (aiModeState === 'activating') {
       sfx.playWarp(false);
       setTerminalLogs([]);
-      setGlitchProgress(0);
 
-      // glitched screen sequence
       const intervals = [1000, 2000, 3000, 4200, 5200];
       const logTexts = [
         "> Initializing AI Core Security Shield...",
         "> Establishing Quantum Session tunnel...",
-        "> Analyzing local biometric nodes... Access Approved.",
+        "> Analyzing local network nodes... Access Approved.",
         "> Defragmenting DOM matrix structures...",
         "> Fictional scan protocol loaded... Fading reality...",
       ];
@@ -701,11 +749,10 @@ export default function AICorePortal() {
       intervals.forEach((time, index) => {
         setTimeout(() => {
           setTerminalLogs((prev) => [...prev, logTexts[index]]);
-          sfx.playBeep(660 + index * 40, 0.08, 0.03);
+          sfx.playBeep(550 + index * 40, 0.06, 0.01);
         }, time);
       });
 
-      // Jump to portal after 6 seconds
       const timer = setTimeout(() => {
         document.body.classList.remove('ai-portal-glitch');
         setAiModeState('portal');
@@ -713,8 +760,7 @@ export default function AICorePortal() {
 
       return () => clearTimeout(timer);
     } else if (aiModeState === 'portal') {
-      sfx.playBeep(880, 0.25, 0.05);
-      // Wait 5.5 seconds inside portal, then arrive in the city
+      sfx.playBeep(660, 0.2, 0.02);
       const timer = setTimeout(() => {
         setAiModeState('world');
       }, 5500);
@@ -734,7 +780,6 @@ export default function AICorePortal() {
     }
   }, [aiModeState, setAiModeState]);
 
-  // Clean up audio hum on unmount
   useEffect(() => {
     return () => {
       sfx.stopHum();
@@ -745,14 +790,12 @@ export default function AICorePortal() {
     if (vaultOpened) return;
     setVaultOpened(true);
 
-    // AI materialization delay
     setTimeout(() => {
       setIsBotVisible(true);
-      sfx.playBeep(1200, 0.35, 0.06);
+      sfx.playBeep(900, 0.25, 0.02);
 
-      // Play visitor scan script
       const lines = [
-        "Initializing AI Core Matrix...",
+        "Initializing AI Core...",
         "Establishing Secure Session...",
         "Loading Professional Profile...",
         "Knowledge Database Ready.",
@@ -762,13 +805,12 @@ export default function AICorePortal() {
       lines.forEach((line, index) => {
         setTimeout(() => {
           setChatMessages((prev) => [...prev, { sender: 'ai', text: line }]);
-          sfx.playBeep(520 + index * 50, 0.05, 0.02);
-        }, index * 800);
+          sfx.playBeep(440 + index * 40, 0.05, 0.01);
+        }, index * 600);
       });
     }, 2000);
   };
 
-  // Structured local database for semantic-style retrieval answers (never hallucinates)
   const queryDatabase = (query: string): string => {
     const q = query.toLowerCase();
 
@@ -859,13 +901,10 @@ Resume Core Access
 Status: ACCESS URL ATTACHED`;
     }
 
-    // Fallback message (no hallucinations, strict facts rule)
     return `ACCESSING KNOWLEDGE DATABASE...
 --------------------------------
 Notice: Search returned 0 matching nodes.
 I only have access to Indra Kumar's professional data (Skills, Education, Projects, Experience, and Contact information). 
-
-If you are looking for credentials, private keys, or passwords, they are strictly protected. 
 
 Please select one of the core categories below or specify a topic:
 - Projects
@@ -884,17 +923,16 @@ Please select one of the core categories below or specify a topic:
     setIsTyping(true);
     sfx.playClick();
 
-    // Jarvis processing delay
     setTimeout(() => {
       const response = queryDatabase(userText);
       setChatMessages((prev) => [...prev, { sender: 'ai', text: response, formatted: response.includes('ACCESSING') }]);
       setIsTyping(false);
-      sfx.playBeep(880, 0.12, 0.02);
+      sfx.playBeep(660, 0.08, 0.01);
     }, 1200);
   };
 
   const handleTriggerReturn = () => {
-    sfx.playBeep(440, 0.3, 0.05);
+    sfx.playBeep(330, 0.25, 0.02);
     setChatMessages((prev) => [...prev, { sender: 'ai', text: "Mission Completed. Returning you to reality..." }]);
     
     setTimeout(() => {
@@ -903,12 +941,12 @@ Please select one of the core categories below or specify a topic:
   };
 
   return (
-    <div className="fixed inset-0 z-[9990] bg-black text-white overflow-hidden flex flex-col font-sans select-none">
+    <div className="fixed inset-0 z-[9990] bg-[#020617] text-white overflow-hidden flex flex-col font-sans select-none">
       
-      {/* 1. ACTIVATION SCREEN (Glitch, alarm log screen) */}
+      {/* 1. ACTIVATION SCREEN (Glitch override console) */}
       {aiModeState === 'activating' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-[#030712] z-50">
-          <div className="border border-neon-cyan/30 bg-black/80 max-w-lg w-full rounded-md p-6 font-mono text-sm shadow-[0_0_20px_rgba(3,233,244,0.1)] relative">
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-[#030712] z-50">
+          <div className="border border-neon-cyan/30 bg-black/80 max-w-sm sm:max-w-md w-[92%] rounded-lg p-5 font-mono text-sm shadow-[0_0_20px_rgba(3,233,244,0.1)] relative">
             
             {/* Blinking corner brackets */}
             <div className="absolute -top-1 -left-1 w-4 h-4 border-t border-l border-neon-cyan" />
@@ -917,24 +955,19 @@ Please select one of the core categories below or specify a topic:
             <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b border-r border-neon-cyan" />
 
             <div className="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
-              <div className="flex items-center gap-2 text-neon-cyan">
-                <Shield className="animate-pulse" size={16} />
+              <div className="flex items-center gap-2 text-neon-cyan text-xs sm:text-sm">
+                <Shield className="animate-pulse" size={14} />
                 <span>AI GATEWAY OVERRIDE</span>
               </div>
-              <span className="text-xs text-red-500 animate-ping font-bold">WARNING</span>
+              <span className="text-[10px] sm:text-xs text-red-500 animate-ping font-bold">ACTIVE</span>
             </div>
 
-            <div className="h-44 flex flex-col gap-2 overflow-y-auto scrollbar-thin text-green-400 text-xs leading-relaxed">
-              <div>&gt; System Overload: Portal core initializing...</div>
+            <div className="h-36 sm:h-44 flex flex-col gap-2 overflow-y-auto text-green-400 text-[10px] sm:text-xs leading-relaxed">
+              <div>&gt; Portal core initializing...</div>
               {terminalLogs.map((log, idx) => (
                 <div key={idx} className="animate-fade-in">{log}</div>
               ))}
               <div className="animate-pulse inline-block w-1.5 h-3.5 bg-green-400 align-middle" />
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-gray-900 flex justify-between items-center text-[10px] text-gray-500">
-              <span>SCANNING MATRIX SYSTEM</span>
-              <span className="animate-pulse">LOADING CORES...</span>
             </div>
           </div>
         </div>
@@ -945,15 +978,14 @@ Please select one of the core categories below or specify a topic:
         <div className="absolute inset-0 w-full h-full z-10">
           <Canvas camera={{ position: [0, 0, 0], fov: 60 }} shadows>
             <Suspense fallback={null}>
-              {/* Scene speed controls based on portal vs world state */}
               <SceneController state={aiModeState} />
 
-              {/* 3D Warp Tunnel */}
+              {/* 3D cylindrical code space tunnel */}
               {(aiModeState === 'portal' || aiModeState === 'deactivating') && (
                 <SpaceTunnel speed={aiModeState === 'deactivating' ? -25 : 30} />
               )}
 
-              {/* Robotics World Scene */}
+              {/* Denser Glowing Robotics World Scene */}
               {aiModeState === 'world' && (
                 <>
                   <RoboticCity />
@@ -963,83 +995,94 @@ Please select one of the core categories below or specify a topic:
             </Suspense>
           </Canvas>
 
-          {/* Glitch Overlay scanline filter */}
-          <div className="absolute inset-0 pointer-events-none z-20 bg-scanlines opacity-15" />
+          <div className="absolute inset-0 pointer-events-none z-20 bg-scanlines opacity-10" />
         </div>
       )}
 
       {/* 3. ROBOTICS WORLD INTERACTIVE UI HUDS */}
       {aiModeState === 'world' && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-6">
-          {/* Top Panel */}
-          <div className="flex justify-between items-start w-full">
-            <div className="border border-neon-cyan/20 bg-black/60 backdrop-blur-md px-4 py-2 rounded-md font-mono text-[10px] text-neon-cyan flex items-center gap-3">
-              <Radio size={12} className="animate-pulse" />
-              <span>ROBOTIC MATRIX CORE SECTOR v4.0</span>
+        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-4 sm:p-6">
+          
+          {/* Top Panel Actions */}
+          <div className="flex justify-between items-start w-full gap-2">
+            <div className="border border-neon-cyan/20 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-md font-mono text-[9px] sm:text-[10px] text-neon-cyan flex items-center gap-2">
+              <Radio size={10} className="animate-pulse" />
+              <span>ROBOTIC MATRIX SIGHT v4.0</span>
             </div>
             
-            <button
-              onClick={handleTriggerReturn}
-              className="pointer-events-auto border border-neon-pink text-neon-pink bg-black/60 hover:bg-neon-pink hover:text-black font-mono text-[11px] px-4 py-2 rounded-md shadow-[0_0_10px_rgba(255,46,99,0.1)] hover:shadow-[0_0_15px_rgba(255,46,99,0.4)] transition-all duration-300 flex items-center gap-1.5"
-            >
-              <X size={12} />
-              <span>DISCONNECT PORTAL</span>
-            </button>
+            <div className="flex items-center gap-2 pointer-events-auto">
+              {/* Pleasant Audio Mute/Unmute Toggle */}
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className="border border-gray-700 text-gray-400 hover:text-neon-cyan bg-black/60 p-2 rounded-md transition-colors"
+                aria-label={isMuted ? 'Unmute Portal Sounds' : 'Mute Portal Sounds'}
+              >
+                {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
+
+              <button
+                onClick={handleTriggerReturn}
+                className="border border-neon-pink text-neon-pink bg-black/70 hover:bg-neon-pink hover:text-black font-mono text-[10px] sm:text-[11px] px-3 py-2 rounded-md transition-all duration-300 flex items-center gap-1"
+              >
+                <X size={10} />
+                <span>DISCONNECT</span>
+              </button>
+            </div>
           </div>
 
-          {/* Instructions when Vault is not yet clicked */}
+          {/* Prompt to connect to Quantum Vault capsule */}
           {!vaultOpened && (
-            <div className="w-full flex justify-center mb-10">
-              <div className="border border-neon-cyan/30 bg-black/75 backdrop-blur-md p-4 rounded-lg text-center max-w-sm animate-bounce pointer-events-auto cursor-pointer" onClick={handleVaultClick}>
-                <p className="font-mono text-xs text-neon-cyan mb-1.5 uppercase font-bold tracking-wider">🔒 Quantum Vault Detected</p>
-                <p className="text-[11px] text-gray-300">Click the rotating vault capsule at the center of the grid to establish connection and open the Holographic Chatbot.</p>
+            <div className="w-full flex justify-center mb-6 sm:mb-10">
+              <div className="border border-neon-cyan/30 bg-black/80 backdrop-blur-md p-3.5 rounded-lg text-center max-w-xs animate-bounce pointer-events-auto cursor-pointer" onClick={handleVaultClick}>
+                <p className="font-mono text-[10px] sm:text-xs text-neon-cyan mb-1.5 uppercase font-bold tracking-wider">🔒 Quantum Vault Detected</p>
+                <p className="text-[10px] sm:text-[11px] text-gray-400">Click the central rotating vault to release the White AI holographic core.</p>
               </div>
             </div>
           )}
 
-          {/* Holographic JARVIS Chatbot overlay */}
+          {/* Height-constrained Responsive Holographic White AI Chatboard */}
           {isBotVisible && (
-            <div className="absolute inset-0 z-40 pointer-events-none flex items-center justify-center p-6 bg-black/25">
-              <div className="w-full max-w-md border border-neon-cyan/30 bg-black/80 backdrop-blur-xl rounded-xl p-5 shadow-[0_0_35px_rgba(3,233,244,0.15)] flex flex-col gap-4 pointer-events-auto relative">
+            <div className="absolute inset-0 z-40 pointer-events-none flex items-center justify-center p-3 sm:p-6 bg-black/40">
+              <div className="w-[94%] sm:w-full max-w-md max-h-[85vh] sm:max-h-[80vh] border border-neon-cyan/30 bg-[#020617]/90 backdrop-blur-xl rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(3,233,244,0.15)] flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
                 
-                {/* Close Vault HUD */}
+                {/* Close Overlay */}
                 <button
                   onClick={() => { sfx.playClick(); setVaultOpened(false); setIsBotVisible(false); }}
                   className="absolute top-4 right-4 text-gray-400 hover:text-neon-cyan transition-colors"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
 
-                {/* Header info */}
-                <div className="flex items-center gap-2.5 border-b border-gray-800 pb-3">
-                  <div className="w-8 h-8 rounded-full bg-neon-cyan/10 border border-neon-cyan/20 flex items-center justify-center text-neon-cyan">
-                    <Database size={16} />
+                {/* Header Profile Title */}
+                <div className="flex items-center gap-2 border-b border-gray-800 pb-2.5">
+                  <div className="w-7 h-7 rounded-full bg-neon-cyan/10 border border-neon-cyan/20 flex items-center justify-center text-neon-cyan">
+                    <Database size={14} />
                   </div>
                   <div>
-                    <h3 className="font-mono text-sm font-bold text-white leading-tight">JARVIS CORE MATRIX</h3>
-                    <p className="text-[9px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1 mt-0.5">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
-                      <span>SECURE NEURAL FEED</span>
+                    <h3 className="font-mono text-xs sm:text-sm font-bold text-white leading-tight">WHITE AI TERMINAL</h3>
+                    <p className="text-[8px] sm:text-[9px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1 mt-0.5">
+                      <span className="inline-block w-1 h-1 rounded-full bg-green-500 animate-ping" />
+                      <span>SECURE NEURAL ACCESS</span>
                     </p>
                   </div>
                 </div>
 
-                {/* Messages Log Screen */}
-                <div className="flex-1 h-64 overflow-y-auto scrollbar-thin flex flex-col gap-3 font-mono text-[11px] p-2 bg-black/50 border border-gray-900 rounded-md">
+                {/* Scrollable chat messages area */}
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2.5 font-mono text-[10px] sm:text-[11px] p-2 bg-black/60 border border-gray-900 rounded-md">
                   {chatMessages.map((msg, idx) => (
                     <div
                       key={idx}
-                      className={`max-w-[85%] rounded px-3 py-2 leading-relaxed ${
+                      className={`max-w-[90%] rounded px-2.5 py-1.5 leading-relaxed ${
                         msg.sender === 'user'
                           ? 'bg-neon-cyan/10 border border-neon-cyan/20 text-neon-cyan self-end'
-                          : 'bg-gray-800/40 text-gray-200 self-start w-full border border-gray-900'
+                          : 'bg-slate-800/40 text-slate-200 self-start w-full border border-slate-900/60'
                       } ${msg.formatted ? 'whitespace-pre-wrap text-green-400' : ''}`}
                     >
                       {msg.text}
                     </div>
                   ))}
                   {isTyping && (
-                    <div className="bg-gray-800/40 text-gray-400 self-start border border-gray-900 rounded px-3 py-2 flex items-center gap-1.5">
+                    <div className="bg-slate-800/40 text-slate-400 self-start border border-slate-900/60 rounded px-2.5 py-1.5 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -1047,34 +1090,34 @@ Please select one of the core categories below or specify a topic:
                   )}
                 </div>
 
-                {/* Quick query buttons */}
-                <div className="flex flex-wrap gap-1.5 justify-center py-0.5">
+                {/* Categories quick links */}
+                <div className="flex flex-wrap gap-1 justify-center py-0.5">
                   {['Skills', 'Projects', 'Education', 'Contact'].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => { setChatInput(cat); }}
-                      className="border border-neon-cyan/30 hover:border-neon-cyan text-neon-cyan/80 hover:text-neon-cyan bg-black/40 font-mono text-[9px] px-2.5 py-1 rounded transition-colors"
+                      className="border border-neon-cyan/20 hover:border-neon-cyan text-neon-cyan/80 hover:text-neon-cyan bg-black/40 font-mono text-[8px] sm:text-[9px] px-2.5 py-0.5 rounded transition-colors"
                     >
                       {cat}
                     </button>
                   ))}
                 </div>
 
-                {/* Input action group */}
-                <div className="flex gap-2">
+                {/* Input box */}
+                <div className="flex gap-2 pt-1 border-t border-gray-900">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Ask JARVIS regarding skills, projects, contact..."
-                    className="flex-1 bg-black/60 border border-gray-700/60 rounded px-3 py-2 font-mono text-xs text-white focus:outline-none focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan placeholder:text-gray-600"
+                    placeholder="Ask White AI..."
+                    className="flex-1 bg-black/60 border border-gray-800 rounded px-3 py-1.5 font-mono text-[11px] text-white focus:outline-none focus:border-neon-cyan"
                   />
                   <button
                     onClick={handleSendMessage}
-                    className="border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black p-2.5 rounded transition-colors"
+                    className="border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black p-2 rounded transition-colors"
                   >
-                    <Send size={14} />
+                    <Send size={12} />
                   </button>
                 </div>
               </div>
@@ -1085,11 +1128,11 @@ Please select one of the core categories below or specify a topic:
 
       {/* 4. DEACTIVATING MOVIE EXIT SCREEN */}
       {aiModeState === 'deactivating' && (
-        <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-6 backdrop-blur-md animate-fade-in pointer-events-none">
-          <div className="border border-neon-pink/20 bg-black/80 p-5 rounded-lg max-w-sm w-full text-center">
-            <Activity className="mx-auto text-neon-pink animate-pulse mb-3" size={24} />
-            <p className="font-mono text-xs text-neon-pink uppercase font-bold tracking-wider mb-1">🔌 System Disconnecting</p>
-            <p className="text-[10px] text-gray-400 font-mono">Restoring original coordinates in 3D spacetime...</p>
+        <div className="absolute inset-0 bg-[#020617] z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in pointer-events-none">
+          <div className="border border-neon-pink/20 bg-black/85 p-5 rounded-lg max-w-xs w-full text-center shadow-[0_0_20px_rgba(255,46,99,0.1)]">
+            <Activity className="mx-auto text-neon-pink animate-pulse mb-3" size={20} />
+            <p className="font-mono text-xs text-neon-pink uppercase font-bold tracking-wider mb-1">🔌 Connection Terminated</p>
+            <p className="text-[9px] sm:text-[10px] text-gray-500 font-mono">Restoring original coordinates in 3D spacetime...</p>
           </div>
         </div>
       )}
