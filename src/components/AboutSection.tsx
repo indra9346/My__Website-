@@ -2,6 +2,7 @@ import { Github, Linkedin, Cloud } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import myPhoto from '../assets/myphoto.jpg';
+import RobotAssistant from './RobotAssistant';
 
 const AboutSection = () => {
   const ref = useRef(null);
@@ -149,6 +150,102 @@ const AboutSection = () => {
               Get In Touch
             </motion.a>
           </motion.div>
+        </div>
+
+        {/* Education and AI Assistant Sub-section */}
+        <div className="mt-20 pt-16 border-t border-gray-800 flex flex-col lg:flex-row gap-12 items-start">
+          {/* Left Column: Robot Assistant */}
+          <div className="w-full lg:w-5/12 flex flex-col items-center">
+            <h3 className="text-xl font-mono text-neon-cyan mb-6 self-start flex items-center gap-2">
+              <span className="text-neon-cyan">&lt;</span>
+              AI Core Interface
+              <span className="text-neon-cyan">/&gt;</span>
+            </h3>
+            <RobotAssistant />
+          </div>
+
+          {/* Right Column: High-tech Timeline */}
+          <div className="w-full lg:w-7/12">
+            <h3 className="text-xl font-mono text-neon-cyan mb-6 flex items-center gap-2">
+              <span className="text-neon-cyan">&lt;</span>
+              Academic Core Matrix
+              <span className="text-neon-cyan">/&gt;</span>
+            </h3>
+
+            <div className="relative pl-6 border-l-2 border-dashed border-gray-800/80 space-y-10">
+              {/* SJC Institute of Technology */}
+              <div className="relative group">
+                {/* Node circle */}
+                <div className="absolute -left-[33px] top-1.5 w-4 h-4 rounded-full bg-gray-900 border-2 border-neon-cyan shadow-[0_0_10px_#03e9f4] group-hover:scale-125 transition-transform duration-300" />
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                  <div>
+                    <h4 className="text-lg font-bold text-white group-hover:text-neon-cyan transition-colors duration-300">
+                      SJC Institute of Technology
+                    </h4>
+                    <p className="text-sm font-mono text-gray-400 mt-1">
+                      B.E. in Artificial Intelligence & Machine Learning
+                    </p>
+                  </div>
+                  <div className="text-left md:text-right flex flex-col items-start md:items-end">
+                    <span className="text-xs font-mono bg-neon-cyan/10 border border-neon-cyan/20 text-neon-cyan px-2.5 py-0.5 rounded-full">
+                      2026
+                    </span>
+                    <span className="text-xs font-mono text-gray-400 mt-1">
+                      CGPA: 8.59
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* LRG Naidu JR. College */}
+              <div className="relative group">
+                {/* Node circle */}
+                <div className="absolute -left-[33px] top-1.5 w-4 h-4 rounded-full bg-gray-900 border-2 border-neon-purple shadow-[0_0_10px_#7B2CBF] group-hover:scale-125 transition-transform duration-300" />
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                  <div>
+                    <h4 className="text-lg font-bold text-white group-hover:text-neon-purple transition-colors duration-300">
+                      LRG Naidu JR. College
+                    </h4>
+                    <p className="text-sm font-mono text-gray-400 mt-1">
+                      PUC (Physics, Chemistry, Mathematics)
+                    </p>
+                  </div>
+                  <div className="text-left md:text-right flex flex-col items-start md:items-end">
+                    <span className="text-xs font-mono bg-neon-purple/10 border border-neon-purple/20 text-neon-purple px-2.5 py-0.5 rounded-full">
+                      2022
+                    </span>
+                    <span className="text-xs font-mono text-gray-400 mt-1">
+                      Score: 85.3%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* LRG Vidyalayam */}
+              <div className="relative group">
+                {/* Node circle */}
+                <div className="absolute -left-[33px] top-1.5 w-4 h-4 rounded-full bg-gray-900 border-2 border-neon-blue shadow-[0_0_10px_#5B8FB9] group-hover:scale-125 transition-transform duration-300" />
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                  <div>
+                    <h4 className="text-lg font-bold text-white group-hover:text-neon-blue transition-colors duration-300">
+                      LRG Vidyalayam (EM)
+                    </h4>
+                    <p className="text-sm font-mono text-gray-400 mt-1">
+                      SSLC (Secondary School Leaving Certificate)
+                    </p>
+                  </div>
+                  <div className="text-left md:text-right flex flex-col items-start md:items-end">
+                    <span className="text-xs font-mono bg-neon-blue/10 border border-neon-blue/20 text-neon-blue px-2.5 py-0.5 rounded-full">
+                      2020
+                    </span>
+                    <span className="text-xs font-mono text-gray-400 mt-1">
+                      Score: 78.5%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </motion.div>
     </section>

@@ -13,6 +13,7 @@ import AdminProjects from "./pages/AdminProjects";
 import AdminSettings from "./pages/AdminSettings";
 import AdminPromotions from "./pages/AdminPromotions";
 import AdminLayout from "./components/AdminLayout";
+import CustomCursor from "./components/CustomCursor";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <CustomCursor />
         <Toaster />
         <Sonner />
         <BrowserRouter>
