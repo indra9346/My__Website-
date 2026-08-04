@@ -3,8 +3,10 @@ import { Menu, X } from 'lucide-react';
 import { FaGithub, FaLinkedin, FaEnvelope } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import MobileNavOverlay from './nav/MobileNavOverlay';
+import { useAI } from '../context/AIContext';
 
 const NavBar = () => {
+  const { enterAIMode } = useAI();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
@@ -193,6 +195,14 @@ const NavBar = () => {
               >
                 Download Resume
               </motion.a>
+              <motion.button
+                onClick={enterAIMode}
+                className="px-4 py-2 rounded-md font-mono text-xs border border-neon-cyan text-neon-cyan bg-black/50 hover:bg-neon-cyan hover:text-black transition-all shadow-[0_0_10px_rgba(3,233,244,0.2)] hover:shadow-[0_0_20px_rgba(3,233,244,0.5)] font-bold uppercase tracking-wider"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Go Into AI Mode
+              </motion.button>
             </div>
 
             {/* Social Links */}

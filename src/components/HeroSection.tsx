@@ -1,6 +1,7 @@
 import { ArrowDownCircle } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { useAI } from '../context/AIContext';
 
 const roles = [
   'Aspiring Software Developer',
@@ -10,6 +11,7 @@ const roles = [
 ];
 
 const HeroSection = () => {
+  const { enterAIMode } = useAI();
   const [isLoaded, setIsLoaded] = useState(false);
   const [roleIndex, setRoleIndex] = useState(0);
   const [displayText, setDisplayText] = useState('');
@@ -230,6 +232,15 @@ const HeroSection = () => {
               >
                 View Resume
               </motion.a>
+
+              <motion.button
+                onClick={enterAIMode}
+                className="text-center px-8 py-3 rounded-full font-bold tracking-wider text-sm sm:text-base transition-all duration-300 border border-neon-cyan text-neon-cyan bg-black/60 hover:bg-neon-cyan hover:text-black shadow-[0_0_15px_rgba(3,233,244,0.3)] hover:shadow-[0_0_30px_rgba(3,233,244,0.6)] uppercase"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                Go Into AI Mode
+              </motion.button>
             </motion.div>
           </motion.div>
         </div>
