@@ -1157,7 +1157,7 @@ Status: CONFIDENCE OPTIMIZED`;
     }
 
     if (q.includes('project') || q.includes('work') || q.includes('built') || q.includes('develop')) {
-      return `Technical Stack Verification\nSelected Repositories`;
+      return `Selected Repositories`;
     }
 
     if (q.includes('skill') || q.includes('language') || q.includes('technology') || q.includes('database') || q.includes('stack') || q.includes('tool')) {
