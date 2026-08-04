@@ -14,18 +14,25 @@ export default function VideoBridge() {
     if (aiModeState === 'video_forward') {
       setIsVisible(true);
       video.currentTime = 0;
-      video.playbackRate = 1.35; // Snappier, high-tech transition
+      video.playbackRate = 1.35; // Snappier, cinematic transition speed
 
-      const handlePlay = async () => {
-        try {
-          await video.play();
-        } catch (err) {
+      const startPlayback = () => {
+        video.play().catch((err) => {
           console.warn("Autoplay block or video load issue, bypassing video bridge:", err);
           setAiModeState('portal');
-        }
+        });
       };
 
-      handlePlay();
+      // Only start showing/playing once the video has pre-buffered enough data
+      if (video.readyState >= 3) {
+        startPlayback();
+      } else {
+        const handleCanPlay = () => {
+          startPlayback();
+          video.removeEventListener('canplaythrough', handleCanPlay);
+        };
+        video.addEventListener('canplaythrough', handleCanPlay);
+      }
 
       const handleEnded = () => {
         setIsVisible(false);
@@ -44,46 +51,56 @@ export default function VideoBridge() {
       setIsVisible(true);
       video.pause();
 
-      const duration = video.duration || 15.0; // Dynamic fallback to estimated duration
+      const duration = video.duration || 15.0; // Fallback to estimated duration
       video.currentTime = duration;
 
-      let lastTime = performance.now();
-      let lastSeekTime = performance.now();
+      const startReverseTicks = () => {
+        let lastTime = performance.now();
+        let lastSeekTime = performance.now();
 
-      const playReverseTick = (now: number) => {
-        const elapsedSinceLastSeek = now - lastSeekTime;
+        const playReverseTick = (now: number) => {
+          const elapsedSinceLastSeek = now - lastSeekTime;
 
-        // Seek at 25 FPS (every 40ms) to give laptop GPU decoders breathing room
-        if (elapsedSinceLastSeek >= 40) {
-          const delta = (now - lastTime) / 1000;
-          lastTime = now;
-          lastSeekTime = now;
+          // Seek at 25 FPS (every 40ms) to give laptop GPU decoders breathing room
+          if (elapsedSinceLastSeek >= 40) {
+            const delta = (now - lastTime) / 1000;
+            lastTime = now;
+            lastSeekTime = now;
 
-          const playbackSpeed = 1.6; // Slightly faster rewind
-          const newTime = video.currentTime - (delta * playbackSpeed);
+            const playbackSpeed = 1.5; // Smooth rewind rate
+            const newTime = video.currentTime - (delta * playbackSpeed);
 
-          if (newTime <= 0) {
-            video.currentTime = 0;
-            setIsVisible(false);
-            setTimeout(() => {
-              setAiModeState('inactive');
-            }, 300);
-            return;
-          } else {
-            video.currentTime = newTime;
+            if (newTime <= 0) {
+              video.currentTime = 0;
+              setIsVisible(false);
+              setTimeout(() => {
+                setAiModeState('inactive');
+              }, 300);
+              return;
+            } else {
+              video.currentTime = newTime;
+            }
           }
-        }
+          animFrameIdRef.current = requestAnimationFrame(playReverseTick);
+        };
+
         animFrameIdRef.current = requestAnimationFrame(playReverseTick);
       };
 
-      const timer = setTimeout(() => {
-        lastTime = performance.now();
-        lastSeekTime = performance.now();
-        animFrameIdRef.current = requestAnimationFrame(playReverseTick);
-      }, 100);
+      // Wait for seek operation to complete before initiating requestAnimationFrame seeks
+      const handleSeeked = () => {
+        startReverseTicks();
+        video.removeEventListener('seeked', handleSeeked);
+      };
+
+      if (video.seeking) {
+        video.addEventListener('seeked', handleSeeked);
+      } else {
+        startReverseTicks();
+      }
 
       return () => {
-        clearTimeout(timer);
+        video.removeEventListener('seeked', handleSeeked);
         if (animFrameIdRef.current) {
           cancelAnimationFrame(animFrameIdRef.current);
         }
@@ -91,14 +108,13 @@ export default function VideoBridge() {
     }
   }, [aiModeState, setAiModeState]);
 
-  if (aiModeState !== 'video_forward' && aiModeState !== 'video_reverse') {
-    return null;
-  }
+  // Keep the component mounted in DOM to retain preloaded buffer, use opacity/pointer-events to toggle
+  const isTransitionActive = aiModeState === 'video_forward' || aiModeState === 'video_reverse';
 
   return (
     <div
-      className={`fixed inset-0 w-screen h-screen z-[9999] bg-[#020617] flex items-center justify-center transition-opacity duration-300 pointer-events-auto ${
-        isVisible ? 'opacity-100' : 'opacity-0'
+      className={`fixed inset-0 w-screen h-screen z-[9999] bg-[#020617] flex items-center justify-center transition-opacity duration-300 ${
+        isTransitionActive && isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
       <video
@@ -107,7 +123,7 @@ export default function VideoBridge() {
         playsInline
         muted
         preload="auto"
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover object-center"
         style={{ filter: 'hue-rotate(-10deg) brightness(1.05)' }}
       />
     </div>
