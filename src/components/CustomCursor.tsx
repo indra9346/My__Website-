@@ -7,6 +7,7 @@ const CustomCursor = () => {
   const echo2Ref = useRef<HTMLDivElement>(null);
 
   const [isVisible, setIsVisible] = useState(false);
+  const [isInside, setIsInside] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
 
   const mouse = useRef({ x: -100, y: -100 });
@@ -25,6 +26,15 @@ const CustomCursor = () => {
 
     const onMove = (e: MouseEvent) => {
       mouse.current = { x: e.clientX, y: e.clientY };
+      setIsInside(true);
+    };
+
+    const onLeave = () => {
+      setIsInside(false);
+    };
+
+    const onEnter = () => {
+      setIsInside(true);
     };
 
     const onOver = (e: MouseEvent) => {
@@ -41,6 +51,8 @@ const CustomCursor = () => {
     };
 
     window.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseleave', onLeave);
+    document.addEventListener('mouseenter', onEnter);
     document.addEventListener('mouseover', onOver);
     document.addEventListener('mouseout', onOut);
 
@@ -86,12 +98,14 @@ const CustomCursor = () => {
     return () => {
       cancelAnimationFrame(raf.current);
       window.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseleave', onLeave);
+      document.removeEventListener('mouseenter', onEnter);
       document.removeEventListener('mouseover', onOver);
       document.removeEventListener('mouseout', onOut);
     };
   }, [isHovering]);
 
-  if (!isVisible) return null;
+  if (!isVisible || !isInside) return null;
 
   return (
     <>
@@ -114,7 +128,7 @@ const CustomCursor = () => {
       {/* Rotating Cybernetic HUD Ring */}
       <div
         ref={ringRef}
-        className="fixed top-0 left-0 pointer-events-none z-[9998] will-change-transform transition-all duration-300"
+        className="fixed top-0 left-0 pointer-events-none z-[9998] will-change-transform transition-[width,height,color,filter] duration-300"
         style={{
           width: isHovering ? 50 : 40,
           height: isHovering ? 50 : 40,

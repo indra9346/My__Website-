@@ -1,7 +1,6 @@
 import { ArrowDownCircle } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import myPhoto from '../assets/myphoto.jpg';
 
 const roles = [
   'Aspiring Software Developer',
@@ -148,7 +147,7 @@ const HeroSection = () => {
               >
                 <div className="w-full h-full rounded-full bg-gray-900 overflow-hidden">
                   <img
-                    src={myPhoto}
+                    src="/mypic.jpg"
                     alt="K S Indra Kumar"
                     className="w-full h-full object-cover object-top rounded-full transition-transform duration-500 group-hover:scale-110"
                   />

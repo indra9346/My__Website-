@@ -5,10 +5,8 @@ import { Cpu, RefreshCw, Radio, Terminal } from 'lucide-react';
 const RobotAssistant = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [logs, setLogs] = useState<string[]>([
-    'Initializing AI Core Matrix...',
-    'Supabase Database: CONNECTED',
-    'Neural Link: ESTABLISHED',
-    'AIML Engine: ONLINE',
+    'System: READY',
+    'Click "Trigger System Diagnostic" below to execute...',
   ]);
   const [diagnosticProgress, setDiagnosticProgress] = useState(0);
   const [eyeColor, setEyeColor] = useState('#03e9f4'); // Cyan default
@@ -19,6 +17,12 @@ const RobotAssistant = () => {
     setIsScanning(true);
     setDiagnosticProgress(0);
     setEyeColor('#7B2CBF'); // Purple eye during scan
+    setLogs([
+      'Initializing AI Core Matrix...',
+      'Supabase Database: CONNECTED',
+      'Neural Link: ESTABLISHED',
+      'AIML Engine: ONLINE',
+    ]);
 
     const newLogs = [
       'Accessing local memory channels...',
@@ -93,8 +97,12 @@ const RobotAssistant = () => {
         <svg width="160" height="160" viewBox="0 0 160 160" className="relative z-10">
           {/* Outer rotating bracket ring */}
           <motion.g
-            animate={{ rotate: isHovered ? -360 : isScanning ? -180 : -60 }}
-            transition={{ duration: isHovered ? 3 : 8, repeat: Infinity, ease: 'linear' }}
+            animate={{ rotate: isHovered ? [0, -360] : isScanning ? [0, -180] : -60 }}
+            transition={{ 
+              duration: isHovered ? 3 : isScanning ? 6 : 0.8, 
+              repeat: (isHovered || isScanning) ? Infinity : 0, 
+              ease: 'linear' 
+            }}
             transform-origin="80 80"
           >
             <circle cx="80" cy="80" r="70" fill="none" stroke={eyeColor} strokeWidth="1" strokeDasharray="10, 15" opacity="0.4" />
@@ -102,8 +110,12 @@ const RobotAssistant = () => {
 
           {/* Inner rotating tech-ring */}
           <motion.g
-            animate={{ rotate: isHovered ? 360 : isScanning ? 180 : 45 }}
-            transition={{ duration: isHovered ? 2.5 : 6, repeat: Infinity, ease: 'linear' }}
+            animate={{ rotate: isHovered ? [0, 360] : isScanning ? [0, 180] : 45 }}
+            transition={{ 
+              duration: isHovered ? 2.5 : isScanning ? 5 : 0.8, 
+              repeat: (isHovered || isScanning) ? Infinity : 0, 
+              ease: 'linear' 
+            }}
             transform-origin="80 80"
           >
             <circle cx="80" cy="80" r="60" fill="none" stroke={eyeColor} strokeWidth="2" strokeDasharray="40, 10, 20, 10" opacity="0.7" />
