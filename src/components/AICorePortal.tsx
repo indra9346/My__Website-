@@ -1,12 +1,14 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useAI } from '../context/AIContext';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import gsap from 'gsap';
-import { Terminal, Send, X, Shield, Activity, Volume2, VolumeX, Database } from 'lucide-react';
+import { Shield, Activity, Volume2, VolumeX, Database, Send, X } from 'lucide-react';
 
 // ==========================================
-// 1. Soft Ambient Web Audio Synth
+// 1. Soft Web Audio Synthesizer (Ambient)
 // ==========================================
 class PortaSfxSynth {
   private ctx: AudioContext | null = null;
@@ -36,7 +38,7 @@ class PortaSfxSynth {
       osc.connect(gain);
       gain.connect(this.ctx.destination);
 
-      osc.type = 'sine'; // Soft sine wave instead of harsh sawtooth
+      osc.type = 'sine'; // Soft sine wave
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
       gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
@@ -63,7 +65,7 @@ class PortaSfxSynth {
       filter.connect(gain);
       gain.connect(this.ctx.destination);
 
-      osc.type = 'sine'; // Soft sine glide
+      osc.type = 'sine';
       filter.type = 'lowpass';
 
       const duration = 5.0;
@@ -76,7 +78,7 @@ class PortaSfxSynth {
       filter.frequency.setValueAtTime(200, this.ctx.currentTime);
       filter.frequency.exponentialRampToValueAtTime(1500, this.ctx.currentTime + duration);
 
-      gain.gain.setValueAtTime(0.05, this.ctx.currentTime); // Lower gain for pleasant sound
+      gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
 
       osc.start();
@@ -89,7 +91,7 @@ class PortaSfxSynth {
     this.init();
     if (!this.ctx || this.osc1) return;
     try {
-      // Create a gorgeous two-note space pad synth (Interstellar hum)
+      // Breathing space hum (Daft Punk / Hans Zimmer style)
       this.osc1 = this.ctx.createOscillator();
       this.osc2 = this.ctx.createOscillator();
       this.lfo = this.ctx.createOscillator();
@@ -102,11 +104,10 @@ class PortaSfxSynth {
 
       this.osc1.frequency.setValueAtTime(110, this.ctx.currentTime); // Low A
       this.osc2.frequency.setValueAtTime(165, this.ctx.currentTime); // E3 (fifth)
-      this.lfo.frequency.setValueAtTime(0.2, this.ctx.currentTime); // Slow 5s cycle
+      this.lfo.frequency.setValueAtTime(0.2, this.ctx.currentTime); // LFO Lull
 
-      this.lfoGain.gain.setValueAtTime(0.015, this.ctx.currentTime); // Soft volume swell
+      this.lfoGain.gain.setValueAtTime(0.015, this.ctx.currentTime);
       
-      // Connect LFO to hum gain for breathing volume effect
       this.lfo.connect(this.lfoGain);
       this.lfoGain.connect(this.humGain.gain);
 
@@ -114,14 +115,12 @@ class PortaSfxSynth {
       this.osc2.connect(this.humGain);
       this.humGain.connect(this.ctx.destination);
 
-      this.humGain.gain.setValueAtTime(0.02, this.ctx.currentTime); // Baseline volume
+      this.humGain.gain.setValueAtTime(0.02, this.ctx.currentTime);
 
       this.osc1.start();
       this.osc2.start();
       this.lfo.start();
-    } catch (e) {
-      console.error("Failed to start ambient hum", e);
-    }
+    } catch (e) {}
   }
 
   stopHum() {
@@ -138,59 +137,72 @@ class PortaSfxSynth {
 const sfx = new PortaSfxSynth();
 
 // ==========================================
-// 2. 3D Space Warp Tunnel (R3F Component)
+// 2. Hybrid Asset Loader Component
+// ==========================================
+const GLTFModel = ({ url, fallback, scale = 1, position = [0, 0, 0], rotation = [0, 0, 0] }: { url: string; fallback: React.ReactNode; scale?: number; position?: [number, number, number]; rotation?: [number, number, number] }) => {
+  const [model, setModel] = useState<THREE.Group | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const loader = new GLTFLoader();
+    loader.load(
+      url,
+      (gltf) => {
+        setModel(gltf.scene);
+      },
+      undefined,
+      (err) => {
+        console.warn(`Local GLTF model at ${url} not found, displaying high-fidelity procedural fallback.`);
+        setFailed(true);
+      }
+    );
+  }, [url]);
+
+  if (failed) return <>{fallback}</>;
+  if (!model) return <>{fallback}</>; // render fallback during load phase
+  return <primitive object={model} scale={scale} position={position} rotation={rotation} />;
+};
+
+// ==========================================
+// 3. 3D Space Warp Tunnel (R3F Component)
 // ==========================================
 const SpaceTunnel = ({ speed }: { speed: number }) => {
-  const pointsRef = useRef<THREE.Points>(null);
-  const particleCount = 2000;
-
-  const positions = Array.from({ length: particleCount * 3 }, (_, i) => {
-    if (i % 3 === 2) {
-      return Math.random() * -120;
-    }
-    const theta = Math.random() * Math.PI * 2;
-    const r = 8 + Math.random() * 4;
-    if (i % 3 === 0) return Math.sin(theta) * r;
-    return Math.cos(theta) * r;
-  });
-
-  const float32Positions = new Float32Array(positions);
+  const tunnelRef = useRef<THREE.Group>(null);
+  const ringCount = 20;
 
   useFrame((state, delta) => {
-    if (!pointsRef.current) return;
-    const pos = pointsRef.current.geometry.attributes.position.array as Float32Array;
-
-    for (let i = 2; i < pos.length; i += 3) {
-      pos[i] += speed * delta * 60;
-      if (pos[i] > 10) {
-        pos[i] = -120;
+    if (!tunnelRef.current) return;
+    tunnelRef.current.children.forEach((child) => {
+      // Translate the torus positions along Z axis
+      child.position.z += speed * delta * 5;
+      if (speed > 0 && child.position.z > 5) {
+        child.position.z = -100;
+      } else if (speed < 0 && child.position.z < -100) {
+        child.position.z = 5;
       }
-    }
-    pointsRef.current.geometry.attributes.position.needsUpdate = true;
-    pointsRef.current.rotation.z += 0.003;
+      child.rotation.z += 0.005;
+    });
   });
 
   return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[float32Positions, 3]}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        color="#03e9f4"
-        size={0.18}
-        transparent
-        opacity={0.8}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
+    <group ref={tunnelRef}>
+      <Stars radius={100} depth={50} count={3000} factor={6} saturation={0.5} fade speed={2} />
+      {Array.from({ length: ringCount }).map((_, i) => {
+        const z = -(i * (100 / ringCount));
+        const color = i % 2 === 0 ? '#03e9f4' : '#7B2CBF';
+        return (
+          <mesh key={i} position={[0, 0, z]}>
+            <torusGeometry args={[3.5, 0.05, 8, 32]} />
+            <meshBasicMaterial color={color} transparent opacity={0.6} />
+          </mesh>
+        );
+      })}
+    </group>
   );
 };
 
 // ==========================================
-// 3. Glowing Neon Robotics Civilization (R3F)
+// 4. Glowing Neon Robotics Civilization (R3F)
 // ==========================================
 const RoboticCity = () => {
   const arm1Ref = useRef<THREE.Group>(null);
@@ -238,32 +250,35 @@ const RoboticCity = () => {
       });
     }
 
-    // 3. Sparks particle gravity physics
+    // 3. Sparks particle gravity physics (with complete undefined safety checks)
     if (sparksRef.current && weldingActive) {
-      const pos = sparksRef.current.geometry.attributes.position.array as Float32Array;
-      const vels = sparkVelocities.current;
+      const geom = sparksRef.current.geometry;
+      const posAttr = geom.getAttribute('position');
+      if (posAttr) {
+        const pos = posAttr.array as Float32Array;
+        const vels = sparkVelocities.current;
+        const tipX = -2.5 + Math.sin(t * 1.2) * 0.3;
+        const tipY = -0.3 + Math.sin(t * 1.8) * 0.08;
+        const tipZ = 0.5;
 
-      const tipX = -2.5 + Math.sin(t * 1.2) * 0.3;
-      const tipY = -0.3 + Math.sin(t * 1.8) * 0.08;
-      const tipZ = 0.5;
+        for (let i = 0; i < pos.length; i += 3) {
+          if (pos[i + 1] < -2 || Math.random() < 0.04) {
+            pos[i] = tipX;
+            pos[i + 1] = tipY;
+            pos[i + 2] = tipZ;
 
-      for (let i = 0; i < pos.length; i += 3) {
-        if (pos[i + 1] < -2 || Math.random() < 0.04) {
-          pos[i] = tipX;
-          pos[i + 1] = tipY;
-          pos[i + 2] = tipZ;
-
-          vels[i] = (Math.random() - 0.5) * 6;
-          vels[i + 1] = Math.random() * 6 + 2; // Vertical projection
-          vels[i + 2] = (Math.random() - 0.5) * 6;
-        } else {
-          pos[i] += vels[i] * 0.016;
-          vels[i + 1] -= 9.8 * 0.016; // gravity
-          pos[i + 1] += vels[i + 1] * 0.016;
-          pos[i + 2] += vels[i + 2] * 0.016;
+            vels[i] = (Math.random() - 0.5) * 6;
+            vels[i + 1] = Math.random() * 6 + 2; // Vertical projection
+            vels[i + 2] = (Math.random() - 0.5) * 6;
+          } else {
+            pos[i] += vels[i] * 0.016;
+            vels[i + 1] -= 9.8 * 0.016; // gravity
+            pos[i + 1] += vels[i + 1] * 0.016;
+            pos[i + 2] += vels[i + 2] * 0.016;
+          }
         }
+        posAttr.needsUpdate = true;
       }
-      sparksRef.current.geometry.attributes.position.needsUpdate = true;
     }
   });
 
@@ -279,7 +294,7 @@ const RoboticCity = () => {
       <pointLight position={[0, 4, 2]} intensity={3.0} color="#03e9f4" distance={25} />
       <pointLight position={[-4, 2, -3]} intensity={2.0} color="#7B2CBF" distance={15} />
 
-      {/* Volumetric Glowing Skylines (Procedural buildings with emissive glows) */}
+      {/* Volumetric Glowing Skylines */}
       {[
         { pos: [-15, 6, -20], size: [5, 16, 5], color: '#03e9f4' },
         { pos: [15, 8, -25], size: [6, 20, 6], color: '#7B2CBF' },
@@ -288,17 +303,15 @@ const RoboticCity = () => {
         { pos: [0, 12, -35], size: [8, 30, 8], color: '#03e9f4' },
       ].map((b, i) => (
         <group key={i} position={b.pos as any}>
-          {/* Outer glowing wireframe mesh */}
           <mesh>
             <boxGeometry args={b.size as any} />
             <meshStandardMaterial
               color={b.color}
               wireframe
               emissive={b.color}
-              emissiveIntensity={1.2} // Denser glow
+              emissiveIntensity={1.2}
             />
           </mesh>
-          {/* Inner solid mechanical block */}
           <mesh scale={0.97}>
             <boxGeometry args={b.size as any} />
             <meshStandardMaterial
@@ -310,81 +323,83 @@ const RoboticCity = () => {
         </group>
       ))}
 
-      {/* High-visibility Jointed Mechanical Robotic Arm 1 (Glowing Neon Cyan) */}
-      <group ref={arm1Ref} position={[-2.5, -2, 0.5]}>
-        {/* Base */}
-        <mesh position={[0, 0.4, 0]}>
-          <cylinderGeometry args={[0.65, 0.75, 0.8, 12]} />
-          <meshStandardMaterial color="#111827" emissive="#03e9f4" emissiveIntensity={0.25} wireframe />
-        </mesh>
-        {/* Shoulder Joint */}
-        <group position={[0, 0.8, 0]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.4, 0.4, 0.8, 8]} />
-            <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.0} wireframe />
-          </mesh>
-          {/* Primary Arm Segment */}
-          <mesh position={[0, 1.25, 0]}>
-            <boxGeometry args={[0.3, 2.5, 0.3]} />
-            <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} wireframe />
-          </mesh>
-          {/* Elbow Joint */}
-          <group position={[0, 2.4, 0]}>
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.3, 0.3, 0.7, 8]} />
-              <meshStandardMaterial color="#FF2E63" emissive="#FF2E63" emissiveIntensity={1.0} wireframe />
+      {/* Robotic Arm 1 (Glowing Neon Cyan) loaded locally or procedurally fallback */}
+      <GLTFModel
+        url="/models/robot_arm.glb"
+        scale={1.2}
+        position={[-2.5, -2, 0.5]}
+        fallback={
+          <group ref={arm1Ref} position={[-2.5, -2, 0.5]}>
+            <mesh position={[0, 0.4, 0]}>
+              <cylinderGeometry args={[0.65, 0.75, 0.8, 12]} />
+              <meshStandardMaterial color="#111827" emissive="#03e9f4" emissiveIntensity={0.25} wireframe />
             </mesh>
-            {/* Secondary Forearm Segment */}
-            <mesh position={[0, 0.9, 0]}>
-              <boxGeometry args={[0.22, 1.8, 0.22]} />
-              <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} wireframe />
-            </mesh>
-            {/* Hot welding tip */}
-            <mesh position={[0, 1.8, 0]}>
-              <coneGeometry args={[0.15, 0.5, 6]} />
-              <meshBasicMaterial color="#ff5500" />
-            </mesh>
+            <group position={[0, 0.8, 0]}>
+              <mesh rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.4, 0.4, 0.8, 8]} />
+                <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.0} wireframe />
+              </mesh>
+              <mesh position={[0, 1.25, 0]}>
+                <boxGeometry args={[0.3, 2.5, 0.3]} />
+                <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} wireframe />
+              </mesh>
+              <group position={[0, 2.4, 0]}>
+                <mesh rotation={[Math.PI / 2, 0, 0]}>
+                  <cylinderGeometry args={[0.3, 0.3, 0.7, 8]} />
+                  <meshStandardMaterial color="#FF2E63" emissive="#FF2E63" emissiveIntensity={1.0} wireframe />
+                </mesh>
+                <mesh position={[0, 0.9, 0]}>
+                  <boxGeometry args={[0.22, 1.8, 0.22]} />
+                  <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} wireframe />
+                </mesh>
+                <mesh position={[0, 1.8, 0]}>
+                  <coneGeometry args={[0.15, 0.5, 6]} />
+                  <meshBasicMaterial color="#ff5500" />
+                </mesh>
+              </group>
+            </group>
           </group>
-        </group>
-      </group>
+        }
+      />
 
-      {/* High-visibility Jointed Mechanical Robotic Arm 2 (Glowing Neon Purple) */}
-      <group ref={arm2Ref} position={[2.5, -2, -1]}>
-        {/* Base */}
-        <mesh position={[0, 0.4, 0]}>
-          <cylinderGeometry args={[0.65, 0.75, 0.8, 12]} />
-          <meshStandardMaterial color="#111827" emissive="#7B2CBF" emissiveIntensity={0.25} wireframe />
-        </mesh>
-        {/* Shoulder Joint */}
-        <group position={[0, 0.8, 0]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.4, 0.4, 0.8, 8]} />
-            <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={1.0} wireframe />
-          </mesh>
-          {/* Primary Arm Segment */}
-          <mesh position={[0, 1.25, 0]}>
-            <boxGeometry args={[0.3, 2.5, 0.3]} />
-            <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={0.8} wireframe />
-          </mesh>
-          {/* Elbow Joint */}
-          <group position={[0, 2.4, 0]}>
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.3, 0.3, 0.7, 8]} />
-              <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.0} wireframe />
+      {/* Robotic Arm 2 (Glowing Neon Purple) loaded locally or procedurally fallback */}
+      <GLTFModel
+        url="/models/robot_arm_2.glb"
+        scale={1.2}
+        position={[2.5, -2, -1]}
+        fallback={
+          <group ref={arm2Ref} position={[2.5, -2, -1]}>
+            <mesh position={[0, 0.4, 0]}>
+              <cylinderGeometry args={[0.65, 0.75, 0.8, 12]} />
+              <meshStandardMaterial color="#111827" emissive="#7B2CBF" emissiveIntensity={0.25} wireframe />
             </mesh>
-            {/* Secondary Forearm Segment */}
-            <mesh position={[0, 0.9, 0]}>
-              <boxGeometry args={[0.22, 1.8, 0.22]} />
-              <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={0.8} wireframe />
-            </mesh>
-            {/* Assembly Claws */}
-            <mesh position={[0, 1.8, 0]}>
-              <sphereGeometry args={[0.2, 8, 8]} />
-              <meshBasicMaterial color="#03e9f4" />
-            </mesh>
+            <group position={[0, 0.8, 0]}>
+              <mesh rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.4, 0.4, 0.8, 8]} />
+                <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={1.0} wireframe />
+              </mesh>
+              <mesh position={[0, 1.25, 0]}>
+                <boxGeometry args={[0.3, 2.5, 0.3]} />
+                <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={0.8} wireframe />
+              </mesh>
+              <group position={[0, 2.4, 0]}>
+                <mesh rotation={[Math.PI / 2, 0, 0]}>
+                  <cylinderGeometry args={[0.3, 0.3, 0.7, 8]} />
+                  <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.0} wireframe />
+                </mesh>
+                <mesh position={[0, 0.9, 0]}>
+                  <boxGeometry args={[0.22, 1.8, 0.22]} />
+                  <meshStandardMaterial color="#7B2CBF" emissive="#7B2CBF" emissiveIntensity={0.8} wireframe />
+                </mesh>
+                <mesh position={[0, 1.8, 0]}>
+                  <sphereGeometry args={[0.2, 8, 8]} />
+                  <meshBasicMaterial color="#03e9f4" />
+                </mesh>
+              </group>
+            </group>
           </group>
-        </group>
-      </group>
+        }
+      />
 
       {/* Gravity sparks emitter */}
       {sparkActive && (
@@ -397,7 +412,7 @@ const RoboticCity = () => {
           </bufferGeometry>
           <pointsMaterial
             color="#ffa500"
-            size={0.22} // Larger, highly visible sparks
+            size={0.22}
             transparent
             opacity={1.0}
             blending={THREE.AdditiveBlending}
@@ -407,12 +422,10 @@ const RoboticCity = () => {
 
       {/* Assembly Conveyor Belt carrying robot heads and parts */}
       <group position={[0, -2, 0.5]}>
-        {/* Conveyor track */}
         <mesh position={[0, 0.15, 0]}>
           <boxGeometry args={[14, 0.3, 1.4]} />
           <meshStandardMaterial color="#111827" emissive="#03e9f4" emissiveIntensity={0.15} wireframe />
         </mesh>
-        {/* Moving items on conveyor belt */}
         <group ref={conveyorPartsRef}>
           {/* Robot Head chassis */}
           <group position={[-5, 0.7, 0]}>
@@ -420,7 +433,6 @@ const RoboticCity = () => {
               <sphereGeometry args={[0.4, 12, 12]} />
               <meshStandardMaterial color="#03e9f4" wireframe emissive="#03e9f4" emissiveIntensity={0.5} />
             </mesh>
-            {/* Glowing Red Eyes */}
             <mesh position={[0.15, 0.1, 0.3]} scale={0.06}>
               <sphereGeometry args={[1, 6, 6]} />
               <meshBasicMaterial color="#FF2E63" />
@@ -435,7 +447,7 @@ const RoboticCity = () => {
             <cylinderGeometry args={[0.5, 0.3, 0.8, 8, 4, true]} />
             <meshStandardMaterial color="#7B2CBF" wireframe emissive="#7B2CBF" emissiveIntensity={0.6} />
           </mesh>
-          {/* Drone energy capsule */}
+          {/* Energy capsule */}
           <mesh position={[5, 0.6, 0]}>
             <dodecahedronGeometry args={[0.35]} />
             <meshStandardMaterial color="#ffaa00" wireframe emissive="#ffaa00" emissiveIntensity={0.8} />
@@ -446,14 +458,18 @@ const RoboticCity = () => {
       {/* Patrolling Drones with glowing spotlight sensors scanning the floor */}
       {[-4.5, 0, 4.5].map((xOffset, i) => (
         <group key={i}>
-          <Drone i={i} xOffset={xOffset} />
+          <GLTFModel
+            url="/models/drone.glb"
+            scale={0.8}
+            fallback={<Drone i={i} xOffset={xOffset} />}
+          />
         </group>
       ))}
     </group>
   );
 };
 
-// Drone with high-visibility disc design and sweeping scanner spotlight
+// Drone fallback model
 const Drone = ({ i, xOffset }: { i: number; xOffset: number }) => {
   const droneRef = useRef<THREE.Group>(null);
   useFrame((state) => {
@@ -467,22 +483,18 @@ const Drone = ({ i, xOffset }: { i: number; xOffset: number }) => {
 
   return (
     <group ref={droneRef}>
-      {/* Heavy Hover Disc body */}
       <mesh>
         <cylinderGeometry args={[0.7, 0.8, 0.25, 8]} />
         <meshStandardMaterial color="#1e293b" emissive="#03e9f4" emissiveIntensity={0.2} wireframe />
       </mesh>
-      {/* Scanning visor */}
       <mesh position={[0, 0, 0.65]}>
         <boxGeometry args={[0.3, 0.08, 0.1]} />
         <meshBasicMaterial color="#FF2E63" />
       </mesh>
-      {/* Volumetric Scanning Spotlight cone pointing to floor */}
       <mesh position={[0, -1.8, 0]} rotation={[0, 0, 0]}>
         <cylinderGeometry args={[0.02, 1.2, 3.6, 16, 1, true]} />
         <meshBasicMaterial color="#03e9f4" transparent opacity={0.12} side={THREE.DoubleSide} />
       </mesh>
-      {/* Rotors */}
       {[
         [-0.7, 0.7],
         [0.7, 0.7],
@@ -515,7 +527,7 @@ const Rotor = () => {
 };
 
 // ==========================================
-// 4. Dynamic Camera Controls (GSAP Driven)
+// 5. Dynamic Camera Controls (GSAP Driven)
 // ==========================================
 const SceneController = ({ state }: { state: string }) => {
   const { camera } = useThree();
@@ -527,15 +539,18 @@ const SceneController = ({ state }: { state: string }) => {
         z: -90,
         duration: 5.5,
         ease: 'power1.inOut',
+        overwrite: 'auto'
       });
     } else if (state === 'world') {
       camera.position.set(0, 15, 25);
+      camera.lookAt(0, 0, 0);
       gsap.to(camera.position, {
         x: 0,
         y: 2,
         z: 10,
         duration: 4.5,
         ease: 'power2.out',
+        overwrite: 'auto'
       });
     }
   }, [state, camera]);
@@ -544,7 +559,7 @@ const SceneController = ({ state }: { state: string }) => {
 };
 
 // ==========================================
-// 5. Holographic Quantum Vault (R3F)
+// 6. Holographic Quantum Vault (R3F)
 // ==========================================
 const QuantumVault = ({ isOpened, onClick }: { isOpened: boolean; onClick: () => void }) => {
   const vaultRef = useRef<THREE.Group>(null);
@@ -581,49 +596,53 @@ const QuantumVault = ({ isOpened, onClick }: { isOpened: boolean; onClick: () =>
 
   return (
     <group ref={vaultRef} position={[0, -1.2, 4]} onClick={(e) => { e.stopPropagation(); onClick(); }}>
-      {/* 3D Capsule Vault Base */}
-      <mesh castShadow receiveShadow>
-        <cylinderGeometry args={[1.2, 1.3, 1.0, 16]} />
-        <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.1} wireframe />
-      </mesh>
+      {/* 3D Quantum Vault Capsule (GLTF loaded or fallback) */}
+      <GLTFModel
+        url="/models/quantum_vault.glb"
+        scale={1.0}
+        fallback={
+          <group>
+            {/* Base */}
+            <mesh castShadow receiveShadow>
+              <cylinderGeometry args={[1.2, 1.3, 1.0, 16]} />
+              <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.1} wireframe />
+            </mesh>
+            {/* Locking ring */}
+            <mesh ref={ringRef} position={[0, 0.52, 0]} rotation={[Math.PI / 2, 0, 0]}>
+              <torusGeometry args={[0.9, 0.08, 8, 24]} />
+              <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} />
+            </mesh>
+            {/* Locking bars */}
+            {[-Math.PI / 3, Math.PI / 3, Math.PI].map((rot, idx) => (
+              <group key={idx} rotation={[0, rot, 0]} position={[0, 0.4, 0]}>
+                <mesh position={[0.9, 0, 0]}>
+                  <boxGeometry args={[0.3, 0.15, 0.15]} />
+                  <meshStandardMaterial color="#475569" />
+                </mesh>
+              </group>
+            ))}
+            {/* Lid */}
+            <group ref={lidRef} position={[0, 0.5, -0.6]}>
+              <mesh position={[0, 0, 0.6]}>
+                <sphereGeometry args={[1.2, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+                <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.1} wireframe />
+              </mesh>
+              <mesh position={[0, 1.25, 0.6]} rotation={[0, 0, 0]}>
+                <torusGeometry args={[0.3, 0.06, 6, 12]} />
+                <meshStandardMaterial color="#03e9f4" />
+              </mesh>
+            </group>
+          </group>
+        }
+      />
 
-      {/* Locking ring */}
-      <mesh ref={ringRef} position={[0, 0.52, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.9, 0.08, 8, 24]} />
-        <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.8} />
-      </mesh>
-
-      {/* Hydraulic Lock brackets */}
-      {[-Math.PI / 3, Math.PI / 3, Math.PI].map((rot, idx) => (
-        <group key={idx} rotation={[0, rot, 0]} position={[0, 0.4, 0]}>
-          <mesh position={[0.9, 0, 0]}>
-            <boxGeometry args={[0.3, 0.15, 0.15]} />
-            <meshStandardMaterial color="#475569" />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Lid Group (Pivoting from the back hinge) */}
-      <group ref={lidRef} position={[0, 0.5, -0.6]}>
-        {/* Top Dome of Vault */}
-        <mesh position={[0, 0, 0.6]}>
-          <sphereGeometry args={[1.2, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.1} wireframe />
-        </mesh>
-        {/* Top Handle ring */}
-        <mesh position={[0, 1.25, 0.6]} rotation={[0, 0, 0]}>
-          <torusGeometry args={[0.3, 0.06, 6, 12]} />
-          <meshStandardMaterial color="#03e9f4" />
-        </mesh>
-      </group>
-
-      {/* Central Blue Plasma Core Glow */}
+      {/* Plasma Core Glow */}
       <mesh position={[0, 0, 0]}>
         <sphereGeometry args={[0.6, 12, 12]} />
         <meshBasicMaterial color="#03e9f4" transparent opacity={0.3} />
       </mesh>
 
-      {/* Floating Holographic particles when opened */}
+      {/* Particle Beam when opened */}
       {isOpened && (
         <HologramBeam />
       )}
@@ -638,20 +657,24 @@ const HologramBeam = () => {
 
   useFrame((state) => {
     if (!particlesRef.current) return;
-    const pos = particlesRef.current.geometry.attributes.position.array as Float32Array;
-    const t = state.clock.getElapsedTime();
+    const geom = particlesRef.current.geometry;
+    const posAttr = geom.getAttribute('position');
+    if (posAttr) {
+      const pos = posAttr.array as Float32Array;
+      const t = state.clock.getElapsedTime();
 
-    for (let i = 0; i < pos.length; i += 3) {
-      pos[i + 1] += 0.03;
-      pos[i] = Math.sin(t * 3 + i) * 0.4;
-      pos[i + 2] = Math.cos(t * 3 + i) * 0.4;
+      for (let i = 0; i < pos.length; i += 3) {
+        pos[i + 1] += 0.03;
+        pos[i] = Math.sin(t * 3 + i) * 0.4;
+        pos[i + 2] = Math.cos(t * 3 + i) * 0.4;
 
-      if (pos[i + 1] > 2.5) {
-        pos[i + 1] = 0.5;
+        if (pos[i + 1] > 2.5) {
+          pos[i + 1] = 0.5;
+        }
       }
+      posAttr.needsUpdate = true;
+      particlesRef.current.rotation.y += 0.01;
     }
-    particlesRef.current.geometry.attributes.position.needsUpdate = true;
-    particlesRef.current.rotation.y += 0.01;
   });
 
   return (
@@ -709,7 +732,7 @@ const HoloCube = () => {
 };
 
 // ==========================================
-// 6. MAIN PORTAL CONTROLLER (React Component)
+// 7. MAIN PORTAL CONTROLLER (React Component)
 // ==========================================
 export default function AICorePortal() {
   const { aiModeState, setAiModeState, exitAIMode } = useAI();
@@ -799,7 +822,7 @@ export default function AICorePortal() {
         "Establishing Secure Session...",
         "Loading Professional Profile...",
         "Knowledge Database Ready.",
-        "Welcome to AI Core. I have securely loaded the professional profile of Indra Kumar. You may ask about projects, skills, education, experience, achievements, or career interests."
+        "Welcome to AI Core. I have securely loaded the professional profile of Indra Kumar.\n\nI can assist you with:\n• Projects\n• Skills\n• Education\n• Experience\n• Resume\n• GitHub\n• Contact\n\nSelect a category below or ask me naturally."
       ];
 
       lines.forEach((line, index) => {
@@ -941,14 +964,39 @@ Please select one of the core categories below or specify a topic:
   };
 
   return (
-    <div className="fixed inset-0 z-[9990] bg-[#020617] text-white overflow-hidden flex flex-col font-sans select-none">
+    <div className="fixed inset-0 w-screen h-screen z-[9990] bg-[#020617] text-white overflow-hidden font-sans select-none">
       
-      {/* 1. ACTIVATION SCREEN (Glitch override console) */}
+      {/* 1. THREE.JS PORTAL / WORLD CANVAS VIEW (Stretched to screen, full GPU acceleration) */}
+      {(aiModeState === 'portal' || aiModeState === 'world' || aiModeState === 'deactivating') && (
+        <div className="absolute top-0 left-0 w-screen h-screen z-10">
+          <Canvas camera={{ position: [0, 0, 0], fov: 60 }} shadows>
+            <Suspense fallback={null}>
+              <SceneController state={aiModeState} />
+
+              {/* 3D cylindrical code space tunnel */}
+              {(aiModeState === 'portal' || aiModeState === 'deactivating') && (
+                <SpaceTunnel speed={aiModeState === 'deactivating' ? -25 : 30} />
+              )}
+
+              {/* Denser Glowing Robotics World Scene */}
+              {aiModeState === 'world' && (
+                <>
+                  <RoboticCity />
+                  <QuantumVault isOpened={vaultOpened} onClick={handleVaultClick} />
+                </>
+              )}
+            </Suspense>
+          </Canvas>
+
+          <div className="absolute inset-0 pointer-events-none z-20 bg-scanlines opacity-10" />
+        </div>
+      )}
+
+      {/* 2. ACTIVATION OVERLAY SCREEN */}
       {aiModeState === 'activating' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-[#030712] z-50">
           <div className="border border-neon-cyan/30 bg-black/80 max-w-sm sm:max-w-md w-[92%] rounded-lg p-5 font-mono text-sm shadow-[0_0_20px_rgba(3,233,244,0.1)] relative">
             
-            {/* Blinking corner brackets */}
             <div className="absolute -top-1 -left-1 w-4 h-4 border-t border-l border-neon-cyan" />
             <div className="absolute -top-1 -right-1 w-4 h-4 border-t border-r border-neon-cyan" />
             <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b border-l border-neon-cyan" />
@@ -973,45 +1021,18 @@ Please select one of the core categories below or specify a topic:
         </div>
       )}
 
-      {/* 2. THREE.JS PORTAL / WORLD CANVAS VIEW */}
-      {(aiModeState === 'portal' || aiModeState === 'world' || aiModeState === 'deactivating') && (
-        <div className="absolute inset-0 w-full h-full z-10">
-          <Canvas camera={{ position: [0, 0, 0], fov: 60 }} shadows>
-            <Suspense fallback={null}>
-              <SceneController state={aiModeState} />
-
-              {/* 3D cylindrical code space tunnel */}
-              {(aiModeState === 'portal' || aiModeState === 'deactivating') && (
-                <SpaceTunnel speed={aiModeState === 'deactivating' ? -25 : 30} />
-              )}
-
-              {/* Denser Glowing Robotics World Scene */}
-              {aiModeState === 'world' && (
-                <>
-                  <RoboticCity />
-                  <QuantumVault isOpened={vaultOpened} onClick={handleVaultClick} />
-                </>
-              )}
-            </Suspense>
-          </Canvas>
-
-          <div className="absolute inset-0 pointer-events-none z-20 bg-scanlines opacity-10" />
-        </div>
-      )}
-
-      {/* 3. ROBOTICS WORLD INTERACTIVE UI HUDS */}
+      {/* 3. ROBOTICS WORLD INTERACTIVE HUDS */}
       {aiModeState === 'world' && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-4 sm:p-6">
+        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-4 sm:p-6 w-screen h-screen">
           
           {/* Top Panel Actions */}
-          <div className="flex justify-between items-start w-full gap-2">
+          <div className="flex justify-between items-start w-full gap-2 z-50">
             <div className="border border-neon-cyan/20 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-md font-mono text-[9px] sm:text-[10px] text-neon-cyan flex items-center gap-2">
               <Radio size={10} className="animate-pulse" />
-              <span>ROBOTIC MATRIX SIGHT v4.0</span>
+              <span>WHITE AI SIGHT v4.0</span>
             </div>
             
             <div className="flex items-center gap-2 pointer-events-auto">
-              {/* Pleasant Audio Mute/Unmute Toggle */}
               <button
                 onClick={() => setIsMuted(!isMuted)}
                 className="border border-gray-700 text-gray-400 hover:text-neon-cyan bg-black/60 p-2 rounded-md transition-colors"
@@ -1030,9 +1051,9 @@ Please select one of the core categories below or specify a topic:
             </div>
           </div>
 
-          {/* Prompt to connect to Quantum Vault capsule */}
+          {/* Prompt to click the vault */}
           {!vaultOpened && (
-            <div className="w-full flex justify-center mb-6 sm:mb-10">
+            <div className="w-full flex justify-center mb-6 sm:mb-10 z-50">
               <div className="border border-neon-cyan/30 bg-black/80 backdrop-blur-md p-3.5 rounded-lg text-center max-w-xs animate-bounce pointer-events-auto cursor-pointer" onClick={handleVaultClick}>
                 <p className="font-mono text-[10px] sm:text-xs text-neon-cyan mb-1.5 uppercase font-bold tracking-wider">🔒 Quantum Vault Detected</p>
                 <p className="text-[10px] sm:text-[11px] text-gray-400">Click the central rotating vault to release the White AI holographic core.</p>
@@ -1040,12 +1061,11 @@ Please select one of the core categories below or specify a topic:
             </div>
           )}
 
-          {/* Height-constrained Responsive Holographic White AI Chatboard */}
+          {/* Height-constrained Responsive Holographic Chatboard (Z-index 50) */}
           {isBotVisible && (
-            <div className="absolute inset-0 z-40 pointer-events-none flex items-center justify-center p-3 sm:p-6 bg-black/40">
-              <div className="w-[94%] sm:w-full max-w-md max-h-[85vh] sm:max-h-[80vh] border border-neon-cyan/30 bg-[#020617]/90 backdrop-blur-xl rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(3,233,244,0.15)] flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
+            <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-3 sm:p-6 bg-black/40">
+              <div className="w-[94%] sm:w-full max-w-md max-h-[80vh] sm:max-h-[75vh] border border-neon-cyan/30 bg-[#020617]/95 backdrop-blur-2xl rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(3,233,244,0.15)] flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
                 
-                {/* Close Overlay */}
                 <button
                   onClick={() => { sfx.playClick(); setVaultOpened(false); setIsBotVisible(false); }}
                   className="absolute top-4 right-4 text-gray-400 hover:text-neon-cyan transition-colors"
@@ -1053,7 +1073,6 @@ Please select one of the core categories below or specify a topic:
                   <X size={15} />
                 </button>
 
-                {/* Header Profile Title */}
                 <div className="flex items-center gap-2 border-b border-gray-800 pb-2.5">
                   <div className="w-7 h-7 rounded-full bg-neon-cyan/10 border border-neon-cyan/20 flex items-center justify-center text-neon-cyan">
                     <Database size={14} />
@@ -1067,7 +1086,6 @@ Please select one of the core categories below or specify a topic:
                   </div>
                 </div>
 
-                {/* Scrollable chat messages area */}
                 <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2.5 font-mono text-[10px] sm:text-[11px] p-2 bg-black/60 border border-gray-900 rounded-md">
                   {chatMessages.map((msg, idx) => (
                     <div
@@ -1090,7 +1108,6 @@ Please select one of the core categories below or specify a topic:
                   )}
                 </div>
 
-                {/* Categories quick links */}
                 <div className="flex flex-wrap gap-1 justify-center py-0.5">
                   {['Skills', 'Projects', 'Education', 'Contact'].map((cat) => (
                     <button
@@ -1103,7 +1120,6 @@ Please select one of the core categories below or specify a topic:
                   ))}
                 </div>
 
-                {/* Input box */}
                 <div className="flex gap-2 pt-1 border-t border-gray-900">
                   <input
                     type="text"
@@ -1130,7 +1146,7 @@ Please select one of the core categories below or specify a topic:
       {aiModeState === 'deactivating' && (
         <div className="absolute inset-0 bg-[#020617] z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in pointer-events-none">
           <div className="border border-neon-pink/20 bg-black/85 p-5 rounded-lg max-w-xs w-full text-center shadow-[0_0_20px_rgba(255,46,99,0.1)]">
-            <Activity className="mx-auto text-neon-pink animate-pulse mb-3" size={20} />
+            <Shield className="mx-auto text-neon-pink animate-pulse mb-3" size={20} />
             <p className="font-mono text-xs text-neon-pink uppercase font-bold tracking-wider mb-1">🔌 Connection Terminated</p>
             <p className="text-[9px] sm:text-[10px] text-gray-500 font-mono">Restoring original coordinates in 3D spacetime...</p>
           </div>
