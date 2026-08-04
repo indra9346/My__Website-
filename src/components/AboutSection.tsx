@@ -95,23 +95,19 @@ const AboutSection = () => {
 
           {/* Text side */}
           <motion.div variants={slideRight} className="md:w-3/5">
-            <h3 className="text-2xl font-bold mb-4">Student Developer & Tech Enthusiast</h3>
+            <h3 className="text-2xl font-bold mb-4 text-neon-cyan font-mono">Full-Stack Developer & AI Enthusiast</h3>
             <div className="space-y-4 text-gray-300">
               <p>
-                Hey! I'm <strong>Indra Kumar</strong>, currently in my <strong>4th year</strong> of B.E. in
-                <strong> Artificial Intelligence & Machine Learning</strong>. Over the years, I've found myself drawn towards
-                building things that are not only functional but also meaningful.
+                Hi! I'm <strong>Indra Kumar</strong>, a <strong>B.E. graduate</strong> in <strong>Artificial Intelligence & Machine Learning</strong> with a passion for building modern, scalable, and user-friendly web applications. I enjoy turning ideas into practical solutions through clean code, thoughtful design, and continuous learning.
               </p>
               <p>
-                I've got a strong hold on <strong>Java</strong> and <strong>HTML</strong>, I'm pretty comfortable with <strong>CSS</strong>,
-                and I've also worked with <strong>Hibernate</strong> and <strong>PostgreSQL</strong> for handling backend and database stuff.
+                I have hands-on experience developing end-to-end web applications using <strong>Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, and Supabase</strong>. From designing responsive user interfaces to building backend APIs and managing databases, I enjoy working across the full development lifecycle.
               </p>
               <p>
-                Even though my branch is AIML, what excites me the most is exploring <strong>AI tools</strong> and figuring out how
-                to make them part of my workflow. I love the idea of using AI to make tasks faster, smarter, and more efficient.
+                Beyond web development, I'm passionate about <strong>Artificial Intelligence</strong> and regularly explore AI-powered tools and workflows to improve productivity, automate tasks, and build smarter applications. I believe AI is transforming software development, and I'm excited to be part of that journey.
               </p>
               <p>
-                Outside of coding, I enjoy exploring new technologies, experimenting with AI tools, and working on ideas that could genuinely help people or industries in some way.
+                I'm always looking for opportunities to learn new technologies, solve real-world problems, and contribute to products that create meaningful impact.
               </p>
 
               {/* Quick Facts with stagger */}
@@ -121,29 +117,39 @@ const AboutSection = () => {
                 initial="hidden"
                 animate={isInView ? 'visible' : 'hidden'}
               >
-                <h4 className="text-lg font-semibold mb-2">Quick Facts:</h4>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <h4 className="text-lg font-semibold mb-3 font-mono text-neon-cyan">Quick Facts</h4>
+                <ul className="grid grid-cols-1 gap-2.5">
                   {[
-                    'Based in India',
-                    'Final Year B.E. AIML Student',
-                    'Skilled in Java, Hibernate & PostgreSQL',
-                    'Exploring AI Tools & Real-world Applications',
+                    '📍 Based in India',
+                    '🎓 B.E. Graduate in Artificial Intelligence & Machine Learning (2026)',
+                    '💻 Full-Stack Developer',
+                    '⚡ Java • React.js • JavaScript • HTML • CSS • Hibernate • PostgreSQL • Supabase',
+                    '🤖 Interested in AI, Automation & Modern Web Technologies',
+                    '🚀 Passionate about building scalable, user-focused applications',
                   ].map((fact, i) => (
                     <motion.li
                       key={i}
                       variants={staggerItem}
-                      className="flex items-center"
+                      className="flex items-start gap-2 text-sm"
                     >
-                      <span className="text-neon-cyan mr-2">▹</span>
+                      <span className="text-neon-cyan mt-1 select-none">▹</span>
                       <span>{fact}</span>
                     </motion.li>
                   ))}
                 </ul>
               </motion.div>
+
+              {/* Get In Touch */}
+              <div className="pt-4 space-y-2">
+                <h4 className="text-lg font-semibold font-mono text-neon-cyan">Get In Touch</h4>
+                <p className="text-sm">
+                  I'm always open to discussing software development, AI, full-stack engineering, internships, and exciting opportunities. Feel free to reach out if you'd like to collaborate or connect.
+                </p>
+              </div>
             </div>
             <motion.a
               href="#contact"
-              className="btn-neon inline-block mt-8"
+              className="btn-neon inline-block mt-6"
               whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(3,233,244,0.4)' }}
               whileTap={{ scale: 0.95 }}
             >
