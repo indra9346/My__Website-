@@ -5,7 +5,7 @@ import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import gsap from 'gsap';
-import { Shield, Activity, Volume2, VolumeX, Database, Send, X } from 'lucide-react';
+import { Shield, Activity, Volume2, VolumeX, Database, Send, X, Radio } from 'lucide-react';
 
 // ==========================================
 // 1. Soft Web Audio Synthesizer (Ambient)
