@@ -44,35 +44,41 @@ export default function VideoBridge() {
       setIsVisible(true);
       video.pause();
 
-      if (video.duration) {
-        video.currentTime = video.duration;
-      } else {
-        video.currentTime = 3.5; // Fallback in case duration metadata is loading
-      }
+      const duration = video.duration || 15.0; // Dynamic fallback to estimated duration
+      video.currentTime = duration;
 
       let lastTime = performance.now();
+      let lastSeekTime = performance.now();
 
       const playReverseTick = (now: number) => {
-        const delta = (now - lastTime) / 1000;
-        lastTime = now;
+        const elapsedSinceLastSeek = now - lastSeekTime;
 
-        const playbackSpeed = 1.5; // Faster rewind
-        const newTime = video.currentTime - (delta * playbackSpeed);
+        // Seek at 25 FPS (every 40ms) to give laptop GPU decoders breathing room
+        if (elapsedSinceLastSeek >= 40) {
+          const delta = (now - lastTime) / 1000;
+          lastTime = now;
+          lastSeekTime = now;
 
-        if (newTime <= 0) {
-          video.currentTime = 0;
-          setIsVisible(false);
-          setTimeout(() => {
-            setAiModeState('inactive');
-          }, 300);
-        } else {
-          video.currentTime = newTime;
-          animFrameIdRef.current = requestAnimationFrame(playReverseTick);
+          const playbackSpeed = 1.6; // Slightly faster rewind
+          const newTime = video.currentTime - (delta * playbackSpeed);
+
+          if (newTime <= 0) {
+            video.currentTime = 0;
+            setIsVisible(false);
+            setTimeout(() => {
+              setAiModeState('inactive');
+            }, 300);
+            return;
+          } else {
+            video.currentTime = newTime;
+          }
         }
+        animFrameIdRef.current = requestAnimationFrame(playReverseTick);
       };
 
       const timer = setTimeout(() => {
         lastTime = performance.now();
+        lastSeekTime = performance.now();
         animFrameIdRef.current = requestAnimationFrame(playReverseTick);
       }, 100);
 
@@ -100,6 +106,7 @@ export default function VideoBridge() {
         src="/videos/android-eye.mp4"
         playsInline
         muted
+        preload="auto"
         className="w-full h-full object-cover"
         style={{ filter: 'hue-rotate(-10deg) brightness(1.05)' }}
       />

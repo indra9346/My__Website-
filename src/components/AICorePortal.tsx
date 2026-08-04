@@ -19,6 +19,10 @@ class PortaSfxSynth {
   private humGain: GainNode | null = null;
   public isMuted = false;
 
+  isMobile() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+  }
+
   init() {
     if (this.ctx) return;
     try {
@@ -29,7 +33,7 @@ class PortaSfxSynth {
   }
 
   playBeep(freq = 550, duration = 0.08, gainVal = 0.015) {
-    if (this.isMuted) return;
+    if (this.isMuted || this.isMobile()) return;
     this.init();
     if (!this.ctx) return;
     try {
@@ -53,7 +57,7 @@ class PortaSfxSynth {
   }
 
   playWarp(reverse = false) {
-    if (this.isMuted) return;
+    if (this.isMuted || this.isMobile()) return;
     this.init();
     if (!this.ctx) return;
     try {
@@ -87,7 +91,7 @@ class PortaSfxSynth {
   }
 
   startHum() {
-    if (this.isMuted) return;
+    if (this.isMuted || this.isMobile()) return;
     this.init();
     if (!this.ctx || this.osc1) return;
     try {
