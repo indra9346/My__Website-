@@ -5,7 +5,7 @@ import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import gsap from 'gsap';
-import { Shield, Activity, Volume2, VolumeX, Database, Send, X, Radio } from 'lucide-react';
+import { Shield, Activity, Volume2, VolumeX, Database, Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, ExternalLink, Cpu } from 'lucide-react';
 
 // ==========================================
 // 1. Soft Web Audio Synthesizer (Ambient)
@@ -970,21 +970,68 @@ const HologramBeam = () => {
 };
 
 // ==========================================
-// 12. Main Interactive Portal
+// 12. Door Hub Configuration
+// ==========================================
+export interface DoorItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  type: 'ai' | 'projects' | 'vlogs' | 'creations';
+  status: 'active' | 'locked';
+  target?: string;
+}
+
+export const DOORS: DoorItem[] = [
+  {
+    id: 'ai-agent',
+    title: 'AI Agent (ARIA)',
+    subtitle: 'Real-Time Portfolio Intelligence',
+    type: 'ai',
+    status: 'active',
+  },
+  {
+    id: 'projects',
+    title: 'Projects Hub',
+    subtitle: 'Supreme Cart & Full-Stack Works',
+    type: 'projects',
+    status: 'active',
+    target: '#projects',
+  },
+  {
+    id: 'vlogs',
+    title: 'Vlogs & Media',
+    subtitle: 'Tech Talks & Video Streams',
+    type: 'vlogs',
+    status: 'locked',
+  },
+  {
+    id: 'ai-creations',
+    title: 'AI Creations',
+    subtitle: 'Generative AI & ML Experiments',
+    type: 'creations',
+    status: 'locked',
+  },
+];
+
+// ==========================================
+// 13. Main Interactive Portal
 // ==========================================
 export default function AICorePortal() {
-  const { aiModeState, setAiModeState, exitAIMode } = useAI();
+  const { aiModeState, setAiModeState } = useAI();
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
   const [vaultOpened, setVaultOpened] = useState(false);
-  const [isBotVisible, setIsBotVisible] = useState(false);
+  const [isBotVisible, setIsBotVisible] = useState(true);
+  const [activeDoorId, setActiveDoorId] = useState<string>('ai-agent');
   const [isMuted, setIsMuted] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'ai' | 'user'; text: string; formatted?: boolean }>>([]);
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'ai' | 'user'; text: string; formatted?: boolean }>>([
+    {
+      sender: 'ai',
+      text: "ONLINE & READY\n\nI am ARIA (White AI Core), engineered with verified real-time data for K S Indra Kumar.\n\nAsk me about Indra's Full-Stack experience, Java REST APIs, Supreme Cart project, or academic records."
+    }
+  ]);
   const [isTyping, setIsTyping] = useState(false);
-  const [modelTrained, setModelTrained] = useState(false);
-
-  // Materialization progress: slides 0 to 1 over 6 seconds
-  const [holoProgress, setHoloProgress] = useState(0);
+  const [holoProgress, setHoloProgress] = useState(1.0);
 
   useEffect(() => {
     sfx.isMuted = isMuted;
@@ -1001,7 +1048,7 @@ export default function AICorePortal() {
       sfx.playWarp(false);
       setTerminalLogs([]);
 
-      const intervals = [1000, 2000, 3000];
+      const intervals = [800, 1800, 2800];
       const logTexts = [
         "> INITIALIZING AI SECURE DECK...",
         "> ENGAGING DIRECT COGNITIVE PATHWAY...",
@@ -1017,183 +1064,96 @@ export default function AICorePortal() {
 
       const timer = setTimeout(() => {
         document.body.classList.remove('ai-portal-glitch');
-        // Slide directly to the video forward player transition
         setAiModeState('video_forward');
-      }, 3500);
+      }, 3300);
 
       return () => clearTimeout(timer);
     } else if (aiModeState === 'portal') {
       sfx.playBeep(660, 0.2, 0.02);
       const timer = setTimeout(() => {
         setAiModeState('world');
-      }, 5500);
+      }, 3500);
       return () => clearTimeout(timer);
     } else if (aiModeState === 'world') {
       sfx.startHum();
+      setVaultOpened(true);
+      setIsBotVisible(true);
     }
   }, [aiModeState, setAiModeState]);
 
-  // Materialization progression tick
-  useEffect(() => {
-    if (!vaultOpened) return;
-    let start: number | null = null;
-    const duration = 5500; // 5.5 seconds for complete sequence
-
-    const tick = (timestamp: number) => {
-      if (!start) start = timestamp;
-      const elapsed = timestamp - start;
-      const progress = Math.min(1.0, elapsed / duration);
-      setHoloProgress(progress);
-
-      if (progress < 1.0) {
-        requestAnimationFrame(tick);
-      }
-    };
-    requestAnimationFrame(tick);
-  }, [vaultOpened]);
-
   const handleVaultClick = () => {
-    if (vaultOpened) return;
-    setVaultOpened(true);
-
-    setTimeout(() => {
-      setIsBotVisible(true);
-      sfx.playBeep(900, 0.25, 0.02);
-
-      const lines = [
-        "[ SECURE CONNECT ESTABLISHED ]",
-        "WHITE AI HOLOGRAPHIC FRAME: ASSEMBLED",
-        "WELCOME TO MISSION CONTROL TERMINAL.\n\nI have verified the credentials of Engineer Indra Kumar.\n\n[ MODULE DATA LOGS ]:\n- Projects Database\n- Skills Inventory\n- Academic Records\n- Contact Channels\n\nAsk me to predict interests or select a database below."
-      ];
-
-      lines.forEach((line, index) => {
-        setTimeout(() => {
-          setChatMessages((prev) => [...prev, { sender: 'ai', text: line }]);
-          sfx.playBeep(440 + index * 40, 0.05, 0.01);
-        }, index * 600);
-      });
-    }, 5500); // Trigger panel open exactly when materialization finishes
+    if (!vaultOpened) {
+      setVaultOpened(true);
+    }
+    setIsBotVisible(true);
+    sfx.playBeep(880, 0.15, 0.02);
   };
 
-  const predictInterest = (topic: string): string => {
-    const t = topic.toLowerCase().trim();
-    let score = 30;
-    let explanation = '';
-
-    const highInterest = ['react', 'javascript', 'html', 'css', 'web', 'frontend', 'front-end', 'fullstack', 'full-stack', 'java', 'hibernate', 'postgresql', 'supabase', 'database', 'sql', 'backend', 'back-end', 'code', 'ui', 'ux', 'design', 'development', 'developer'];
-    const aiInterest = ['ai', 'ml', 'artificial intelligence', 'machine learning', 'python', 'deep learning', 'neural network', 'data science', 'prompt', 'nlp', 'model', 'dataset', 'classifier', 'regression', 'prediction'];
-    const mediumInterest = ['python', 'c', 'dsa', 'git', 'github', 'programming', 'algorithms', 'structures', 'logic'];
-
-    if (highInterest.some(word => t.includes(word))) {
-      score = 88 + Math.floor(Math.random() * 10);
-      explanation = "High Alignment. Indra has extensive practical experience building responsive user interfaces, backend REST APIs, and database configurations using this stack.";
-    } else if (aiInterest.some(word => t.includes(word))) {
-      score = 92 + Math.floor(Math.random() * 6);
-      explanation = "Maximum Academic Focus. Indra holds a Bachelor of Engineering in AI & Machine Learning, completing core coursework in neural networks and ML models.";
-    } else if (mediumInterest.some(word => t.includes(word))) {
-      score = 72 + Math.floor(Math.random() * 12);
-      explanation = "Solid Familiarity. Frequently used for algorithmic problem-solving (Data Structures) and repository version control.";
-    } else {
-      score = 22 + Math.floor(Math.random() * 20);
-      explanation = "Exploratory / Low Current Alignment. Indra prioritizes web application development frameworks and ML core systems.";
+  const handleDoorSelect = (door: DoorItem) => {
+    sfx.playClick();
+    if (door.status === 'locked') {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: 'ai',
+          text: `🔒 DOOR LOCKED: ${door.title}\n\nThis door is currently reserved for future deployment. Append an entry to the DOORS hub list to unlock!`
+        }
+      ]);
+      setIsBotVisible(true);
+      return;
     }
 
-    const barLength = 12;
-    const filledLength = Math.round((score / 100) * barLength);
-    const bar = '█'.repeat(filledLength) + '░'.repeat(barLength - filledLength);
-
-    return `ACCESSING PREDICTION ENGINE...
---------------------------------
-Topic Matrix: "${topic}"
-
-Interest Prediction Score:
-[${bar}] ${score}% Alignment
-
-Analysis:
-${explanation}
-
-Status: CONFIDENCE OPTIMIZED`;
-  };
-
-  const handleTrainModel = () => {
-    if (isTyping) return;
-    setIsTyping(true);
-    sfx.playClick();
-
-    setChatMessages((prev) => [...prev, { sender: 'user', text: "Train Interest Prediction Model" }]);
-
-    const logs = [
-      "[PYTHON INTERPRETER CORE] initializing...",
-      "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nclass InterestClassifier(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.network = nn.Sequential(\n            nn.Linear(24, 128),\n            nn.ReLU(),\n            nn.Linear(128, 64),\n            nn.ReLU(),\n            nn.Linear(64, 5)\n        )",
-      "Extracting skills feature matrix vectors from Indra Kumar's profile...",
-      "Epoch 15/50 - Training Loss: 0.3941 - Val Acc: 74.2%",
-      "Epoch 35/50 - Training Loss: 0.1288 - Val Acc: 91.5%",
-      "Epoch 50/50 - Training Loss: 0.0312 - Val Acc: 98.6%",
-      "PyTorch training completed! Model exported as 'interest_classifier.onnx'.\n\nReady to predict! Ask me: 'Predict interest for React' or 'Predict interest for Python' to see the model output."
-    ];
-
-    logs.forEach((log, index) => {
-      setTimeout(() => {
-        setChatMessages((prev) => [...prev, { sender: 'ai', text: log, formatted: log.includes('Loss:') || log.includes('torch') }]);
-        sfx.playBeep(440 + index * 30, 0.05, 0.01);
-        if (index === logs.length - 1) {
-          setIsTyping(false);
-          setModelTrained(true);
-        }
-      }, index * 700);
-    });
+    setActiveDoorId(door.id);
+    if (door.id === 'ai-agent') {
+      setIsBotVisible(true);
+    } else if (door.id === 'projects') {
+      const el = document.getElementById('projects');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        setAiModeState('inactive');
+      } else {
+        setChatMessages((prev) => [
+          ...prev,
+          { sender: 'user', text: "Projects" },
+          { sender: 'ai', text: "Selected Repositories" }
+        ]);
+        setIsBotVisible(true);
+      }
+    }
   };
 
   const queryDatabase = (query: string): string => {
     const q = query.toLowerCase().trim();
 
-    // 1. Bio/Introduction
-    if (q.includes('who is') || q.includes('about indra') || q.includes('profile') || q.includes('biography') || q.includes('who are you') || q.includes('tell me about him')) {
+    if (q.includes('who is') || q.includes('about indra') || q.includes('profile') || q.includes('biography') || q.includes('who are you') || q.includes('bio') || q.includes('tell me about him')) {
       return `Indra Kumar Bio`;
     }
 
-    // 2. Supreme Cart specifically
     if (q.includes('supreme cart') || q.includes('cart') || q.includes('e-commerce') || q.includes('ecommerce')) {
       return `Supreme Cart Project Info`;
     }
 
-    // 3. Projects general
     if (q.includes('project') || q.includes('work') || q.includes('built') || q.includes('develop') || q.includes('repo')) {
       return `Selected Repositories`;
     }
 
-    // 4. Skills stack
-    if (q.includes('skill') || q.includes('language') || q.includes('technology') || q.includes('database') || q.includes('stack') || q.includes('tool') || q.includes('java') || q.includes('react') || q.includes('postgres')) {
+    if (q.includes('skill') || q.includes('language') || q.includes('technology') || q.includes('database') || q.includes('stack') || q.includes('tool') || q.includes('java') || q.includes('react') || q.includes('postgres') || q.includes('html') || q.includes('css')) {
       return `Technical Stack Verification`;
     }
 
-    // 5. Education / College
-    if (q.includes('education') || q.includes('graduate') || q.includes('college') || q.includes('school') || q.includes('degree') || q.includes('study') || q.includes('cgpa') || q.includes('sjc')) {
+    if (q.includes('education') || q.includes('graduate') || q.includes('college') || q.includes('school') || q.includes('degree') || q.includes('study') || q.includes('cgpa') || q.includes('sjc') || q.includes('marks')) {
       return `Academic Matrix Verification`;
     }
 
-    // 6. Contact
-    if (q.includes('contact') || q.includes('email') || q.includes('connect') || q.includes('reach') || q.includes('linkedin') || q.includes('github')) {
+    if (q.includes('contact') || q.includes('email') || q.includes('connect') || q.includes('reach') || q.includes('linkedin') || q.includes('github') || q.includes('phone')) {
       return `Connection Channels`;
     }
 
-    // 7. Resume
-    if (q.includes('resume') || q.includes('cv') || q.includes('pdf')) {
+    if (q.includes('resume') || q.includes('cv') || q.includes('pdf') || q.includes('download')) {
       return `Resume Access Link`;
     }
 
-    // 8. ML prediction trigger
-    if (q.includes('predict') || q.includes('interest') || q.includes('similarity') || modelTrained) {
-      const topic = query
-        .replace(/predict/i, '')
-        .replace(/interest/i, '')
-        .replace(/for/i, '')
-        .replace(/about/i, '')
-        .trim();
-      return predictInterest(topic || "Web Development");
-    }
-
-    return `ACCESSING KNOWLEDGE DATABASE...\nNotice: Search returned 0 matching nodes for "${query}".\n\nI can provide verified records on Indra Kumar's:\n• Profile Biography\n• Core Projects (Supreme Cart)\n• Technical Skills Stack\n• Academic History (SJC)\n• Contact & Resume details.`;
+    return `VERIFIED RECORD SEARCH FOR: "${query}"\n\nIndra Kumar is a Full-Stack Web Developer & B.E. AI/ML Graduate (SJC Institute of Technology, 8.59 CGPA).\n\nKey Highlights:\n• Core Skills: Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, Supabase, Python.\n• Key Project: Supreme Cart (Full-stack e-commerce engine).\n• Contact: ik9893344@gmail.com\n\nSelect a database quick-tag below or ask for specific details.`;
   };
 
   const handleSendMessage = () => {
@@ -1210,37 +1170,34 @@ Status: CONFIDENCE OPTIMIZED`;
       setChatMessages((prev) => [...prev, { sender: 'ai', text: response, formatted: true }]);
       setIsTyping(false);
       sfx.playBeep(660, 0.08, 0.01);
-    }, 1200);
+    }, 250); // Fast real-time response latency
   };
 
   const handleTriggerReturn = () => {
     sfx.playBeep(330, 0.25, 0.02);
-    setChatMessages((prev) => [...prev, { sender: 'ai', text: "Your session has ended. Returning you to your world..." }]);
-    
+    setChatMessages((prev) => [...prev, { sender: 'ai', text: "Disconnecting session... Returning to portfolio view." }]);
     setTimeout(() => {
-      // Trigger reverse video bridge playback
       setAiModeState('video_reverse');
-    }, 1500);
+    }, 600);
   };
 
-  // Structured High-Tech Card renderer for HUD Terminal
   const renderMessageContent = (msg: { sender: 'ai' | 'user'; text: string; formatted?: boolean }) => {
     if (msg.sender === 'user') {
-      return <div className="text-right text-neon-cyan">{msg.text}</div>;
+      return <div className="text-right text-neon-cyan font-semibold">{msg.text}</div>;
     }
 
     if (msg.text.includes('Indra Kumar Bio')) {
       return (
-        <div className="border border-neon-cyan/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
-          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
-            <Shield size={10} />
-            <span>[ INDRA KUMAR - BIOGRAPHY ]</span>
+        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5 text-xs sm:text-sm">
+            <Shield size={14} />
+            <span>[ INDRA KUMAR - PROFILE SUMMARY ]</span>
           </div>
-          <p className="text-slate-300 leading-relaxed">
-            Hi! I'm Indra Kumar, a B.E. graduate in Artificial Intelligence & Machine Learning with a passion for building modern, scalable, and user-friendly web applications.
+          <p className="text-slate-200 leading-relaxed">
+            Hi! I'm K S Indra Kumar, a B.E. graduate in Artificial Intelligence & Machine Learning with a strong focus on full-stack web application development.
           </p>
-          <p className="text-slate-400 text-[8px] sm:text-[10px] leading-relaxed">
-            I have hands-on experience developing end-to-end web applications using Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, and Supabase.
+          <p className="text-slate-400 text-[11px] leading-relaxed">
+            Proficient in building scalable frontend UIs and robust backend architectures using Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, and Supabase.
           </p>
         </div>
       );
@@ -1248,15 +1205,16 @@ Status: CONFIDENCE OPTIMIZED`;
 
     if (msg.text.includes('Supreme Cart Project Info')) {
       return (
-        <div className="border border-neon-cyan/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
-          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider">
-            <span>[ PROJECT: SUPREME CART ]</span>
+        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
+            <FolderGit2 size={14} />
+            <span>[ FEATURED PROJECT: SUPREME CART ]</span>
           </div>
           <div className="text-slate-300 mt-1 flex flex-col gap-1.5">
-            <div>• <b>Architecture</b>: E-commerce shopping web application.</div>
-            <div>• <b>Backend Engine</b>: Built using Java and Hibernate ORM.</div>
-            <div>• <b>Frontend Layer</b>: Designed using HTML, CSS, and JavaScript.</div>
-            <div>• <b>Storage Nodes</b>: Managed via PostgreSQL databases.</div>
+            <div>• <b>Description</b>: End-to-End E-Commerce Shopping Platform.</div>
+            <div>• <b>Backend Architecture</b>: Java with Hibernate ORM & REST APIs.</div>
+            <div>• <b>Frontend Stack</b>: Dynamic HTML5, CSS3, JavaScript interface.</div>
+            <div>• <b>Database Storage</b>: PostgreSQL relational schema.</div>
           </div>
         </div>
       );
@@ -1264,18 +1222,18 @@ Status: CONFIDENCE OPTIMIZED`;
 
     if (msg.text.includes('Technical Stack Verification')) {
       return (
-        <div className="border border-neon-cyan/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
+        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
           <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
-            <Shield size={10} />
-            <span>[ SYSTEM: INVENTORY LOADED ]</span>
+            <Cpu size={14} />
+            <span>[ SYSTEM: VERIFIED TECH STACK ]</span>
           </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1 text-slate-300">
-            <div>Java:</div><div className="text-green-400">██████████ 96%</div>
-            <div>React:</div><div className="text-green-400">████████░░ 80%</div>
-            <div>PostgreSQL:</div><div className="text-green-400">████████░░ 80%</div>
-            <div>Supabase:</div><div className="text-green-400">████████░░ 80%</div>
-            <div>Python (AIML):</div><div className="text-green-400">█████████░ 90%</div>
-            <div>DSA Concepts:</div><div className="text-green-400">████████░░ 80%</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1 text-slate-300">
+            <div>Java (Core/Backend):</div><div className="text-green-400 font-bold">██████████ 96%</div>
+            <div>React.js & JS:</div><div className="text-green-400 font-bold">████████░░ 85%</div>
+            <div>HTML & CSS:</div><div className="text-green-400 font-bold">█████████░ 90%</div>
+            <div>PostgreSQL & SQL:</div><div className="text-green-400 font-bold">████████░░ 82%</div>
+            <div>Hibernate & Supabase:</div><div className="text-green-400 font-bold">████████░░ 80%</div>
+            <div>Python (AI/ML & DSA):</div><div className="text-green-400 font-bold">█████████░ 88%</div>
           </div>
         </div>
       );
@@ -1283,19 +1241,19 @@ Status: CONFIDENCE OPTIMIZED`;
 
     if (msg.text.includes('Academic Matrix Verification')) {
       return (
-        <div className="border border-neon-purple/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
-          <div className="text-neon-purple border-b border-neon-purple/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
-            <Activity size={10} />
-            <span>[ SYSTEM: ACADEMIC CREDENTIALS ]</span>
+        <div className="border border-purple-500/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+          <div className="text-purple-400 border-b border-purple-500/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
+            <Activity size={14} />
+            <span>[ ACADEMIC QUALIFICATIONS ]</span>
           </div>
           <div className="flex flex-col gap-2 mt-1 text-slate-300">
-            <div className="border-l-2 border-neon-purple pl-2">
-              <div className="font-bold text-white text-[10px] sm:text-xs">B.E. in AI & Machine Learning (2026)</div>
+            <div className="border-l-2 border-purple-400 pl-2.5">
+              <div className="font-bold text-white">B.E. in Artificial Intelligence & Machine Learning (2026)</div>
               <div className="text-gray-400">SJC Institute of Technology | CGPA: 8.59/10</div>
             </div>
-            <div className="border-l-2 border-neon-purple pl-2">
-              <div className="font-bold text-white text-[10px] sm:text-xs">PUC - PCMC (2022)</div>
-              <div className="text-gray-400">LRG Naidu JR. College | Score: 85.3%</div>
+            <div className="border-l-2 border-purple-400 pl-2.5">
+              <div className="font-bold text-white">PUC - PCMC (2022)</div>
+              <div className="text-gray-400">LRG Naidu Jr. College | Score: 85.3%</div>
             </div>
           </div>
         </div>
@@ -1304,27 +1262,28 @@ Status: CONFIDENCE OPTIMIZED`;
 
     if (msg.text.includes('Selected Repositories')) {
       return (
-        <div className="border border-neon-cyan/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs w-full">
-          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider">
-            <span>[ SYSTEM: REPOSITORY LOGS ]</span>
+        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs w-full">
+          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center justify-between">
+            <span>[ REPOSITORY PORTFOLIO ]</span>
+            <span className="text-[10px] text-green-400 font-normal">VERIFIED</span>
           </div>
           <div className="flex flex-col gap-2 mt-1.5 w-full">
-            <div className="border border-slate-800 p-2 rounded bg-black/40">
-              <div className="text-white font-bold flex justify-between items-center text-[10px] sm:text-xs">
+            <div className="border border-slate-800 p-2.5 rounded bg-black/60">
+              <div className="text-white font-bold flex justify-between items-center text-xs">
                 <span>🛒 SUPREME CART</span>
-                <span className="text-[8px] border border-green-500/30 text-green-400 px-1 rounded">PROD</span>
+                <span className="text-[9px] border border-green-500/40 text-green-400 px-1.5 py-0.5 rounded font-bold">FULLSTACK</span>
               </div>
-              <div className="text-slate-400 text-[8px] sm:text-[10px] mt-1 leading-relaxed">
-                Full-stack shopping application built with Java, Hibernate, and PostgreSQL. Handles catalogs and secure checkout sessions.
+              <div className="text-slate-400 text-[11px] mt-1 leading-relaxed">
+                E-commerce platform powered by Java, Hibernate, PostgreSQL, and responsive web frontend.
               </div>
             </div>
-            <div className="border border-slate-800 p-2 rounded bg-black/40">
-              <div className="text-white font-bold flex justify-between items-center text-[10px] sm:text-xs">
-                <span>📊 PORTFOLIO CONFIG v4.0</span>
-                <span className="text-[8px] border border-neon-cyan/30 text-neon-cyan px-1 rounded">ACTIVE</span>
+            <div className="border border-slate-800 p-2.5 rounded bg-black/60">
+              <div className="text-white font-bold flex justify-between items-center text-xs">
+                <span>⚡ PORTFOLIO INTELLIGENCE (ARIA)</span>
+                <span className="text-[9px] border border-neon-cyan/40 text-neon-cyan px-1.5 py-0.5 rounded font-bold">LIVE WORLD</span>
               </div>
-              <div className="text-slate-400 text-[8px] sm:text-[10px] mt-1 leading-relaxed">
-                Interactive control panel configuring client settings, real-time Supabase triggers, and promotions.
+              <div className="text-slate-400 text-[11px] mt-1 leading-relaxed">
+                3D AI World portal with real-time portfolio intelligence bot and modular doors engine.
               </div>
             </div>
           </div>
@@ -1334,14 +1293,14 @@ Status: CONFIDENCE OPTIMIZED`;
 
     if (msg.text.includes('Connection Channels')) {
       return (
-        <div className="border border-neon-pink/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
-          <div className="text-neon-pink border-b border-neon-pink/20 pb-1 font-bold tracking-wider">
-            <span>[ SYSTEM: COMMS NODE ]</span>
+        <div className="border border-pink-500/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+          <div className="text-pink-400 border-b border-pink-500/20 pb-1 font-bold tracking-wider">
+            <span>[ DIRECT CONTACT CHANNELS ]</span>
           </div>
-          <div className="flex flex-col gap-1 mt-1 text-slate-300">
-            <div>Email: <span className="text-white">ik9893344@gmail.com</span></div>
-            <div>GitHub: <a href="https://github.com/indra9346" target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline">github.com/indra9346</a></div>
-            <div>LinkedIn: <a href="https://linkedin.com/in/k-s-indra-kumar-7049b1289" target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline">indra-kumar</a></div>
+          <div className="flex flex-col gap-1.5 mt-1 text-slate-300">
+            <div>Email: <span className="text-white font-bold">ik9893344@gmail.com</span></div>
+            <div>GitHub: <a href="https://github.com/indra9346" target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline font-bold">github.com/indra9346</a></div>
+            <div>LinkedIn: <a href="https://linkedin.com/in/k-s-indra-kumar-7049b1289" target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline font-bold">indra-kumar</a></div>
           </div>
         </div>
       );
@@ -1349,18 +1308,18 @@ Status: CONFIDENCE OPTIMIZED`;
 
     if (msg.text.includes('Resume Access Link')) {
       return (
-        <div className="border border-neon-pink/20 bg-slate-950/85 p-3 rounded-lg flex flex-col gap-2 font-mono text-[9px] sm:text-xs">
-          <div className="text-neon-pink border-b border-neon-pink/20 pb-1 font-bold tracking-wider">
-            <span>[ SYSTEM: RESUME DECK ]</span>
+        <div className="border border-pink-500/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+          <div className="text-pink-400 border-b border-pink-500/20 pb-1 font-bold tracking-wider">
+            <span>[ VERIFIED RESUME DOC ]</span>
           </div>
           <div className="text-slate-300 mt-1">
-            Indra Kumar's resume is validated and ready for download:
+            Indra Kumar's resume is ready for inspection:
             <div className="mt-2.5">
               <a 
                 href="/resume.pdf" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="border border-neon-cyan text-neon-cyan px-3 py-1.5 rounded hover:bg-neon-cyan hover:text-black transition-all inline-block text-[8px] sm:text-[9px] font-bold"
+                className="border border-neon-cyan text-neon-cyan px-3.5 py-2 rounded hover:bg-neon-cyan hover:text-black transition-all inline-block text-xs font-bold shadow-[0_0_12px_rgba(3,233,244,0.2)]"
               >
                 📥 DOWNLOAD RESUME (PDF)
               </a>
@@ -1370,12 +1329,29 @@ Status: CONFIDENCE OPTIMIZED`;
       );
     }
 
-    return <div className="whitespace-pre-wrap text-slate-300 leading-relaxed">{msg.text}</div>;
+    return <div className="whitespace-pre-wrap text-slate-200 leading-relaxed font-mono">{msg.text}</div>;
   };
 
   return (
     <div className="fixed inset-0 w-screen h-screen z-[9990] bg-[#020617] text-white overflow-hidden font-sans select-none">
       
+      {/* Background Video (Looping continuously with CSS autoplay muted loop playsinline) */}
+      {aiModeState === 'world' && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            src="/ai-world-background.mp4"
+            className="w-full h-full object-cover object-center"
+          />
+          {/* Subtle cinematic gradient overlay for high contrast readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-slate-950/70 backdrop-blur-[1px]" />
+        </div>
+      )}
+
       {/* 3D Canvas Viewport */}
       {(aiModeState === 'portal' || aiModeState === 'world' || aiModeState === 'deactivating') && (
         <div className="absolute top-0 left-0 w-screen h-screen z-10">
@@ -1427,115 +1403,164 @@ Status: CONFIDENCE OPTIMIZED`;
         </div>
       )}
 
-      {/* metropolis HUD controls */}
+      {/* Metropolis HUD controls & Door Hub */}
       {aiModeState === 'world' && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-4 sm:p-6 w-screen h-screen">
-          <div className="flex justify-between items-start w-full gap-2 z-50">
-            <div className="border border-neon-cyan/20 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-md font-mono text-[9px] sm:text-[10px] text-neon-cyan flex items-center gap-2">
-              <Radio size={10} className="animate-pulse" />
-              <span>WHITE AI CONTROLLER v4.0</span>
+        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-3 sm:p-6 w-screen h-screen">
+          
+          {/* Top Bar Navigation */}
+          <div className="flex justify-between items-center w-full gap-2 z-50 pointer-events-auto">
+            <div className="border border-neon-cyan/30 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-md font-mono text-[10px] sm:text-xs text-neon-cyan flex items-center gap-2 shadow-[0_0_15px_rgba(3,233,244,0.15)]">
+              <Radio size={12} className="animate-pulse" />
+              <span className="font-bold tracking-wide">WHITE AI ROBOTICS WORLD</span>
             </div>
             
-            <div className="flex items-center gap-2 pointer-events-auto">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsMuted(!isMuted)}
-                className="border border-gray-700 text-gray-400 hover:text-neon-cyan bg-black/60 p-2 rounded-md transition-colors"
-                aria-label={isMuted ? 'Mute Portal Sounds' : 'Unmute Portal Sounds'}
+                className="border border-gray-700 text-gray-400 hover:text-neon-cyan bg-slate-950/80 p-2 rounded-md transition-colors"
+                aria-label={isMuted ? 'Unmute Portal Sounds' : 'Mute Portal Sounds'}
               >
                 {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
               </button>
 
               <button
                 onClick={handleTriggerReturn}
-                className="border border-neon-pink text-neon-pink bg-black/70 hover:bg-neon-pink hover:text-black font-mono text-[10px] sm:text-[11px] px-3 py-2 rounded-md transition-all duration-300 flex items-center gap-1"
+                className="border border-pink-500/60 text-pink-400 bg-slate-950/80 hover:bg-pink-500 hover:text-black font-mono text-[10px] sm:text-xs px-3 py-1.5 rounded-md transition-all duration-300 flex items-center gap-1 font-bold"
               >
-                <X size={10} />
-                <span>DISCONNECT</span>
+                <X size={12} />
+                <span>EXIT WORLD</span>
               </button>
             </div>
           </div>
 
-          {!vaultOpened && (
-            <div className="w-full flex justify-center mb-6 sm:mb-10 z-50">
-              <div className="border border-neon-cyan/30 bg-black/80 backdrop-blur-md p-3.5 rounded-lg text-center max-w-xs animate-bounce pointer-events-auto cursor-pointer" onClick={handleVaultClick}>
-                <p className="font-mono text-[10px] sm:text-xs text-neon-cyan mb-1.5 uppercase font-bold tracking-wider">🔒 Quantum Vault Detected</p>
-                <p className="text-[10px] sm:text-[11px] text-gray-400 font-mono">Click the central rotating vault to release the White AI holographic core.</p>
+          {/* Interactive Doors Hub Bar (Desktop & Mobile responsive) */}
+          <div className="w-full flex flex-col items-center justify-end mb-1 sm:mb-3 z-40 pointer-events-auto gap-2">
+            
+            <div className="bg-slate-950/85 backdrop-blur-md border border-neon-cyan/30 rounded-xl p-2 max-w-2xl w-[96%] sm:w-auto shadow-[0_0_25px_rgba(3,233,244,0.2)]">
+              <div className="text-[9px] sm:text-[10px] font-mono text-gray-400 text-center uppercase tracking-wider mb-1.5 font-bold flex items-center justify-center gap-1.5">
+                <Bot size={11} className="text-neon-cyan" />
+                <span>AI Robotics Doors Hub</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {DOORS.map((door) => {
+                  const isActive = activeDoorId === door.id && isBotVisible;
+                  return (
+                    <button
+                      key={door.id}
+                      onClick={() => handleDoorSelect(door)}
+                      className={`flex flex-col items-start p-2 sm:p-2.5 rounded-lg border font-mono text-left transition-all duration-300 relative overflow-hidden ${
+                        door.status === 'locked'
+                          ? 'border-gray-800 bg-slate-900/40 text-gray-500 cursor-not-allowed'
+                          : isActive
+                          ? 'border-neon-cyan bg-neon-cyan/15 text-white shadow-[0_0_15px_rgba(3,233,244,0.3)]'
+                          : 'border-slate-800 bg-slate-950/60 text-slate-300 hover:border-neon-cyan/50 hover:bg-slate-900/80'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <span className="text-[10px] sm:text-xs font-bold flex items-center gap-1">
+                          {door.type === 'ai' && <Bot size={12} className="text-neon-cyan" />}
+                          {door.type === 'projects' && <FolderGit2 size={12} className="text-green-400" />}
+                          {door.type === 'vlogs' && <Video size={12} className="text-gray-500" />}
+                          {door.type === 'creations' && <Sparkles size={12} className="text-gray-500" />}
+                          <span>{door.title}</span>
+                        </span>
+                        {door.status === 'locked' ? (
+                          <Lock size={10} className="text-gray-500" />
+                        ) : (
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                        )}
+                      </div>
+
+                      <div className="text-[8px] sm:text-[9px] text-gray-400 leading-tight line-clamp-1">
+                        {door.subtitle}
+                      </div>
+
+                      {door.status === 'locked' && (
+                        <div className="absolute top-1 right-1 text-[7px] border border-gray-700 bg-black/60 px-1 rounded text-gray-400 uppercase">
+                          Locked
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Sci-Fi Mission Control Terminal Card Dashboard */}
+          {/* Sci-Fi ARIA White AI Agent Card Dashboard */}
           {isBotVisible && (
-            <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-3 sm:p-6 bg-black/50">
-              <div className="w-[94%] sm:w-full max-w-md max-h-[82vh] sm:max-h-[75vh] border border-neon-cyan/30 bg-[#020617]/95 backdrop-blur-2xl rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(3,233,244,0.15)] flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
+            <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-3 sm:p-6">
+              <div className="w-[94%] sm:w-full max-w-lg max-h-[82vh] sm:max-h-[80vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-4 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
+                
                 <button
-                  onClick={() => { sfx.playClick(); setVaultOpened(false); setIsBotVisible(false); }}
+                  onClick={() => setIsBotVisible(false)}
                   className="absolute top-4 right-4 text-gray-400 hover:text-neon-cyan transition-colors"
                 >
-                  <X size={15} />
+                  <X size={16} />
                 </button>
 
-                <div className="flex items-center gap-2 border-b border-gray-800 pb-2.5">
-                  <div className="w-7 h-7 rounded-full bg-neon-cyan/10 border border-neon-cyan/20 flex items-center justify-center text-neon-cyan">
-                    <Database size={14} />
+                {/* Header */}
+                <div className="flex items-center gap-2.5 border-b border-gray-800/80 pb-3">
+                  <div className="w-8 h-8 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 flex items-center justify-center text-neon-cyan shadow-[0_0_10px_rgba(3,233,244,0.2)]">
+                    <Bot size={18} />
                   </div>
                   <div>
-                    <h3 className="font-mono text-xs sm:text-sm font-bold text-white leading-tight">WHITE AI CORE</h3>
-                    <p className="text-[8px] sm:text-[9px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1 mt-0.5">
+                    <h3 className="font-mono text-xs sm:text-sm font-bold text-white leading-tight">ARIA · WHITE AI INTELLIGENCE</h3>
+                    <p className="text-[9px] sm:text-[10px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1.5 mt-0.5">
                       <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
-                      <span>MISSION CONTROL ENGAGED</span>
+                      <span>REAL-TIME VERIFIED SYSTEM</span>
                     </p>
                   </div>
                 </div>
 
-                {/* Structured command feed */}
-                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-3 font-mono text-[10px] sm:text-[11px] p-2 bg-black/60 border border-gray-900 rounded-md">
+                {/* Chat Feed */}
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-3 font-mono text-xs p-3 bg-black/70 border border-gray-900 rounded-xl">
                   {chatMessages.map((msg, idx) => (
                     <div key={idx} className="w-full flex flex-col">
                       {renderMessageContent(msg)}
                     </div>
                   ))}
                   {isTyping && (
-                    <div className="bg-slate-800/40 text-slate-400 self-start border border-slate-900/60 rounded px-2.5 py-1.5 flex items-center gap-1">
+                    <div className="bg-slate-900/60 text-neon-cyan self-start border border-neon-cyan/20 rounded-md px-3 py-1.5 flex items-center gap-1.5 font-mono text-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <span className="text-[10px] text-gray-400">Processing real-time response...</span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-1 justify-center py-0.5">
-                  {['Skills', 'Projects', 'Education', 'Contact'].map((cat) => (
+                {/* Quick Topic Chips */}
+                <div className="flex flex-wrap gap-1.5 justify-center py-1">
+                  {['Bio', 'Skills', 'Supreme Cart', 'Education', 'Contact', 'Resume'].map((cat) => (
                     <button
                       key={cat}
-                      onClick={() => { setChatInput(cat); }}
-                      className="border border-neon-cyan/20 hover:border-neon-cyan text-neon-cyan/80 hover:text-neon-cyan bg-black/40 font-mono text-[8px] sm:text-[9px] px-2.5 py-0.5 rounded transition-colors"
+                      onClick={() => {
+                        setChatInput(cat);
+                      }}
+                      className="border border-neon-cyan/30 hover:border-neon-cyan text-neon-cyan/90 hover:text-neon-cyan bg-slate-950/60 font-mono text-[9px] sm:text-[10px] px-2.5 py-1 rounded-md transition-all duration-200"
                     >
                       {cat}
                     </button>
                   ))}
-                  <button
-                    onClick={handleTrainModel}
-                    className="border border-neon-purple/40 hover:border-neon-purple text-neon-purple/90 hover:text-neon-purple bg-black/40 font-mono text-[8px] sm:text-[9px] px-2.5 py-0.5 rounded transition-colors flex items-center gap-1 font-bold animate-pulse"
-                  >
-                    🧠 Train Model
-                  </button>
                 </div>
 
+                {/* Input Controls */}
                 <div className="flex gap-2 pt-1 border-t border-gray-900">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Ask White AI..."
-                    className="flex-1 bg-black/60 border border-gray-800 rounded px-3 py-1.5 font-mono text-[11px] text-white focus:outline-none focus:border-neon-cyan"
+                    placeholder="Ask ARIA about Indra's skills, projects, or background..."
+                    className="flex-1 bg-black/80 border border-gray-800 rounded-lg px-3 py-2 font-mono text-xs text-white focus:outline-none focus:border-neon-cyan placeholder:text-gray-600"
                   />
                   <button
                     onClick={handleSendMessage}
-                    className="border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black p-2 rounded transition-colors"
+                    className="border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black px-3.5 py-2 rounded-lg transition-colors font-bold flex items-center justify-center"
                   >
-                    <Send size={12} />
+                    <Send size={14} />
                   </button>
                 </div>
               </div>
@@ -1544,16 +1569,17 @@ Status: CONFIDENCE OPTIMIZED`;
         </div>
       )}
 
-      {/* exit screen */}
+      {/* Exit screen */}
       {aiModeState === 'deactivating' && (
         <div className="absolute inset-0 bg-[#020617] z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in pointer-events-none">
-          <div className="border border-neon-pink/20 bg-black/85 p-5 rounded-lg max-w-xs w-full text-center shadow-[0_0_20px_rgba(255,46,99,0.1)]">
-            <Shield className="mx-auto text-neon-pink animate-pulse mb-3" size={20} />
-            <p className="font-mono text-xs text-neon-pink uppercase font-bold tracking-wider mb-1">🔌 Reconstructing Reality</p>
-            <p className="text-[9px] sm:text-[10px] text-gray-500 font-mono">Restoring original coordinates in 3D spacetime...</p>
+          <div className="border border-pink-500/30 bg-black/90 p-5 rounded-xl max-w-xs w-full text-center shadow-[0_0_20px_rgba(255,46,99,0.15)]">
+            <Shield className="mx-auto text-pink-500 animate-pulse mb-3" size={24} />
+            <p className="font-mono text-xs text-pink-400 uppercase font-bold tracking-wider mb-1">🔌 Disconnecting AI World</p>
+            <p className="text-[10px] text-gray-400 font-mono">Returning to main portfolio view...</p>
           </div>
         </div>
       )}
     </div>
   );
 }
+
