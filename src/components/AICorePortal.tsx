@@ -1156,10 +1156,10 @@ export default function AICorePortal() {
     return `VERIFIED RECORD SEARCH FOR: "${query}"\n\nIndra Kumar is a Full-Stack Web Developer & B.E. AI/ML Graduate (SJC Institute of Technology, 8.59 CGPA).\n\nKey Highlights:\n• Core Skills: Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, Supabase, Python.\n• Key Project: Supreme Cart (Full-stack e-commerce engine).\n• Contact: ik9893344@gmail.com\n\nSelect a database quick-tag below or ask for specific details.`;
   };
 
-  const handleSendMessage = () => {
-    if (!chatInput.trim() || isTyping) return;
+  const handleSendMessage = (textOverride?: string) => {
+    const userText = (textOverride !== undefined ? textOverride : chatInput).trim();
+    if (!userText || isTyping) return;
 
-    const userText = chatInput.trim();
     setChatMessages((prev) => [...prev, { sender: 'user', text: userText }]);
     setChatInput('');
     setIsTyping(true);
@@ -1170,7 +1170,7 @@ export default function AICorePortal() {
       setChatMessages((prev) => [...prev, { sender: 'ai', text: response, formatted: true }]);
       setIsTyping(false);
       sfx.playBeep(660, 0.08, 0.01);
-    }, 250); // Fast real-time response latency
+    }, 200); // Instant real-time response
   };
 
   const handleTriggerReturn = () => {
@@ -1536,9 +1536,7 @@ export default function AICorePortal() {
                   {['Bio', 'Skills', 'Supreme Cart', 'Education', 'Contact', 'Resume'].map((cat) => (
                     <button
                       key={cat}
-                      onClick={() => {
-                        setChatInput(cat);
-                      }}
+                      onClick={() => handleSendMessage(cat)}
                       className="border border-neon-cyan/30 hover:border-neon-cyan text-neon-cyan/90 hover:text-neon-cyan bg-slate-950/60 font-mono text-[9px] sm:text-[10px] px-2.5 py-1 rounded-md transition-all duration-200"
                     >
                       {cat}
