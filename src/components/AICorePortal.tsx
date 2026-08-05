@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useAI } from '../context/AIContext';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
+import { TextureLoader } from 'three';
 import { Shield, Activity, Volume2, VolumeX, Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, Cpu } from 'lucide-react';
 
 // ==========================================
@@ -148,12 +149,7 @@ const SpaceTunnel = ({ speed }: { speed: number }) => {
 // ==========================================
 const EscortDroneSprite = ({ offset }: { offset: [number, number, number] }) => {
   const droneGroupRef = useRef<THREE.Group>(null);
-  const textureRef = useRef<THREE.Texture | null>(null);
-
-  if (!textureRef.current) {
-    const loader = new THREE.TextureLoader();
-    textureRef.current = loader.load('/escort-drone-1.png');
-  }
+  const texture = useLoader(TextureLoader, '/escort-drone-1.png');
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -168,10 +164,10 @@ const EscortDroneSprite = ({ offset }: { offset: [number, number, number] }) => 
   return (
     <group ref={droneGroupRef} position={offset}>
       {/* HD Cutout Tactical Drone Billboard */}
-      <mesh scale={[2.2, 1.2, 1]}>
+      <mesh scale={[2.4, 1.2, 1]}>
         <planeGeometry args={[1, 1]} />
         <meshBasicMaterial
-          map={textureRef.current}
+          map={texture}
           transparent
           alphaTest={0.05}
           side={THREE.DoubleSide}
@@ -192,18 +188,8 @@ const EscortDroneSprite = ({ offset }: { offset: [number, number, number] }) => 
 // ==========================================
 const CentralUAVAndRobotSprite = ({ onClick }: { onClick: () => void }) => {
   const mainGroupRef = useRef<THREE.Group>(null);
-  const roboTextureRef = useRef<THREE.Texture | null>(null);
-  const uavTextureRef = useRef<THREE.Texture | null>(null);
-
-  if (!roboTextureRef.current) {
-    const loader = new THREE.TextureLoader();
-    roboTextureRef.current = loader.load('/white-ai-robot.png'); // Exact Pic 3 Silver Robot Cutout
-  }
-
-  if (!uavTextureRef.current) {
-    const loader = new THREE.TextureLoader();
-    uavTextureRef.current = loader.load('/uav-carrier.png'); // Exact Pic 5 Stealth UAV Carrier
-  }
+  const roboTexture = useLoader(TextureLoader, '/white-ai-robot.png'); // Exact Pic 3 Silver Robot Cutout
+  const uavTexture = useLoader(TextureLoader, '/uav-carrier.png'); // Exact Pic 5 Stealth UAV Carrier
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -222,7 +208,7 @@ const CentralUAVAndRobotSprite = ({ onClick }: { onClick: () => void }) => {
         <mesh scale={[4.8, 2.2, 1]}>
           <planeGeometry args={[1, 1]} />
           <meshBasicMaterial
-            map={uavTextureRef.current}
+            map={uavTexture}
             transparent
             alphaTest={0.05}
             side={THREE.DoubleSide}
@@ -241,7 +227,7 @@ const CentralUAVAndRobotSprite = ({ onClick }: { onClick: () => void }) => {
         <mesh scale={[2.6, 4.8, 1]}>
           <planeGeometry args={[1, 1]} />
           <meshBasicMaterial
-            map={roboTextureRef.current}
+            map={roboTexture}
             transparent
             alphaTest={0.05}
             side={THREE.DoubleSide}
@@ -251,6 +237,7 @@ const CentralUAVAndRobotSprite = ({ onClick }: { onClick: () => void }) => {
     </group>
   );
 };
+
 
 // ==========================================
 // 5. Clean Scene Container with UAV, Robo & Escort Drones
