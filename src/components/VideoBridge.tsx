@@ -5,7 +5,6 @@ export default function VideoBridge() {
   const { aiModeState, setAiModeState } = useAI();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const animFrameIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -14,106 +13,52 @@ export default function VideoBridge() {
     if (aiModeState === 'video_forward') {
       setIsVisible(true);
       video.currentTime = 0;
-      video.playbackRate = 1.35; // Snappier, cinematic transition speed
+      video.playbackRate = 1.5; // Fast, snappy transition
 
-      const startPlayback = () => {
-        video.play().catch((err) => {
-          console.warn("Autoplay block or video load issue, bypassing video bridge:", err);
+      // Safety fallback timer so laptop/browser NEVER gets stuck on video bridge!
+      const safetyTimer = setTimeout(() => {
+        setIsVisible(false);
+        setAiModeState('portal');
+      }, 1800);
+
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn("Autoplay interrupted, bypassing to portal:", err);
+          clearTimeout(safetyTimer);
+          setIsVisible(false);
           setAiModeState('portal');
         });
-      };
-
-      // Only start showing/playing once the video has pre-buffered enough data
-      if (video.readyState >= 3) {
-        startPlayback();
-      } else {
-        const handleCanPlay = () => {
-          startPlayback();
-          video.removeEventListener('canplaythrough', handleCanPlay);
-        };
-        video.addEventListener('canplaythrough', handleCanPlay);
       }
 
       const handleEnded = () => {
+        clearTimeout(safetyTimer);
         setIsVisible(false);
-        setTimeout(() => {
-          setAiModeState('portal');
-        }, 300); // Matches CSS opacity transition duration
+        setAiModeState('portal');
       };
 
       video.addEventListener('ended', handleEnded);
       return () => {
+        clearTimeout(safetyTimer);
         video.removeEventListener('ended', handleEnded);
       };
     }
 
     if (aiModeState === 'video_reverse') {
-      setIsVisible(true);
-      video.pause();
-
-      const duration = video.duration || 15.0; // Fallback to estimated duration
-      video.currentTime = duration;
-
-      const startReverseTicks = () => {
-        let lastTime = performance.now();
-        let lastSeekTime = performance.now();
-
-        const playReverseTick = (now: number) => {
-          const elapsedSinceLastSeek = now - lastSeekTime;
-
-          // Seek at 25 FPS (every 40ms) to give laptop GPU decoders breathing room
-          if (elapsedSinceLastSeek >= 40) {
-            const delta = (now - lastTime) / 1000;
-            lastTime = now;
-            lastSeekTime = now;
-
-            const playbackSpeed = 1.5; // Smooth rewind rate
-            const newTime = video.currentTime - (delta * playbackSpeed);
-
-            if (newTime <= 0) {
-              video.currentTime = 0;
-              setIsVisible(false);
-              setTimeout(() => {
-                setAiModeState('inactive');
-              }, 300);
-              return;
-            } else {
-              video.currentTime = newTime;
-            }
-          }
-          animFrameIdRef.current = requestAnimationFrame(playReverseTick);
-        };
-
-        animFrameIdRef.current = requestAnimationFrame(playReverseTick);
-      };
-
-      // Wait for seek operation to complete before initiating requestAnimationFrame seeks
-      const handleSeeked = () => {
-        startReverseTicks();
-        video.removeEventListener('seeked', handleSeeked);
-      };
-
-      if (video.seeking) {
-        video.addEventListener('seeked', handleSeeked);
-      } else {
-        startReverseTicks();
-      }
-
-      return () => {
-        video.removeEventListener('seeked', handleSeeked);
-        if (animFrameIdRef.current) {
-          cancelAnimationFrame(animFrameIdRef.current);
-        }
-      };
+      // Instant exit without slow reverse frame seeking
+      setIsVisible(false);
+      const timer = setTimeout(() => {
+        setAiModeState('inactive');
+      }, 150);
+      return () => clearTimeout(timer);
     }
   }, [aiModeState, setAiModeState]);
 
-  // Keep the component mounted in DOM to retain preloaded buffer, use opacity/pointer-events to toggle
   const isTransitionActive = aiModeState === 'video_forward' || aiModeState === 'video_reverse';
 
   return (
     <div
-      className={`fixed inset-0 w-screen h-screen z-[9999] bg-[#020617] flex items-center justify-center transition-opacity duration-300 ${
+      className={`fixed inset-0 w-screen h-screen z-[9999] bg-[#020617] flex items-center justify-center transition-opacity duration-200 ${
         isTransitionActive && isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
@@ -124,7 +69,6 @@ export default function VideoBridge() {
         muted
         preload="auto"
         className="w-full h-full object-cover object-center"
-        style={{ filter: 'hue-rotate(-10deg) brightness(1.05)' }}
       />
     </div>
   );

@@ -70,7 +70,6 @@ class PortaSfxSynth {
       this.bgmOsc2.type = 'sine';
       filter.type = 'lowpass';
 
-      // Heavy futuristic entry sweep
       this.bgmOsc1.frequency.setValueAtTime(65, now);
       this.bgmOsc1.frequency.exponentialRampToValueAtTime(220, now + 3.0);
 
@@ -145,277 +144,109 @@ const SpaceTunnel = ({ speed }: { speed: number }) => {
 };
 
 // ==========================================
-// 3. Escort Inspection Drone (Matching Image 5)
+// 3. Realistic Escort Tactical Drone (Using HD Cut-Out Texture matching Pic 4 & 5)
 // ==========================================
-const EscortDrone = ({ offset }: { offset: [number, number, number] }) => {
-  const droneRef = useRef<THREE.Group>(null);
-  const rotorRefs = useRef<Array<THREE.Group | null>>([null, null, null, null]);
+const EscortDroneSprite = ({ offset }: { offset: [number, number, number] }) => {
+  const droneGroupRef = useRef<THREE.Group>(null);
+  const textureRef = useRef<THREE.Texture | null>(null);
+
+  if (!textureRef.current) {
+    const loader = new THREE.TextureLoader();
+    textureRef.current = loader.load('/escort-drone-1.png');
+  }
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    if (droneRef.current) {
-      droneRef.current.position.x = offset[0] + Math.sin(t * 0.9 + offset[0]) * 0.4;
-      droneRef.current.position.y = offset[1] + Math.cos(t * 1.2 + offset[1]) * 0.3;
-      droneRef.current.position.z = offset[2] + Math.sin(t * 0.7 + offset[2]) * 0.3;
-      droneRef.current.rotation.z = Math.sin(t * 0.9) * 0.08;
+    if (droneGroupRef.current) {
+      droneGroupRef.current.position.x = offset[0] + Math.sin(t * 1.1 + offset[0]) * 0.4;
+      droneGroupRef.current.position.y = offset[1] + Math.cos(t * 1.4 + offset[1]) * 0.3;
+      droneGroupRef.current.position.z = offset[2] + Math.sin(t * 0.8 + offset[2]) * 0.3;
+      droneGroupRef.current.rotation.z = Math.sin(t * 1.1) * 0.05;
     }
-
-    rotorRefs.current.forEach((rotor) => {
-      if (rotor) rotor.rotation.y += 0.9;
-    });
   });
 
   return (
-    <group ref={droneRef} position={offset}>
-      {/* Sleek Dark Drone Body */}
-      <mesh>
-        <cylinderGeometry args={[0.4, 0.45, 0.25, 6]} />
-        <meshStandardMaterial color="#0b1329" metalness={0.9} roughness={0.2} emissive="#03e9f4" emissiveIntensity={0.3} />
-      </mesh>
-      
-      {/* Glowing Scanning Sensor Eye */}
-      <mesh position={[0, -0.05, 0.38]}>
-        <boxGeometry args={[0.2, 0.06, 0.06]} />
-        <meshBasicMaterial color="#FF2E63" />
+    <group ref={droneGroupRef} position={offset}>
+      {/* HD Cutout Tactical Drone Billboard */}
+      <mesh scale={[2.2, 1.2, 1]}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial
+          map={textureRef.current}
+          transparent
+          alphaTest={0.05}
+          side={THREE.DoubleSide}
+        />
       </mesh>
 
-      {/* 4 Carbon Arms & Rotors */}
-      {[
-        [-Math.PI / 4, -0.35, 0.35],
-        [Math.PI / 4, 0.35, 0.35],
-        [-Math.PI * 0.75, -0.35, -0.35],
-        [Math.PI * 0.75, 0.35, -0.35],
-      ].map((cfg, idx) => (
-        <group key={idx} rotation={[0, cfg[0], 0]}>
-          <mesh position={[0.4, 0.05, 0]}>
-            <cylinderGeometry args={[0.03, 0.02, 0.5, 6]} />
-            <meshStandardMaterial color="#334155" />
-          </mesh>
-          <group position={[0.6, 0.08, 0]}>
-            <mesh>
-              <cylinderGeometry args={[0.06, 0.06, 0.12, 6]} />
-              <meshStandardMaterial color="#1e293b" />
-            </mesh>
-            <group ref={(el) => { rotorRefs.current[idx] = el; }}>
-              <mesh position={[0, 0.06, 0]}>
-                <boxGeometry args={[0.55, 0.012, 0.04]} />
-                <meshBasicMaterial color="#03e9f4" />
-              </mesh>
-            </group>
-          </group>
-        </group>
-      ))}
-
-      {/* Downward Spotlight Cone */}
-      <mesh position={[0, -1.5, 0]}>
-        <cylinderGeometry args={[0.02, 1.1, 3.0, 16, 1, true]} />
-        <meshBasicMaterial color="#03e9f4" transparent opacity={0.12} side={THREE.DoubleSide} />
+      {/* Volumetric Downward Spotlight Scanning Cone */}
+      <mesh position={[0, -1.2, 0]}>
+        <cylinderGeometry args={[0.02, 0.9, 2.4, 16, 1, true]} />
+        <meshBasicMaterial color="#03e9f4" transparent opacity={0.15} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
 };
 
 // ==========================================
-// 4. Central Stealth UAV Carrier & Standing Metallic White AI Robo Agent (Matching Image 5)
+// 4. Central UAV Platform & Standing Metallic Silver Robot Agent (Matching Pic 3 & Pic 5 Exactly)
 // ==========================================
-const CentralUAVAndRobo = ({ onClick }: { onClick: () => void }) => {
-  const uavRef = useRef<THREE.Group>(null);
-  const headRef = useRef<THREE.Group>(null);
-  const chestCoreRef = useRef<THREE.Mesh>(null);
-  const leftArmRef = useRef<THREE.Group>(null);
-  const rightArmRef = useRef<THREE.Group>(null);
+const CentralUAVAndRobotSprite = ({ onClick }: { onClick: () => void }) => {
+  const mainGroupRef = useRef<THREE.Group>(null);
+  const roboTextureRef = useRef<THREE.Texture | null>(null);
+  const uavTextureRef = useRef<THREE.Texture | null>(null);
+
+  if (!roboTextureRef.current) {
+    const loader = new THREE.TextureLoader();
+    roboTextureRef.current = loader.load('/white-ai-robot.png'); // Exact Pic 3 Silver Robot Cutout
+  }
+
+  if (!uavTextureRef.current) {
+    const loader = new THREE.TextureLoader();
+    uavTextureRef.current = loader.load('/uav-carrier.png'); // Exact Pic 5 Stealth UAV Carrier
+  }
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-
-    // Hovering flight movement of central UAV platform
-    if (uavRef.current) {
-      uavRef.current.position.y = -0.6 + Math.sin(t * 1.2) * 0.15;
-      uavRef.current.position.x = Math.sin(t * 0.6) * 0.2;
-      uavRef.current.rotation.z = Math.sin(t * 0.8) * 0.02;
-    }
-
-    // Robot head tracking / scanning animation
-    if (headRef.current) {
-      headRef.current.rotation.y = Math.sin(t * 0.8) * 0.25;
-      headRef.current.rotation.x = Math.cos(t * 1.1) * 0.05;
-    }
-
-    // Reactor core pulse
-    if (chestCoreRef.current) {
-      (chestCoreRef.current.material as THREE.MeshBasicMaterial).opacity = 0.7 + Math.sin(t * 3.0) * 0.3;
-    }
-
-    // Arm idle stance animations
-    if (leftArmRef.current) {
-      leftArmRef.current.rotation.z = 0.15 + Math.sin(t * 1.5) * 0.03;
-    }
-    if (rightArmRef.current) {
-      rightArmRef.current.rotation.z = -0.15 - Math.sin(t * 1.5) * 0.03;
+    if (mainGroupRef.current) {
+      mainGroupRef.current.position.y = -0.5 + Math.sin(t * 1.2) * 0.15;
+      mainGroupRef.current.position.x = Math.sin(t * 0.6) * 0.15;
+      mainGroupRef.current.rotation.z = Math.sin(t * 0.8) * 0.015;
     }
   });
 
   return (
-    <group ref={uavRef} position={[0, -0.6, 0]} onClick={onClick}>
+    <group ref={mainGroupRef} position={[0, -0.5, 0]} onClick={onClick}>
       
-      {/* --- CENTRAL STEALTH UAV CARRIER VESSEL (Matching Image 5) --- */}
+      {/* 1. Tactical Stealth UAV Carrier Vessel (Pic 5) */}
       <group position={[0, -1.2, 0]}>
-        {/* Main Nose Fuselage */}
-        <mesh position={[0, 0, 0.8]}>
-          <coneGeometry args={[1.4, 2.8, 5]} />
-          <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
-        </mesh>
-        
-        {/* Main Body Hull */}
-        <mesh position={[0, 0, -0.6]}>
-          <boxGeometry args={[2.8, 0.5, 3.2]} />
-          <meshStandardMaterial color="#020617" metalness={0.95} roughness={0.15} />
+        <mesh scale={[4.8, 2.2, 1]}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial
+            map={uavTextureRef.current}
+            transparent
+            alphaTest={0.05}
+            side={THREE.DoubleSide}
+          />
         </mesh>
 
-        {/* Port & Starboard Swept Stealth Wings */}
-        <mesh position={[-2.6, 0, -0.4]} rotation={[0, 0, -0.15]}>
-          <boxGeometry args={[2.6, 0.15, 2.2]} />
-          <meshStandardMaterial color="#090d16" metalness={0.9} roughness={0.2} />
-        </mesh>
-        <mesh position={[2.6, 0, -0.4]} rotation={[0, 0, 0.15]}>
-          <boxGeometry args={[2.6, 0.15, 2.2]} />
-          <meshStandardMaterial color="#090d16" metalness={0.9} roughness={0.2} />
-        </mesh>
-
-        {/* Wingtip Thruster Pods */}
-        <mesh position={[-3.8, 0.1, -0.4]}>
-          <cylinderGeometry args={[0.25, 0.3, 0.8, 12]} />
-          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.6} />
-        </mesh>
-        <mesh position={[3.8, 0.1, -0.4]}>
-          <cylinderGeometry args={[0.25, 0.3, 0.8, 12]} />
-          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.6} />
-        </mesh>
-
-        {/* Upper Deck Platform Ring (Footing for standing Robot) */}
-        <mesh position={[0, 0.28, -0.2]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.9, 1.2, 32]} />
-          <meshBasicMaterial color="#03e9f4" side={THREE.DoubleSide} transparent opacity={0.8} />
+        {/* Illuminated Energy Deck Ring Under Robot Feet */}
+        <mesh position={[0, 0.4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.8, 1.1, 32]} />
+          <meshBasicMaterial color="#03e9f4" side={THREE.DoubleSide} transparent opacity={0.7} />
         </mesh>
       </group>
 
-      {/* --- STANDING METALLIC WHITE/SILVER HUMANOID ROBOT AGENT (Matching Image 5) --- */}
-      <group position={[0, -0.9, -0.2]}>
-        
-        {/* Foot lock pedastals */}
-        <mesh position={[-0.35, 0.05, 0]}>
-          <boxGeometry args={[0.22, 0.1, 0.35]} />
-          <meshStandardMaterial color="#475569" metalness={0.9} />
+      {/* 2. Standing Ultra-Realistic Silver Metallic Robot (Pic 3 - Exact Cutout matching user image!) */}
+      <group position={[0, 0.6, 0.1]}>
+        <mesh scale={[2.6, 4.8, 1]}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial
+            map={roboTextureRef.current}
+            transparent
+            alphaTest={0.05}
+            side={THREE.DoubleSide}
+          />
         </mesh>
-        <mesh position={[0.35, 0.05, 0]}>
-          <boxGeometry args={[0.22, 0.1, 0.35]} />
-          <meshStandardMaterial color="#475569" metalness={0.9} />
-        </mesh>
-
-        {/* Shin & Calf Hydraulic Legs */}
-        <mesh position={[-0.35, 0.5, 0]}>
-          <cylinderGeometry args={[0.08, 0.06, 0.8, 8]} />
-          <meshStandardMaterial color="#e2e8f0" metalness={0.8} roughness={0.2} />
-        </mesh>
-        <mesh position={[0.35, 0.5, 0]}>
-          <cylinderGeometry args={[0.08, 0.06, 0.8, 8]} />
-          <meshStandardMaterial color="#e2e8f0" metalness={0.8} roughness={0.2} />
-        </mesh>
-
-        {/* Knee Joints */}
-        <mesh position={[-0.35, 0.95, 0]}>
-          <sphereGeometry args={[0.1, 10, 10]} />
-          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.5} />
-        </mesh>
-        <mesh position={[0.35, 0.95, 0]}>
-          <sphereGeometry args={[0.1, 10, 10]} />
-          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.5} />
-        </mesh>
-
-        {/* Thighs */}
-        <mesh position={[-0.35, 1.4, 0]}>
-          <cylinderGeometry args={[0.12, 0.09, 0.8, 8]} />
-          <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.15} />
-        </mesh>
-        <mesh position={[0.35, 1.4, 0]}>
-          <cylinderGeometry args={[0.12, 0.09, 0.8, 8]} />
-          <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.15} />
-        </mesh>
-
-        {/* Pelvic Waist & Spine Assembly */}
-        <mesh position={[0, 1.85, 0]}>
-          <boxGeometry args={[0.7, 0.25, 0.35]} />
-          <meshStandardMaterial color="#0f172a" metalness={0.9} />
-        </mesh>
-        <mesh position={[0, 2.1, 0]}>
-          <cylinderGeometry args={[0.1, 0.12, 0.35, 8]} />
-          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.4} />
-        </mesh>
-
-        {/* Metallic Torso & Chest Armor */}
-        <group position={[0, 2.5, 0]}>
-          <mesh>
-            <cylinderGeometry args={[0.42, 0.3, 0.75, 8]} />
-            <meshStandardMaterial color="#f8fafc" metalness={0.9} roughness={0.1} />
-          </mesh>
-
-          {/* Pulsing Reactor Core in Chest */}
-          <mesh ref={chestCoreRef} position={[0, 0.1, 0.3]}>
-            <sphereGeometry args={[0.12, 12, 12]} />
-            <meshBasicMaterial color="#03e9f4" transparent opacity={0.9} />
-          </mesh>
-          <mesh position={[0, 0.1, 0.31]}>
-            <ringGeometry args={[0.14, 0.18, 16]} />
-            <meshBasicMaterial color="#7B2CBF" side={THREE.DoubleSide} />
-          </mesh>
-        </group>
-
-        {/* Left Arm Assembly */}
-        <group ref={leftArmRef} position={[-0.55, 2.7, 0]}>
-          <mesh>
-            <sphereGeometry args={[0.12, 8, 8]} />
-            <meshStandardMaterial color="#03e9f4" />
-          </mesh>
-          <mesh position={[-0.1, -0.4, 0]}>
-            <cylinderGeometry args={[0.07, 0.05, 0.7, 8]} />
-            <meshStandardMaterial color="#e2e8f0" metalness={0.85} />
-          </mesh>
-        </group>
-
-        {/* Right Arm Assembly */}
-        <group ref={rightArmRef} position={[0.55, 2.7, 0]}>
-          <mesh>
-            <sphereGeometry args={[0.12, 8, 8]} />
-            <meshStandardMaterial color="#03e9f4" />
-          </mesh>
-          <mesh position={[0.1, -0.4, 0]}>
-            <cylinderGeometry args={[0.07, 0.05, 0.7, 8]} />
-            <meshStandardMaterial color="#e2e8f0" metalness={0.85} />
-          </mesh>
-        </group>
-
-        {/* Neck & Metallic Head Visor */}
-        <group position={[0, 3.0, 0]}>
-          <mesh position={[0, -0.08, 0]}>
-            <cylinderGeometry args={[0.08, 0.1, 0.15, 8]} />
-            <meshStandardMaterial color="#334155" />
-          </mesh>
-
-          <group ref={headRef} position={[0, 0.15, 0]}>
-            {/* Sleek Cyborg Head Helmet */}
-            <mesh>
-              <sphereGeometry args={[0.26, 16, 16]} />
-              <meshStandardMaterial color="#f8fafc" metalness={0.9} roughness={0.1} />
-            </mesh>
-            
-            {/* Glowing Neon Cyan Scanner Visor Eye */}
-            <mesh position={[0, 0.02, 0.21]}>
-              <boxGeometry args={[0.3, 0.08, 0.08]} />
-              <meshBasicMaterial color="#03e9f4" />
-            </mesh>
-          </group>
-        </group>
-
       </group>
     </group>
   );
@@ -428,25 +259,24 @@ const RoboticCity = ({ onBotClick }: { onBotClick: () => void }) => {
   return (
     <group>
       <fog attach="fog" args={['#020617', 12, 50]} />
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.6} />
       <directionalLight position={[10, 20, 10]} intensity={1.5} />
       <pointLight position={[0, 4, 2]} intensity={3.0} color="#03e9f4" distance={30} />
-      <pointLight position={[-4, 2, -3]} intensity={2.0} color="#7B2CBF" distance={20} />
 
-      {/* Central Stealth UAV Platform & Standing Metallic White AI Robo Agent */}
-      <CentralUAVAndRobo onClick={onBotClick} />
+      {/* Central Tactical UAV Platform & Standing Silver Robot (Pic 3 & Pic 5) */}
+      <CentralUAVAndRobotSprite onClick={onBotClick} />
 
-      {/* 4 Escort Inspection Drones flying in formation (Matching Image 5) */}
-      <EscortDrone offset={[-4.5, 2.2, -1.0]} />
-      <EscortDrone offset={[4.5, 2.2, -1.0]} />
-      <EscortDrone offset={[-2.8, 1.0, 2.5]} />
-      <EscortDrone offset={[2.8, 1.0, 2.5]} />
+      {/* 4 Escort Tactical Quadcopter Drones (Pic 4) */}
+      <EscortDroneSprite offset={[-3.8, 1.8, -0.5]} />
+      <EscortDroneSprite offset={[3.8, 1.8, -0.5]} />
+      <EscortDroneSprite offset={[-2.4, 0.6, 1.8]} />
+      <EscortDroneSprite offset={[2.4, 0.6, 1.8]} />
     </group>
   );
 };
 
 // ==========================================
-// 6. Automated Movie Drone Camera Controller
+// 6. Automated Movie Camera Controller
 // ==========================================
 const SceneController = ({ state }: { state: string }) => {
   const { camera } = useThree();
@@ -462,23 +292,23 @@ const SceneController = ({ state }: { state: string }) => {
       
       if (s < 4.5) {
         const progress = s / 4.5;
-        const startPos = new THREE.Vector3(14, 8, 18);
-        const endPos = new THREE.Vector3(-8, 5, 14);
+        const startPos = new THREE.Vector3(12, 6, 15);
+        const endPos = new THREE.Vector3(-6, 4, 12);
         camera.position.lerpVectors(startPos, endPos, progress);
-        camera.lookAt(0, 0.8, 0);
+        camera.lookAt(0, 0.5, 0);
       } else if (s < 9.5) {
         const progress = (s - 4.5) / 5.0;
-        const startPos = new THREE.Vector3(-8, 5, 14);
-        const endPos = new THREE.Vector3(0, 2.2, 9.5);
+        const startPos = new THREE.Vector3(-6, 4, 12);
+        const endPos = new THREE.Vector3(0, 1.8, 8.0);
         camera.position.lerpVectors(startPos, endPos, progress);
-        camera.lookAt(0, 0.8, 0);
+        camera.lookAt(0, 0.5, 0);
       } else {
         const progress = s - 9.5;
         const orbitAngle = progress * 0.12;
-        camera.position.x = Math.sin(orbitAngle) * 8.5;
-        camera.position.z = Math.cos(orbitAngle) * 8.5 + 2.0;
-        camera.position.y = 1.8 + Math.sin(progress * 0.4) * 0.15;
-        camera.lookAt(0, 0.5, 0);
+        camera.position.x = Math.sin(orbitAngle) * 7.5;
+        camera.position.z = Math.cos(orbitAngle) * 7.5 + 1.5;
+        camera.position.y = 1.4 + Math.sin(progress * 0.4) * 0.15;
+        camera.lookAt(0, 0.4, 0);
       }
     }
   });
@@ -536,7 +366,7 @@ export const DOORS: DoorItem[] = [
 export default function AICorePortal() {
   const { aiModeState, setAiModeState } = useAI();
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
-  // DEFAULT TO FALSE ON ENTRY so the full 3D World scene & Robo on UAV is visible first!
+  // DEFAULT TO FALSE ON ENTRY so full 3D scene & Silver Robot on UAV is visible first!
   const [isBotVisible, setIsBotVisible] = useState(false);
   const [activeDoorId, setActiveDoorId] = useState<string>('ai-agent');
   const [isMuted, setIsMuted] = useState(false);
@@ -555,10 +385,10 @@ export default function AICorePortal() {
 
   useEffect(() => {
     if (aiModeState === 'activating') {
-      sfx.playEntryBgm(); // Play powerful entry BGM during activation transition!
+      sfx.playEntryBgm(); // Play entry BGM during activation
       setTerminalLogs([]);
 
-      const intervals = [800, 1800, 2800];
+      const intervals = [600, 1400, 2200];
       const logTexts = [
         "> INITIALIZING ADVANCED AI ROBOTICS DECK...",
         "> ENGAGING DIRECT COGNITIVE PATHWAY...",
@@ -572,22 +402,22 @@ export default function AICorePortal() {
         }, time);
       });
 
+      // Quick 2.6s transition to video bridge
       const timer = setTimeout(() => {
         document.body.classList.remove('ai-portal-glitch');
         setAiModeState('video_forward');
-      }, 3300);
+      }, 2600);
 
       return () => clearTimeout(timer);
     } else if (aiModeState === 'portal') {
       sfx.playBeep(660, 0.2, 0.02);
+      // Quick 1.5s transition to 3D world
       const timer = setTimeout(() => {
         setAiModeState('world');
-      }, 3500);
+      }, 1500);
       return () => clearTimeout(timer);
     } else if (aiModeState === 'world') {
-      // Once fully arrived inside World, stop entry BGM so world is quiet and peaceful!
-      sfx.stopEntryBgm();
-      // Keep bot closed by default so world scene is fully visible!
+      sfx.stopEntryBgm(); // Quiet when in world
       setIsBotVisible(false);
     }
   }, [aiModeState, setAiModeState]);
@@ -610,7 +440,7 @@ export default function AICorePortal() {
     if (door.id === 'ai-agent') {
       setIsBotVisible(true);
     } else if (door.id === 'projects') {
-      // Smooth redirect directly to Projects section on website without landing on top button
+      // INSTANT exit to Projects section on website
       setAiModeState('inactive');
       setTimeout(() => {
         const el = document.getElementById('projects');
@@ -619,7 +449,7 @@ export default function AICorePortal() {
           const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
           window.scrollTo({ top, behavior: 'smooth' });
         }
-      }, 150);
+      }, 50);
     }
   };
 
@@ -675,15 +505,13 @@ export default function AICorePortal() {
       setChatMessages((prev) => [...prev, { sender: 'ai', text: response, formatted: true }]);
       setIsTyping(false);
       sfx.playBeep(660, 0.08, 0.01);
-    }, 180);
+    }, 150);
   };
 
+  // INSTANT Exit / Disconnect button action (Zero lag!)
   const handleTriggerReturn = () => {
-    sfx.playBeep(330, 0.25, 0.02);
-    setChatMessages((prev) => [...prev, { sender: 'ai', text: "Disconnecting session... Returning to portfolio view." }]);
-    setTimeout(() => {
-      setAiModeState('video_reverse');
-    }, 600);
+    sfx.playBeep(330, 0.2, 0.02);
+    setAiModeState('inactive'); // Instant exit to main portfolio view!
   };
 
   const renderMessageContent = (msg: { sender: 'ai' | 'user'; text: string; formatted?: boolean }) => {
@@ -693,7 +521,7 @@ export default function AICorePortal() {
 
     if (msg.text.includes('ToLetHub Project Info')) {
       return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
           <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5 text-xs sm:text-sm">
             <FolderGit2 size={14} />
             <span>[ PROJECT: TOLETHUB ]</span>
@@ -701,7 +529,7 @@ export default function AICorePortal() {
           <p className="text-slate-200 leading-relaxed">
             <b>ToLetHub</b> is Indra's Property Rental & Real Estate Platform built for discovering apartments, homes, and rental spaces.
           </p>
-          <div className="text-slate-300 flex flex-col gap-1.5 text-[11px] mt-1">
+          <div className="text-slate-300 flex flex-col gap-1 text-[11px] mt-0.5">
             <div>• <b>Purpose</b>: Connects house seekers directly with property owners.</div>
             <div>• <b>Features</b>: Location filtering, price categorization, property detail cards, contact inquiry node.</div>
             <div>• <b>Tech Stack</b>: HTML5, CSS3, JavaScript, dynamic web components.</div>
@@ -712,7 +540,7 @@ export default function AICorePortal() {
 
     if (msg.text.includes('I-Mall Project Info')) {
       return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
           <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5 text-xs sm:text-sm">
             <FolderGit2 size={14} />
             <span>[ PROJECT: I-MALL (FRONTEND ONLY) ]</span>
@@ -720,7 +548,7 @@ export default function AICorePortal() {
           <p className="text-slate-200 leading-relaxed">
             <b>I-Mall</b> is an interactive <b>Pure Frontend E-Commerce Web Application</b>.
           </p>
-          <div className="text-slate-300 flex flex-col gap-1.5 text-[11px] mt-1">
+          <div className="text-slate-300 flex flex-col gap-1 text-[11px] mt-0.5">
             <div>• <b>Architecture</b>: Pure Frontend Web Application (HTML, CSS, JavaScript).</div>
             <div>• <b>Features</b>: Dynamic product marketplace UI, real-time shopping cart state, search filters.</div>
             <div>• <b>Tech Stack</b>: Pure HTML5, CSS3, JavaScript & DOM manipulation.</div>
@@ -731,7 +559,7 @@ export default function AICorePortal() {
 
     if (msg.text.includes('Indra Kumar Bio')) {
       return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
           <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5 text-xs sm:text-sm">
             <Shield size={14} />
             <span>[ INDRA KUMAR - PROFILE SUMMARY ]</span>
@@ -748,12 +576,12 @@ export default function AICorePortal() {
 
     if (msg.text.includes('Technical Stack Verification')) {
       return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
           <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
             <Cpu size={14} />
             <span>[ SYSTEM: VERIFIED TECH STACK ]</span>
           </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1 text-slate-300">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1 text-slate-300">
             <div>Java (Core/Backend):</div><div className="text-green-400 font-bold">██████████ 96%</div>
             <div>React.js & JS:</div><div className="text-green-400 font-bold">████████░░ 85%</div>
             <div>HTML & CSS:</div><div className="text-green-400 font-bold">█████████░ 90%</div>
@@ -767,7 +595,7 @@ export default function AICorePortal() {
 
     if (msg.text.includes('Academic Matrix Verification')) {
       return (
-        <div className="border border-purple-500/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+        <div className="border border-purple-500/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
           <div className="text-purple-400 border-b border-purple-500/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
             <Activity size={14} />
             <span>[ ACADEMIC QUALIFICATIONS ]</span>
@@ -788,12 +616,12 @@ export default function AICorePortal() {
 
     if (msg.text.includes('Selected Repositories')) {
       return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs w-full">
+        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs w-full">
           <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center justify-between">
             <span>[ REPOSITORY PORTFOLIO ]</span>
             <span className="text-[10px] text-green-400 font-normal">VERIFIED</span>
           </div>
-          <div className="flex flex-col gap-2 mt-1.5 w-full">
+          <div className="flex flex-col gap-2 mt-1 w-full">
             <div className="border border-slate-800 p-2.5 rounded bg-black/60">
               <div className="text-white font-bold flex justify-between items-center text-xs">
                 <span>🏠 TOLETHUB</span>
@@ -828,7 +656,7 @@ export default function AICorePortal() {
 
     if (msg.text.includes('Connection Channels')) {
       return (
-        <div className="border border-pink-500/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+        <div className="border border-pink-500/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
           <div className="text-pink-400 border-b border-pink-500/20 pb-1 font-bold tracking-wider">
             <span>[ DIRECT CONTACT CHANNELS ]</span>
           </div>
@@ -843,7 +671,7 @@ export default function AICorePortal() {
 
     if (msg.text.includes('Resume Access Link')) {
       return (
-        <div className="border border-pink-500/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
+        <div className="border border-pink-500/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
           <div className="text-pink-400 border-b border-pink-500/20 pb-1 font-bold tracking-wider">
             <span>[ VERIFIED RESUME DOC ]</span>
           </div>
@@ -882,7 +710,6 @@ export default function AICorePortal() {
             src="/ai-world-background.mp4"
             className="w-full h-full object-cover object-center"
           />
-          {/* Subtle gradient overlay for high contrast readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-slate-950/60 backdrop-blur-[0.5px]" />
         </div>
       )}
@@ -890,7 +717,7 @@ export default function AICorePortal() {
       {/* 3D Canvas Viewport */}
       {(aiModeState === 'portal' || aiModeState === 'world' || aiModeState === 'deactivating') && (
         <div className="absolute top-0 left-0 w-screen h-screen z-10">
-          <Canvas camera={{ position: [0, 0, 0], fov: 60 }} shadows>
+          <Canvas camera={{ position: [0, 0, 0], fov: 60 }}>
             <Suspense fallback={null}>
               <SceneController state={aiModeState} />
 
@@ -957,7 +784,7 @@ export default function AICorePortal() {
 
               <button
                 onClick={handleTriggerReturn}
-                className="border border-pink-500/60 text-pink-400 bg-slate-950/80 hover:bg-pink-500 hover:text-black font-mono text-[10px] sm:text-xs px-3 py-1.5 rounded-md transition-all duration-300 flex items-center gap-1 font-bold"
+                className="border border-pink-500/60 text-pink-400 bg-slate-950/80 hover:bg-pink-500 hover:text-black font-mono text-[10px] sm:text-xs px-3 py-1.5 rounded-md transition-all duration-300 flex items-center gap-1 font-bold shadow-[0_0_12px_rgba(255,46,99,0.3)]"
               >
                 <X size={12} />
                 <span>EXIT WORLD</span>
@@ -1023,7 +850,7 @@ export default function AICorePortal() {
           {/* Sci-Fi ARIA White AI Agent Card Dashboard (Mobile-friendly max-height and fit) */}
           {isBotVisible && (
             <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-2 sm:p-6 pb-20 sm:pb-24">
-              <div className="w-[94%] sm:w-full max-w-lg max-h-[70vh] sm:max-h-[78vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2.5 pointer-events-auto relative overflow-hidden">
+              <div className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden">
                 
                 <button
                   onClick={() => setIsBotVisible(false)}
@@ -1033,7 +860,7 @@ export default function AICorePortal() {
                 </button>
 
                 {/* Header */}
-                <div className="flex items-center gap-2.5 border-b border-gray-800/80 pb-2.5">
+                <div className="flex items-center gap-2.5 border-b border-gray-800/80 pb-2">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 flex items-center justify-center text-neon-cyan shadow-[0_0_10px_rgba(3,233,244,0.2)]">
                     <Bot size={16} />
                   </div>
@@ -1047,7 +874,7 @@ export default function AICorePortal() {
                 </div>
 
                 {/* Chat Feed */}
-                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2.5 font-mono text-xs p-2.5 bg-black/70 border border-gray-900 rounded-xl">
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2 font-mono text-xs p-2.5 bg-black/70 border border-gray-900 rounded-xl">
                   {chatMessages.map((msg, idx) => (
                     <div key={idx} className="w-full flex flex-col">
                       {renderMessageContent(msg)}
