@@ -15,43 +15,42 @@ export default function VideoBridge() {
       setIsVisible(true);
       setIsZooming(false);
       video.currentTime = 0;
-      video.playbackRate = 1.75; // Play eye sequence at 1.75x speed
+      video.playbackRate = 1.6; // Optimized speed for desktop & mobile GPUs
 
-      // 5.2s safety timer allowing full eye opening & 3x zoom into pupil
+      // Trigger pupil plunge zoom earlier at 2.4s so laptop users feel the dive into the eye pupil
+      const zoomTimer = setTimeout(() => {
+        setIsZooming(true);
+      }, 2400);
+
+      // Safety transition timer to 3D portal
       const safetyTimer = setTimeout(() => {
         setIsVisible(false);
         setAiModeState('portal');
-      }, 5200);
+      }, 4800);
 
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           console.warn("Autoplay interrupted, bypassing to portal:", err);
+          clearTimeout(zoomTimer);
           clearTimeout(safetyTimer);
           setIsVisible(false);
           setAiModeState('portal');
         });
       }
 
-      // Track playback time to trigger 3x Pupil Scale Zoom effect as camera enters the pupil
-      const handleTimeUpdate = () => {
-        if (video.duration && video.currentTime > video.duration * 0.65) {
-          setIsZooming(true);
-        }
-      };
-
       const handleEnded = () => {
+        clearTimeout(zoomTimer);
         clearTimeout(safetyTimer);
         setIsVisible(false);
         setAiModeState('portal');
       };
 
-      video.addEventListener('timeupdate', handleTimeUpdate);
       video.addEventListener('ended', handleEnded);
 
       return () => {
+        clearTimeout(zoomTimer);
         clearTimeout(safetyTimer);
-        video.removeEventListener('timeupdate', handleTimeUpdate);
         video.removeEventListener('ended', handleEnded);
       };
     }
@@ -74,22 +73,32 @@ export default function VideoBridge() {
         isTransitionActive && isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
+      {/* Eye Video with 5.5x Desktop Pupil Dive Zoom */}
       <video
         ref={videoRef}
         src="/videos/android-eye.mp4"
         playsInline
         muted
         preload="auto"
-        className={`w-full h-full object-cover object-center transition-transform ease-in-out ${
-          isZooming ? 'scale-[3.8] brightness-125 contrast-125' : 'scale-100 brightness-100'
+        className={`w-full h-full object-cover object-center transition-all ease-in-out ${
+          isZooming ? 'scale-[4.2] sm:scale-[5.8] brightness-135 contrast-125' : 'scale-100 brightness-100'
         }`}
-        style={{ transitionDuration: '1200ms' }}
+        style={{ transformOrigin: '50% 50%', transitionDuration: '1400ms' }}
       />
 
-      {/* Futuristic Flash Overlay as camera passes through the pupil core */}
+      {/* Iris Tunnel Contracting Radial Vignette for Desktop Immersive Plunge */}
+      <div
+        className={`absolute inset-0 pointer-events-none transition-all duration-1000 ${
+          isZooming 
+            ? 'bg-[radial-gradient(circle_at_center,_transparent_10%,_#020617_75%)] opacity-90' 
+            : 'opacity-0'
+        }`}
+      />
+
+      {/* Futuristic Energy Flash as user passes through the pupil */}
       <div
         className={`absolute inset-0 bg-[#03e9f4] pointer-events-none transition-opacity duration-700 ${
-          isZooming ? 'opacity-30' : 'opacity-0'
+          isZooming ? 'opacity-40' : 'opacity-0'
         }`}
       />
     </div>
