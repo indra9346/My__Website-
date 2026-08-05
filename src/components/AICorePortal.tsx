@@ -356,6 +356,9 @@ const CentralUAVAndRobot3D = ({ onClick }: { onClick: () => void }) => {
 // 5. Clean Scene Container with UAV, Robo & Escort Drones
 // ==========================================
 const RoboticCity = ({ onBotClick }: { onBotClick: () => void }) => {
+  const { viewport } = useThree();
+  const isMobile = viewport.width < 5.5;
+
   return (
     <group>
       <fog attach="fog" args={['#020617', 12, 50]} />
@@ -366,11 +369,11 @@ const RoboticCity = ({ onBotClick }: { onBotClick: () => void }) => {
       {/* Central Tactical Stealth UAV Platform & Standing Metallic White AI Robot */}
       <CentralUAVAndRobot3D onClick={onBotClick} />
 
-      {/* 4 Escort Tactical Quadcopter Drones */}
-      <EscortDrone3D offset={[-3.6, 1.8, -0.5]} />
-      <EscortDrone3D offset={[3.6, 1.8, -0.5]} />
-      <EscortDrone3D offset={[-2.2, 0.5, 1.6]} />
-      <EscortDrone3D offset={[2.2, 0.5, 1.6]} />
+      {/* 4 Escort Tactical Quadcopter Drones - Responsive Offsets for 100% Mobile Phone visibility */}
+      <EscortDrone3D offset={isMobile ? [-1.6, 1.9, 0.2] : [-3.6, 1.8, -0.5]} />
+      <EscortDrone3D offset={isMobile ? [1.6, 1.9, 0.2] : [3.6, 1.8, -0.5]} />
+      <EscortDrone3D offset={isMobile ? [-1.3, 0.3, 1.2] : [-2.2, 0.5, 1.6]} />
+      <EscortDrone3D offset={isMobile ? [1.3, 0.3, 1.2] : [2.2, 0.5, 1.6]} />
     </group>
   );
 };
@@ -379,7 +382,8 @@ const RoboticCity = ({ onBotClick }: { onBotClick: () => void }) => {
 // 6. Centered Hero Camera Controller
 // ==========================================
 const SceneController = ({ state }: { state: string }) => {
-  const { camera } = useThree();
+  const { camera, viewport } = useThree();
+  const isMobile = viewport.width < 5.5;
 
   useFrame((stateData) => {
     const t = stateData.clock.getElapsedTime();
@@ -388,10 +392,10 @@ const SceneController = ({ state }: { state: string }) => {
       camera.position.set(0, 0, -t * 15);
       camera.lookAt(0, 0, -t * 15 - 10);
     } else if (state === 'world') {
-      // Perfectly centered, steady camera focusing on the standing Robot & UAV
-      camera.position.x = Math.sin(t * 0.15) * 0.4;
+      // Perfectly centered camera with mobile depth adjustment
+      camera.position.x = Math.sin(t * 0.15) * 0.3;
       camera.position.y = 1.0 + Math.sin(t * 0.3) * 0.1;
-      camera.position.z = 7.2;
+      camera.position.z = isMobile ? 8.4 : 7.2;
       camera.lookAt(0, 0.2, 0);
     }
   });
@@ -800,7 +804,7 @@ export default function AICorePortal() {
       {/* 3D Canvas Viewport */}
       {(aiModeState === 'portal' || aiModeState === 'world' || aiModeState === 'deactivating') && (
         <div className="absolute top-0 left-0 w-screen h-screen z-10">
-          <Canvas camera={{ position: [0, 1.0, 7.5], fov: 55 }}>
+          <Canvas camera={{ position: [0, 1.0, 7.5], fov: typeof window !== 'undefined' && window.innerWidth < 640 ? 68 : 55 }}>
             <Suspense fallback={null}>
               <SceneController state={aiModeState} />
 

@@ -6,6 +6,7 @@ export default function VideoBridge() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isZooming, setIsZooming] = useState(false);
+  const [isFlashing, setIsFlashing] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -14,25 +15,32 @@ export default function VideoBridge() {
     if (aiModeState === 'video_forward') {
       setIsVisible(true);
       setIsZooming(false);
+      setIsFlashing(false);
       video.currentTime = 0;
-      video.playbackRate = 1.6; // Optimized speed for desktop & mobile GPUs
+      video.playbackRate = 1.45; // Smooth cinematic playback for laptops & phones
 
-      // Trigger pupil plunge zoom earlier at 2.4s so laptop users feel the dive into the eye pupil
+      // Phase 1: Lock onto pupil & initiate hyper-speed 7.5x scale zoom
       const zoomTimer = setTimeout(() => {
         setIsZooming(true);
-      }, 2400);
+      }, 1800);
 
-      // Safety transition timer to 3D portal
+      // Phase 2: Bright energy whiteout flash as camera passes through the pupil core
+      const flashTimer = setTimeout(() => {
+        setIsFlashing(true);
+      }, 3400);
+
+      // Phase 3: Transition smoothly into 3D space warp tunnel
       const safetyTimer = setTimeout(() => {
         setIsVisible(false);
         setAiModeState('portal');
-      }, 4800);
+      }, 4200);
 
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           console.warn("Autoplay interrupted, bypassing to portal:", err);
           clearTimeout(zoomTimer);
+          clearTimeout(flashTimer);
           clearTimeout(safetyTimer);
           setIsVisible(false);
           setAiModeState('portal');
@@ -41,6 +49,7 @@ export default function VideoBridge() {
 
       const handleEnded = () => {
         clearTimeout(zoomTimer);
+        clearTimeout(flashTimer);
         clearTimeout(safetyTimer);
         setIsVisible(false);
         setAiModeState('portal');
@@ -50,6 +59,7 @@ export default function VideoBridge() {
 
       return () => {
         clearTimeout(zoomTimer);
+        clearTimeout(flashTimer);
         clearTimeout(safetyTimer);
         video.removeEventListener('ended', handleEnded);
       };
@@ -58,6 +68,7 @@ export default function VideoBridge() {
     if (aiModeState === 'video_reverse') {
       setIsVisible(false);
       setIsZooming(false);
+      setIsFlashing(false);
       const timer = setTimeout(() => {
         setAiModeState('inactive');
       }, 150);
@@ -73,7 +84,7 @@ export default function VideoBridge() {
         isTransitionActive && isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
-      {/* Eye Video with 5.5x Desktop Pupil Dive Zoom */}
+      {/* Eye Video with 7.5x Widescreen Pupil Plunge Zoom */}
       <video
         ref={videoRef}
         src="/videos/android-eye.mp4"
@@ -81,24 +92,33 @@ export default function VideoBridge() {
         muted
         preload="auto"
         className={`w-full h-full object-cover object-center transition-all ease-in-out ${
-          isZooming ? 'scale-[4.2] sm:scale-[5.8] brightness-135 contrast-125' : 'scale-100 brightness-100'
+          isZooming ? 'scale-[4.5] sm:scale-[7.5] brightness-150 contrast-135 blur-[0.5px]' : 'scale-100 brightness-100'
         }`}
-        style={{ transformOrigin: '50% 50%', transitionDuration: '1400ms' }}
+        style={{ transformOrigin: '50% 48%', transitionDuration: '1600ms' }}
       />
 
-      {/* Iris Tunnel Contracting Radial Vignette for Desktop Immersive Plunge */}
+      {/* Pulsing Cybernetic Pupil Lock Reticle Target */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div
+          className={`w-32 h-32 rounded-full border-2 border-[#03e9f4] transition-all duration-1000 ${
+            isZooming ? 'scale-[15] opacity-0 border-white' : 'scale-100 opacity-60 animate-ping'
+          }`}
+        />
+      </div>
+
+      {/* Iris Tunnel Contracting Radial Vignette for Widescreen Laptop Depth */}
       <div
         className={`absolute inset-0 pointer-events-none transition-all duration-1000 ${
           isZooming 
-            ? 'bg-[radial-gradient(circle_at_center,_transparent_10%,_#020617_75%)] opacity-90' 
+            ? 'bg-[radial-gradient(circle_at_center,_transparent_5%,_#020617_60%)] opacity-95' 
             : 'opacity-0'
         }`}
       />
 
-      {/* Futuristic Energy Flash as user passes through the pupil */}
+      {/* Bright Cyan / White Energy Whiteout Flash as camera passes into the pupil */}
       <div
-        className={`absolute inset-0 bg-[#03e9f4] pointer-events-none transition-opacity duration-700 ${
-          isZooming ? 'opacity-40' : 'opacity-0'
+        className={`absolute inset-0 bg-gradient-to-r from-[#03e9f4] via-white to-[#03e9f4] pointer-events-none transition-opacity duration-500 ${
+          isFlashing ? 'opacity-85' : 'opacity-0'
         }`}
       />
     </div>
