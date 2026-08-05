@@ -3,20 +3,16 @@ import { useAI } from '../context/AIContext';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import gsap from 'gsap';
-import { Shield, Activity, Volume2, VolumeX, Database, Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, ExternalLink, Cpu } from 'lucide-react';
+import { Shield, Activity, Volume2, VolumeX, Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, Cpu } from 'lucide-react';
 
 // ==========================================
-// 1. Soft Web Audio Synthesizer (Ambient)
+// 1. Advanced Web Audio Synthesizer (SFX & Entry BGM)
 // ==========================================
 class PortaSfxSynth {
   private ctx: AudioContext | null = null;
-  private osc1: OscillatorNode | null = null;
-  private osc2: OscillatorNode | null = null;
-  private lfo: OscillatorNode | null = null;
-  private lfoGain: GainNode | null = null;
-  private humGain: GainNode | null = null;
+  private bgmOsc1: OscillatorNode | null = null;
+  private bgmOsc2: OscillatorNode | null = null;
+  private bgmGain: GainNode | null = null;
   public isMuted = false;
 
   isMobile() {
@@ -42,7 +38,7 @@ class PortaSfxSynth {
       osc.connect(gain);
       gain.connect(this.ctx.destination);
 
-      osc.type = 'sine'; // Soft sine wave
+      osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
       gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
@@ -56,83 +52,55 @@ class PortaSfxSynth {
     this.playBeep(330, 0.06, 0.02);
   }
 
-  playWarp(reverse = false) {
+  // Powerful Advanced AI & Robo Entry BGM
+  playEntryBgm() {
     if (this.isMuted || this.isMobile()) return;
     this.init();
     if (!this.ctx) return;
     try {
-      const osc = this.ctx.createOscillator();
+      this.stopEntryBgm();
+
+      const now = this.ctx.currentTime;
+      this.bgmOsc1 = this.ctx.createOscillator();
+      this.bgmOsc2 = this.ctx.createOscillator();
       const filter = this.ctx.createBiquadFilter();
-      const gain = this.ctx.createGain();
+      this.bgmGain = this.ctx.createGain();
 
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.type = 'sine';
+      this.bgmOsc1.type = 'sawtooth';
+      this.bgmOsc2.type = 'sine';
       filter.type = 'lowpass';
 
-      const duration = 5.0;
-      const startFreq = reverse ? 600 : 100;
-      const endFreq = reverse ? 80 : 660;
+      // Heavy futuristic entry sweep
+      this.bgmOsc1.frequency.setValueAtTime(65, now);
+      this.bgmOsc1.frequency.exponentialRampToValueAtTime(220, now + 3.0);
 
-      osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(endFreq, this.ctx.currentTime + duration);
+      this.bgmOsc2.frequency.setValueAtTime(130, now);
+      this.bgmOsc2.frequency.exponentialRampToValueAtTime(440, now + 3.0);
 
-      filter.frequency.setValueAtTime(200, this.ctx.currentTime);
-      filter.frequency.exponentialRampToValueAtTime(1500, this.ctx.currentTime + duration);
+      filter.frequency.setValueAtTime(300, now);
+      filter.frequency.exponentialRampToValueAtTime(2500, now + 3.0);
 
-      gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+      this.bgmGain.gain.setValueAtTime(0.01, now);
+      this.bgmGain.gain.linearRampToValueAtTime(0.06, now + 1.5);
+      this.bgmGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
 
-      osc.start();
-      osc.stop(this.ctx.currentTime + duration);
+      this.bgmOsc1.connect(filter);
+      this.bgmOsc2.connect(filter);
+      filter.connect(this.bgmGain);
+      this.bgmGain.connect(this.ctx.destination);
+
+      this.bgmOsc1.start(now);
+      this.bgmOsc2.start(now);
+      this.bgmOsc1.stop(now + 3.5);
+      this.bgmOsc2.stop(now + 3.5);
     } catch (e) {}
   }
 
-  startHum() {
-    if (this.isMuted || this.isMobile()) return;
-    this.init();
-    if (!this.ctx || this.osc1) return;
+  stopEntryBgm() {
     try {
-      this.osc1 = this.ctx.createOscillator();
-      this.osc2 = this.ctx.createOscillator();
-      this.lfo = this.ctx.createOscillator();
-      this.lfoGain = this.ctx.createGain();
-      this.humGain = this.ctx.createGain();
-
-      this.osc1.type = 'sine';
-      this.osc2.type = 'sine';
-      this.lfo.type = 'sine';
-
-      this.osc1.frequency.setValueAtTime(110, this.ctx.currentTime); // Low A
-      this.osc2.frequency.setValueAtTime(165, this.ctx.currentTime); // E3
-      this.lfo.frequency.setValueAtTime(0.2, this.ctx.currentTime);
-
-      this.lfoGain.gain.setValueAtTime(0.015, this.ctx.currentTime);
-      
-      this.lfo.connect(this.lfoGain);
-      this.lfoGain.connect(this.humGain.gain);
-
-      this.osc1.connect(this.humGain);
-      this.osc2.connect(this.humGain);
-      this.humGain.connect(this.ctx.destination);
-
-      this.humGain.gain.setValueAtTime(0.02, this.ctx.currentTime);
-
-      this.osc1.start();
-      this.osc2.start();
-      this.lfo.start();
-    } catch (e) {}
-  }
-
-  stopHum() {
-    try {
-      if (this.osc1) { this.osc1.stop(); this.osc1.disconnect(); this.osc1 = null; }
-      if (this.osc2) { this.osc2.stop(); this.osc2.disconnect(); this.osc2 = null; }
-      if (this.lfo) { this.lfo.stop(); this.lfo.disconnect(); this.lfo = null; }
-      if (this.lfoGain) { this.lfoGain.disconnect(); this.lfoGain = null; }
-      if (this.humGain) { this.humGain.disconnect(); this.humGain = null; }
+      if (this.bgmOsc1) { this.bgmOsc1.stop(); this.bgmOsc1.disconnect(); this.bgmOsc1 = null; }
+      if (this.bgmOsc2) { this.bgmOsc2.stop(); this.bgmOsc2.disconnect(); this.bgmOsc2 = null; }
+      if (this.bgmGain) { this.bgmGain.disconnect(); this.bgmGain = null; }
     } catch (e) {}
   }
 }
@@ -140,40 +108,13 @@ class PortaSfxSynth {
 const sfx = new PortaSfxSynth();
 
 // ==========================================
-// 2. Hybrid Asset Loader Component
-// ==========================================
-const GLTFModel = ({ url, fallback, scale = 1, position = [0, 0, 0], rotation = [0, 0, 0] }: { url: string; fallback: React.ReactNode; scale?: number; position?: [number, number, number]; rotation?: [number, number, number] }) => {
-  const [model, setModel] = useState<THREE.Group | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    const loader = new GLTFLoader();
-    loader.load(
-      url,
-      (gltf) => {
-        setModel(gltf.scene);
-      },
-      undefined,
-      (err) => {
-        console.warn(`Local GLTF model at ${url} not found, displaying high-fidelity procedural fallback.`);
-        setFailed(true);
-      }
-    );
-  }, [url]);
-
-  if (failed) return <>{fallback}</>;
-  if (!model) return <>{fallback}</>;
-  return <primitive object={model} scale={scale} position={position} rotation={rotation} />;
-};
-
-// ==========================================
-// 3. 3D Space Warp Tunnel (R3F Component)
+// 2. 3D Space Warp Tunnel (R3F Component)
 // ==========================================
 const SpaceTunnel = ({ speed }: { speed: number }) => {
   const tunnelRef = useRef<THREE.Group>(null);
   const ringCount = 20;
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!tunnelRef.current) return;
     tunnelRef.current.children.forEach((child) => {
       child.position.z += speed * delta * 5;
@@ -204,206 +145,60 @@ const SpaceTunnel = ({ speed }: { speed: number }) => {
 };
 
 // ==========================================
-// 4. Heavy-Duty Industrial Swivel Assembly Welder (3D)
+// 3. Escort Inspection Drone (Matching Image 5)
 // ==========================================
-const HeavyWelderRobot = ({ position, color, tipColor, isFlipped }: { position: [number, number, number]; color: string; tipColor: string; isFlipped: boolean }) => {
-  const armRef = useRef<THREE.Group>(null);
-  const sparkParticlesRef = useRef<THREE.Points>(null);
-  const [sparkActive, setSparkActive] = useState(false);
-  const sparksCount = 120;
-  const sparkVels = useRef(new Float32Array(sparksCount * 3));
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    if (armRef.current) {
-      armRef.current.rotation.y = (isFlipped ? -1 : 1) * Math.sin(t * 1.0) * 0.35;
-      const shoulder = armRef.current.children[1] as THREE.Group;
-      if (shoulder) {
-        shoulder.rotation.z = (isFlipped ? 1 : -1) * (Math.PI / 4.5 + Math.sin(t * 1.6) * 0.1);
-      }
-    }
-
-    const weldingActive = Math.sin(t * 3.5) > 0.45;
-    setSparkActive(weldingActive);
-
-    if (sparkParticlesRef.current && weldingActive) {
-      const geom = sparkParticlesRef.current.geometry;
-      const posAttr = geom.getAttribute('position');
-      if (posAttr) {
-        const pos = posAttr.array as Float32Array;
-        const vels = sparkVels.current;
-
-        const tipX = position[0] + (isFlipped ? -1.8 : 1.8) + Math.sin(t * 1.0) * 0.25;
-        const tipY = position[1] + 1.2 + Math.sin(t * 1.6) * 0.1;
-        const tipZ = position[2] + 0.3;
-
-        for (let i = 0; i < pos.length; i += 3) {
-          if (pos[i + 1] < -2 || Math.random() < 0.05) {
-            pos[i] = tipX;
-            pos[i + 1] = tipY;
-            pos[i + 2] = tipZ;
-
-            vels[i] = (Math.random() - 0.5) * 5;
-            vels[i + 1] = Math.random() * 5 + 1.5;
-            vels[i + 2] = (Math.random() - 0.5) * 5;
-          } else {
-            pos[i] += vels[i] * 0.016;
-            vels[i + 1] -= 9.8 * 0.016;
-            pos[i + 1] += vels[i + 1] * 0.016;
-            pos[i + 2] += vels[i + 2] * 0.016;
-          }
-        }
-        posAttr.needsUpdate = true;
-      }
-    }
-  });
-
-  return (
-    <group position={position}>
-      {/* Heavy Base Platform with Warning lights */}
-      <mesh>
-        <boxGeometry args={[1.6, 0.4, 1.3]} />
-        <meshStandardMaterial color="#0f172a" emissive={color} emissiveIntensity={0.15} wireframe />
-      </mesh>
-      {/* Treads */}
-      <mesh position={[0, -0.1, 0.7]}>
-        <boxGeometry args={[1.7, 0.3, 0.15]} />
-        <meshStandardMaterial color="#1e293b" />
-      </mesh>
-      <mesh position={[0, -0.1, -0.7]}>
-        <boxGeometry args={[1.7, 0.3, 0.15]} />
-        <meshStandardMaterial color="#1e293b" />
-      </mesh>
-
-      {/* Swivel Turret */}
-      <group ref={armRef} position={[0, 0.2, 0]}>
-        <mesh position={[0, 0.3, 0]}>
-          <cylinderGeometry args={[0.55, 0.65, 0.6, 12]} />
-          <meshStandardMaterial color="#020617" emissive={color} emissiveIntensity={0.3} wireframe />
-        </mesh>
-
-        {/* Hinge Joint */}
-        <group position={[0, 0.6, 0]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.3, 0.3, 0.7, 8]} />
-            <meshBasicMaterial color={color} />
-          </mesh>
-
-          {/* Upper Arm lifter */}
-          <mesh position={[0, 1.1, 0]}>
-            <cylinderGeometry args={[0.18, 0.22, 1.8, 8]} />
-            <meshStandardMaterial color="#020617" emissive={color} emissiveIntensity={0.5} wireframe />
-          </mesh>
-          {/* Hydraulic Cylinder */}
-          <mesh position={[0.12, 1.1, 0]}>
-            <cylinderGeometry args={[0.05, 0.05, 1.4, 6]} />
-            <meshBasicMaterial color="#03e9f4" />
-          </mesh>
-
-          {/* Forearm Joint */}
-          <group position={[0, 2.0, 0]}>
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.22, 0.22, 0.6, 8]} />
-              <meshBasicMaterial color={tipColor} />
-            </mesh>
-
-            {/* Forearm Girder */}
-            <mesh position={[0, 0.8, 0]}>
-              <boxGeometry args={[0.18, 1.5, 0.18]} />
-              <meshStandardMaterial color="#020617" emissive={color} emissiveIntensity={0.6} wireframe />
-            </mesh>
-
-            {/* Tool Hinge & Heat Shield nozzle */}
-            <group position={[0, 1.6, 0]}>
-              <mesh>
-                <cylinderGeometry args={[0.35, 0.35, 0.06, 8]} />
-                <meshStandardMaterial color="#1e293b" />
-              </mesh>
-              <mesh position={[0, 0.3, 0]}>
-                <coneGeometry args={[0.1, 0.4, 6]} />
-                <meshBasicMaterial color="#ff7b00" />
-              </mesh>
-            </group>
-          </group>
-        </group>
-      </group>
-
-      {/* Welding sparks */}
-      {sparkActive && (
-        <points ref={sparkParticlesRef}>
-          <bufferGeometry>
-            <bufferAttribute
-              attach="attributes-position"
-              args={[new Float32Array(sparksCount * 3), 3]}
-            />
-          </bufferGeometry>
-          <pointsMaterial
-            color="#ffbb00"
-            size={0.24}
-            transparent
-            opacity={1.0}
-            blending={THREE.AdditiveBlending}
-          />
-        </points>
-      )}
-    </group>
-  );
-};
-
-// ==========================================
-// 5. Heavy Quadcopter Inspection Drone (3D)
-// ==========================================
-const HeavyInspectionDrone = ({ i, xOffset }: { i: number; xOffset: number }) => {
+const EscortDrone = ({ offset }: { offset: [number, number, number] }) => {
   const droneRef = useRef<THREE.Group>(null);
   const rotorRefs = useRef<Array<THREE.Group | null>>([null, null, null, null]);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (droneRef.current) {
-      droneRef.current.position.y = 3.6 + Math.sin(t * 1.2 + i) * 0.7;
-      droneRef.current.position.x = xOffset + Math.cos(t * 0.6 + i) * 2.5;
-      droneRef.current.position.z = -4 + Math.sin(t * 0.6 + i) * 2.0;
-      droneRef.current.rotation.z = -Math.sin(t * 0.6 + i) * 0.15; // tilt roll
+      droneRef.current.position.x = offset[0] + Math.sin(t * 0.9 + offset[0]) * 0.4;
+      droneRef.current.position.y = offset[1] + Math.cos(t * 1.2 + offset[1]) * 0.3;
+      droneRef.current.position.z = offset[2] + Math.sin(t * 0.7 + offset[2]) * 0.3;
+      droneRef.current.rotation.z = Math.sin(t * 0.9) * 0.08;
     }
 
     rotorRefs.current.forEach((rotor) => {
-      if (rotor) rotor.rotation.y += 0.85;
+      if (rotor) rotor.rotation.y += 0.9;
     });
   });
 
   return (
-    <group ref={droneRef}>
-      {/* Fuselage (Hexagonal Core shape) */}
+    <group ref={droneRef} position={offset}>
+      {/* Sleek Dark Drone Body */}
       <mesh>
-        <cylinderGeometry args={[0.5, 0.55, 0.35, 6]} />
-        <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.2} wireframe />
+        <cylinderGeometry args={[0.4, 0.45, 0.25, 6]} />
+        <meshStandardMaterial color="#0b1329" metalness={0.9} roughness={0.2} emissive="#03e9f4" emissiveIntensity={0.3} />
       </mesh>
-      {/* Glowing Scanner Visor */}
-      <mesh position={[0, -0.05, 0.45]}>
-        <boxGeometry args={[0.25, 0.08, 0.08]} />
+      
+      {/* Glowing Scanning Sensor Eye */}
+      <mesh position={[0, -0.05, 0.38]}>
+        <boxGeometry args={[0.2, 0.06, 0.06]} />
         <meshBasicMaterial color="#FF2E63" />
       </mesh>
 
-      {/* Carbon Booms */}
+      {/* 4 Carbon Arms & Rotors */}
       {[
-        [-Math.PI / 4, -0.4, 0.4],
-        [Math.PI / 4, 0.4, 0.4],
-        [-Math.PI * 0.75, -0.4, -0.4],
-        [Math.PI * 0.75, 0.4, -0.4],
+        [-Math.PI / 4, -0.35, 0.35],
+        [Math.PI / 4, 0.35, 0.35],
+        [-Math.PI * 0.75, -0.35, -0.35],
+        [Math.PI * 0.75, 0.35, -0.35],
       ].map((cfg, idx) => (
-        <group key={idx} rotation={[0, cfg[0], 0]} position={[0, 0.1, 0]}>
-          <mesh position={[0.45, 0, 0]} rotation={[0, 0, -Math.PI / 10]}>
-            <cylinderGeometry args={[0.035, 0.02, 0.6, 6]} />
-            <meshStandardMaterial color="#475569" />
+        <group key={idx} rotation={[0, cfg[0], 0]}>
+          <mesh position={[0.4, 0.05, 0]}>
+            <cylinderGeometry args={[0.03, 0.02, 0.5, 6]} />
+            <meshStandardMaterial color="#334155" />
           </mesh>
-          <group position={[0.7, 0.08, 0]}>
+          <group position={[0.6, 0.08, 0]}>
             <mesh>
-              <cylinderGeometry args={[0.08, 0.08, 0.15, 6]} />
+              <cylinderGeometry args={[0.06, 0.06, 0.12, 6]} />
               <meshStandardMaterial color="#1e293b" />
             </mesh>
             <group ref={(el) => { rotorRefs.current[idx] = el; }}>
-              <mesh position={[0, 0.08, 0]}>
-                <boxGeometry args={[0.65, 0.015, 0.05]} />
+              <mesh position={[0, 0.06, 0]}>
+                <boxGeometry args={[0.55, 0.012, 0.04]} />
                 <meshBasicMaterial color="#03e9f4" />
               </mesh>
             </group>
@@ -411,165 +206,247 @@ const HeavyInspectionDrone = ({ i, xOffset }: { i: number; xOffset: number }) =>
         </group>
       ))}
 
-      {/* Volumetric Spotlight Cone */}
-      <mesh position={[0, -1.8, 0]}>
-        <cylinderGeometry args={[0.02, 1.3, 3.6, 16, 1, true]} />
+      {/* Downward Spotlight Cone */}
+      <mesh position={[0, -1.5, 0]}>
+        <cylinderGeometry args={[0.02, 1.1, 3.0, 16, 1, true]} />
         <meshBasicMaterial color="#03e9f4" transparent opacity={0.12} side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Cam Dome */}
-      <mesh position={[0, -0.22, 0.1]}>
-        <sphereGeometry args={[0.16, 8, 8]} />
-        <meshStandardMaterial color="#0f172a" />
       </mesh>
     </group>
   );
 };
 
 // ==========================================
-// 7. Staged Humanoid Hologram (White AI)
+// 4. Central Stealth UAV Carrier & Standing Metallic White AI Robo Agent (Matching Image 5)
 // ==========================================
-const WhiteAIHologram = ({ progress }: { progress: number }) => {
-  const groupRef = useRef<THREE.Group>(null);
+const CentralUAVAndRobo = ({ onClick }: { onClick: () => void }) => {
+  const uavRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
+  const chestCoreRef = useRef<THREE.Mesh>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    if (groupRef.current) {
-      groupRef.current.position.y = 1.6 + Math.sin(t * 1.5) * 0.1;
-      groupRef.current.rotation.y = t * 0.25;
+
+    // Hovering flight movement of central UAV platform
+    if (uavRef.current) {
+      uavRef.current.position.y = -0.6 + Math.sin(t * 1.2) * 0.15;
+      uavRef.current.position.x = Math.sin(t * 0.6) * 0.2;
+      uavRef.current.rotation.z = Math.sin(t * 0.8) * 0.02;
     }
+
+    // Robot head tracking / scanning animation
     if (headRef.current) {
-      headRef.current.rotation.x = Math.sin(t * 2) * 0.04;
-      headRef.current.rotation.y = Math.cos(t * 1.2) * 0.08;
+      headRef.current.rotation.y = Math.sin(t * 0.8) * 0.25;
+      headRef.current.rotation.x = Math.cos(t * 1.1) * 0.05;
     }
+
+    // Reactor core pulse
+    if (chestCoreRef.current) {
+      (chestCoreRef.current.material as THREE.MeshBasicMaterial).opacity = 0.7 + Math.sin(t * 3.0) * 0.3;
+    }
+
+    // Arm idle stance animations
     if (leftArmRef.current) {
-      leftArmRef.current.rotation.x = -Math.PI / 4 + Math.sin(t * 2.5) * 0.1;
+      leftArmRef.current.rotation.z = 0.15 + Math.sin(t * 1.5) * 0.03;
     }
     if (rightArmRef.current) {
-      rightArmRef.current.rotation.x = -Math.PI / 4 + Math.cos(t * 2.2) * 0.1;
+      rightArmRef.current.rotation.z = -0.15 - Math.sin(t * 1.5) * 0.03;
     }
   });
 
-  const particlesOpacity = Math.min(1.0, progress * 2.0);
-  const skeletonOpacity = Math.max(0.0, Math.min(1.0, (progress - 0.25) * 2.5));
-  const coreOpacity = Math.max(0.0, Math.min(1.0, (progress - 0.5) * 3.0));
-  const visorOpacity = Math.max(0.0, Math.min(1.0, (progress - 0.75) * 4.0));
-
   return (
-    <group ref={groupRef}>
-      <mesh position={[0, -0.8, 0]}>
-        <cylinderGeometry args={[0.3, 0.7, 1.6, 16, 1, true]} />
-        <meshBasicMaterial color="#03e9f4" transparent opacity={0.12 * particlesOpacity} side={THREE.DoubleSide} />
-      </mesh>
+    <group ref={uavRef} position={[0, -0.6, 0]} onClick={onClick}>
+      
+      {/* --- CENTRAL STEALTH UAV CARRIER VESSEL (Matching Image 5) --- */}
+      <group position={[0, -1.2, 0]}>
+        {/* Main Nose Fuselage */}
+        <mesh position={[0, 0, 0.8]}>
+          <coneGeometry args={[1.4, 2.8, 5]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
+        </mesh>
+        
+        {/* Main Body Hull */}
+        <mesh position={[0, 0, -0.6]}>
+          <boxGeometry args={[2.8, 0.5, 3.2]} />
+          <meshStandardMaterial color="#020617" metalness={0.95} roughness={0.15} />
+        </mesh>
 
-      <mesh position={[0, -0.75, 0]}>
-        <torusGeometry args={[0.5, 0.04, 6, 16]} />
-        <meshBasicMaterial color="#03e9f4" transparent opacity={0.6 * particlesOpacity} />
-      </mesh>
+        {/* Port & Starboard Swept Stealth Wings */}
+        <mesh position={[-2.6, 0, -0.4]} rotation={[0, 0, -0.15]}>
+          <boxGeometry args={[2.6, 0.15, 2.2]} />
+          <meshStandardMaterial color="#090d16" metalness={0.9} roughness={0.2} />
+        </mesh>
+        <mesh position={[2.6, 0, -0.4]} rotation={[0, 0, 0.15]}>
+          <boxGeometry args={[2.6, 0.15, 2.2]} />
+          <meshStandardMaterial color="#090d16" metalness={0.9} roughness={0.2} />
+        </mesh>
 
-      {skeletonOpacity > 0 && (
-        <group>
-          {[0, 1, 2].map((i) => (
-            <group key={i} position={[0, -0.45 + i * 0.25, 0]}>
-              <mesh>
-                <sphereGeometry args={[0.08, 8, 8]} />
-                <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" transparent opacity={skeletonOpacity} />
-              </mesh>
-              <mesh rotation={[Math.PI / 2, 0, 0]}>
-                <torusGeometry args={[0.22 - i * 0.03, 0.015, 4, 12]} />
-                <meshBasicMaterial color="#7B2CBF" transparent opacity={0.5 * skeletonOpacity} />
-              </mesh>
-            </group>
-          ))}
+        {/* Wingtip Thruster Pods */}
+        <mesh position={[-3.8, 0.1, -0.4]}>
+          <cylinderGeometry args={[0.25, 0.3, 0.8, 12]} />
+          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.6} />
+        </mesh>
+        <mesh position={[3.8, 0.1, -0.4]}>
+          <cylinderGeometry args={[0.25, 0.3, 0.8, 12]} />
+          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.6} />
+        </mesh>
+
+        {/* Upper Deck Platform Ring (Footing for standing Robot) */}
+        <mesh position={[0, 0.28, -0.2]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.9, 1.2, 32]} />
+          <meshBasicMaterial color="#03e9f4" side={THREE.DoubleSide} transparent opacity={0.8} />
+        </mesh>
+      </group>
+
+      {/* --- STANDING METALLIC WHITE/SILVER HUMANOID ROBOT AGENT (Matching Image 5) --- */}
+      <group position={[0, -0.9, -0.2]}>
+        
+        {/* Foot lock pedastals */}
+        <mesh position={[-0.35, 0.05, 0]}>
+          <boxGeometry args={[0.22, 0.1, 0.35]} />
+          <meshStandardMaterial color="#475569" metalness={0.9} />
+        </mesh>
+        <mesh position={[0.35, 0.05, 0]}>
+          <boxGeometry args={[0.22, 0.1, 0.35]} />
+          <meshStandardMaterial color="#475569" metalness={0.9} />
+        </mesh>
+
+        {/* Shin & Calf Hydraulic Legs */}
+        <mesh position={[-0.35, 0.5, 0]}>
+          <cylinderGeometry args={[0.08, 0.06, 0.8, 8]} />
+          <meshStandardMaterial color="#e2e8f0" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh position={[0.35, 0.5, 0]}>
+          <cylinderGeometry args={[0.08, 0.06, 0.8, 8]} />
+          <meshStandardMaterial color="#e2e8f0" metalness={0.8} roughness={0.2} />
+        </mesh>
+
+        {/* Knee Joints */}
+        <mesh position={[-0.35, 0.95, 0]}>
+          <sphereGeometry args={[0.1, 10, 10]} />
+          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.5} />
+        </mesh>
+        <mesh position={[0.35, 0.95, 0]}>
+          <sphereGeometry args={[0.1, 10, 10]} />
+          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.5} />
+        </mesh>
+
+        {/* Thighs */}
+        <mesh position={[-0.35, 1.4, 0]}>
+          <cylinderGeometry args={[0.12, 0.09, 0.8, 8]} />
+          <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.15} />
+        </mesh>
+        <mesh position={[0.35, 1.4, 0]}>
+          <cylinderGeometry args={[0.12, 0.09, 0.8, 8]} />
+          <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.15} />
+        </mesh>
+
+        {/* Pelvic Waist & Spine Assembly */}
+        <mesh position={[0, 1.85, 0]}>
+          <boxGeometry args={[0.7, 0.25, 0.35]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.9} />
+        </mesh>
+        <mesh position={[0, 2.1, 0]}>
+          <cylinderGeometry args={[0.1, 0.12, 0.35, 8]} />
+          <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={0.4} />
+        </mesh>
+
+        {/* Metallic Torso & Chest Armor */}
+        <group position={[0, 2.5, 0]}>
+          <mesh>
+            <cylinderGeometry args={[0.42, 0.3, 0.75, 8]} />
+            <meshStandardMaterial color="#f8fafc" metalness={0.9} roughness={0.1} />
+          </mesh>
+
+          {/* Pulsing Reactor Core in Chest */}
+          <mesh ref={chestCoreRef} position={[0, 0.1, 0.3]}>
+            <sphereGeometry args={[0.12, 12, 12]} />
+            <meshBasicMaterial color="#03e9f4" transparent opacity={0.9} />
+          </mesh>
+          <mesh position={[0, 0.1, 0.31]}>
+            <ringGeometry args={[0.14, 0.18, 16]} />
+            <meshBasicMaterial color="#7B2CBF" side={THREE.DoubleSide} />
+          </mesh>
         </group>
-      )}
 
-      {coreOpacity > 0 && (
-        <group>
-          <mesh position={[0, 0.1, 0]}>
-            <sphereGeometry args={[0.16, 12, 12]} />
-            <meshBasicMaterial color="#FF2E63" transparent opacity={coreOpacity} />
+        {/* Left Arm Assembly */}
+        <group ref={leftArmRef} position={[-0.55, 2.7, 0]}>
+          <mesh>
+            <sphereGeometry args={[0.12, 8, 8]} />
+            <meshStandardMaterial color="#03e9f4" />
           </mesh>
-          <mesh position={[0, 0.1, 0]}>
-            <torusGeometry args={[0.26, 0.01, 4, 16]} />
-            <meshBasicMaterial color="#03e9f4" transparent opacity={0.8 * coreOpacity} />
-          </mesh>
-          <mesh position={[0, 0.4, 0]}>
-            <coneGeometry args={[0.35, 0.5, 5]} />
-            <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.6} transparent opacity={coreOpacity} />
+          <mesh position={[-0.1, -0.4, 0]}>
+            <cylinderGeometry args={[0.07, 0.05, 0.7, 8]} />
+            <meshStandardMaterial color="#e2e8f0" metalness={0.85} />
           </mesh>
         </group>
-      )}
 
-      {visorOpacity > 0 && (
-        <group>
-          <group ref={headRef} position={[0, 0.75, 0]}>
-            <mesh position={[0, -0.1, 0]}>
-              <cylinderGeometry args={[0.06, 0.08, 0.15, 8]} />
-              <meshStandardMaterial color="#03e9f4" transparent opacity={visorOpacity} />
-            </mesh>
+        {/* Right Arm Assembly */}
+        <group ref={rightArmRef} position={[0.55, 2.7, 0]}>
+          <mesh>
+            <sphereGeometry args={[0.12, 8, 8]} />
+            <meshStandardMaterial color="#03e9f4" />
+          </mesh>
+          <mesh position={[0.1, -0.4, 0]}>
+            <cylinderGeometry args={[0.07, 0.05, 0.7, 8]} />
+            <meshStandardMaterial color="#e2e8f0" metalness={0.85} />
+          </mesh>
+        </group>
+
+        {/* Neck & Metallic Head Visor */}
+        <group position={[0, 3.0, 0]}>
+          <mesh position={[0, -0.08, 0]}>
+            <cylinderGeometry args={[0.08, 0.1, 0.15, 8]} />
+            <meshStandardMaterial color="#334155" />
+          </mesh>
+
+          <group ref={headRef} position={[0, 0.15, 0]}>
+            {/* Sleek Cyborg Head Helmet */}
             <mesh>
-              <sphereGeometry args={[0.25, 12, 12]} />
-              <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.5} transparent opacity={visorOpacity} />
+              <sphereGeometry args={[0.26, 16, 16]} />
+              <meshStandardMaterial color="#f8fafc" metalness={0.9} roughness={0.1} />
             </mesh>
-            <mesh position={[0, 0.02, 0.2]}>
-              <boxGeometry args={[0.28, 0.1, 0.08]} />
-              <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.5} transparent opacity={visorOpacity} />
+            
+            {/* Glowing Neon Cyan Scanner Visor Eye */}
+            <mesh position={[0, 0.02, 0.21]}>
+              <boxGeometry args={[0.3, 0.08, 0.08]} />
+              <meshBasicMaterial color="#03e9f4" />
             </mesh>
           </group>
-
-          <group ref={leftArmRef} position={[-0.38, 0.4, 0]}>
-            <mesh>
-              <sphereGeometry args={[0.08, 6, 6]} />
-              <meshBasicMaterial color="#03e9f4" transparent opacity={visorOpacity} />
-            </mesh>
-            <mesh position={[-0.15, -0.2, 0]} rotation={[0, 0, Math.PI / 6]}>
-              <cylinderGeometry args={[0.04, 0.03, 0.4, 6]} />
-              <meshStandardMaterial color="#03e9f4" transparent opacity={visorOpacity} />
-            </mesh>
-          </group>
-
-          <group ref={rightArmRef} position={[0.38, 0.4, 0]}>
-            <mesh>
-              <sphereGeometry args={[0.08, 6, 6]} />
-              <meshBasicMaterial color="#03e9f4" transparent opacity={visorOpacity} />
-            </mesh>
-            <mesh position={[0.15, -0.2, 0]} rotation={[0, 0, -Math.PI / 6]}>
-              <cylinderGeometry args={[0.04, 0.03, 0.4, 6]} />
-              <meshStandardMaterial color="#03e9f4" transparent opacity={visorOpacity} />
-            </mesh>
-          </group>
         </group>
-      )}
+
+      </group>
     </group>
   );
 };
 
 // ==========================================
-// 8. Clean Scene Engine (No Wireframe Lines Background)
+// 5. Clean Scene Container with UAV, Robo & Escort Drones
 // ==========================================
-const RoboticCity = () => {
+const RoboticCity = ({ onBotClick }: { onBotClick: () => void }) => {
   return (
     <group>
       <fog attach="fog" args={['#020617', 12, 50]} />
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.5} />
       <directionalLight position={[10, 20, 10]} intensity={1.5} />
       <pointLight position={[0, 4, 2]} intensity={3.0} color="#03e9f4" distance={30} />
       <pointLight position={[-4, 2, -3]} intensity={2.0} color="#7B2CBF" distance={20} />
 
-      {/* Realistic Heavy Inspection Quadcopter Drones hovering over video background */}
-      {[-6, -2, 2, 6].map((xOffset, i) => (
-        <HeavyInspectionDrone key={i} i={i} xOffset={xOffset} />
-      ))}
+      {/* Central Stealth UAV Platform & Standing Metallic White AI Robo Agent */}
+      <CentralUAVAndRobo onClick={onBotClick} />
+
+      {/* 4 Escort Inspection Drones flying in formation (Matching Image 5) */}
+      <EscortDrone offset={[-4.5, 2.2, -1.0]} />
+      <EscortDrone offset={[4.5, 2.2, -1.0]} />
+      <EscortDrone offset={[-2.8, 1.0, 2.5]} />
+      <EscortDrone offset={[2.8, 1.0, 2.5]} />
     </group>
   );
 };
 
 // ==========================================
-// 9. Automated Movie Drone Camera Controller
+// 6. Automated Movie Drone Camera Controller
 // ==========================================
 const SceneController = ({ state }: { state: string }) => {
   const { camera } = useThree();
@@ -585,23 +462,23 @@ const SceneController = ({ state }: { state: string }) => {
       
       if (s < 4.5) {
         const progress = s / 4.5;
-        const startPos = new THREE.Vector3(18, 12, 24);
-        const endPos = new THREE.Vector3(-10, 8, 18);
+        const startPos = new THREE.Vector3(14, 8, 18);
+        const endPos = new THREE.Vector3(-8, 5, 14);
         camera.position.lerpVectors(startPos, endPos, progress);
-        camera.lookAt(0, 2, -4);
+        camera.lookAt(0, 0.8, 0);
       } else if (s < 9.5) {
         const progress = (s - 4.5) / 5.0;
-        const startPos = new THREE.Vector3(-10, 8, 18);
-        const endPos = new THREE.Vector3(0, 3.2, 13);
+        const startPos = new THREE.Vector3(-8, 5, 14);
+        const endPos = new THREE.Vector3(0, 2.2, 9.5);
         camera.position.lerpVectors(startPos, endPos, progress);
-        camera.lookAt(0, 1.2, 3);
+        camera.lookAt(0, 0.8, 0);
       } else {
         const progress = s - 9.5;
         const orbitAngle = progress * 0.12;
-        camera.position.x = Math.sin(orbitAngle) * 9.5;
-        camera.position.z = Math.cos(orbitAngle) * 9.5 + 4.0;
-        camera.position.y = 2.4 + Math.sin(progress * 0.4) * 0.15;
-        camera.lookAt(0, -0.6, 4);
+        camera.position.x = Math.sin(orbitAngle) * 8.5;
+        camera.position.z = Math.cos(orbitAngle) * 8.5 + 2.0;
+        camera.position.y = 1.8 + Math.sin(progress * 0.4) * 0.15;
+        camera.lookAt(0, 0.5, 0);
       }
     }
   });
@@ -610,106 +487,7 @@ const SceneController = ({ state }: { state: string }) => {
 };
 
 // ==========================================
-// 10. Holographic Quantum Vault (R3F)
-// ==========================================
-const QuantumVault = ({ isOpened, progress, onClick }: { isOpened: boolean; progress: number; onClick: () => void }) => {
-  const vaultRef = useRef<THREE.Group>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
-  const lidRef = useRef<THREE.Group>(null);
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    if (vaultRef.current) {
-      vaultRef.current.position.y = -1.2 + Math.sin(t * 1.5) * 0.08;
-    }
-    if (ringRef.current) {
-      ringRef.current.rotation.z = t * 0.5;
-    }
-    if (lidRef.current) {
-      lidRef.current.rotation.y = -t * 0.3;
-    }
-  });
-
-  return (
-    <group ref={vaultRef} position={[0, -1.2, 0]} onClick={onClick}>
-      <mesh position={[0, 0, 0]}>
-        <cylinderGeometry args={[1.5, 1.8, 0.4, 16]} />
-        <meshStandardMaterial color="#020617" emissive="#03e9f4" emissiveIntensity={0.2} />
-      </mesh>
-
-      <mesh ref={ringRef} position={[0, 0.22, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[1.2, 1.45, 32]} />
-        <meshBasicMaterial color="#03e9f4" transparent opacity={0.6} side={THREE.DoubleSide} />
-      </mesh>
-
-      <group ref={lidRef} position={[0, 0.3, 0]}>
-        <mesh position={[0, 0.2, 0]}>
-          <cylinderGeometry args={[1.1, 1.3, 0.3, 12]} />
-          <meshStandardMaterial color="#0b1329" emissive="#7B2CBF" emissiveIntensity={0.3} />
-        </mesh>
-      </group>
-
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[0.6, 12, 12]} />
-        <meshBasicMaterial color="#03e9f4" transparent opacity={0.3} />
-      </mesh>
-
-      {isOpened && (
-        <>
-          <HologramBeam />
-          <WhiteAIHologram progress={progress} />
-        </>
-      )}
-    </group>
-  );
-};
-
-const HologramBeam = () => {
-  const particlesRef = useRef<THREE.Points>(null);
-  const pCount = 50;
-  const positions = new Float32Array(pCount * 3);
-
-  useFrame((state) => {
-    if (!particlesRef.current) return;
-    const geom = particlesRef.current.geometry;
-    const posAttr = geom.getAttribute('position');
-    if (posAttr) {
-      const pos = posAttr.array as Float32Array;
-      const t = state.clock.getElapsedTime();
-
-      for (let i = 0; i < pos.length; i += 3) {
-        pos[i + 1] += 0.03;
-        pos[i] = Math.sin(t * 3 + i) * 0.4;
-        pos[i + 2] = Math.cos(t * 3 + i) * 0.4;
-
-        if (pos[i + 1] > 2.5) {
-          pos[i + 1] = 0.5;
-        }
-      }
-      posAttr.needsUpdate = true;
-      particlesRef.current.rotation.y += 0.01;
-    }
-  });
-
-  return (
-    <group position={[0, 0, 0]}>
-      <mesh position={[0, 1.2, 0]}>
-        <cylinderGeometry args={[0.4, 0.8, 1.6, 16, 1, true]} />
-        <meshBasicMaterial color="#03e9f4" transparent opacity={0.15} side={THREE.DoubleSide} />
-      </mesh>
-
-      <points ref={particlesRef}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-        </bufferGeometry>
-        <pointsMaterial color="#03e9f4" size={0.08} transparent opacity={0.9} blending={THREE.AdditiveBlending} />
-      </points>
-    </group>
-  );
-};
-
-// ==========================================
-// 11. Door Hub Configuration
+// 7. Door Hub Configuration
 // ==========================================
 export interface DoorItem {
   id: string;
@@ -731,7 +509,7 @@ export const DOORS: DoorItem[] = [
   {
     id: 'projects',
     title: 'Projects Hub',
-    subtitle: 'Supreme Cart, ToLetHub, I-Mall',
+    subtitle: 'ToLetHub, I-Mall & Projects',
     type: 'projects',
     status: 'active',
     target: '#projects',
@@ -753,42 +531,36 @@ export const DOORS: DoorItem[] = [
 ];
 
 // ==========================================
-// 12. Main Interactive Portal
+// 8. Main Interactive Portal Component
 // ==========================================
 export default function AICorePortal() {
   const { aiModeState, setAiModeState } = useAI();
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
-  const [vaultOpened, setVaultOpened] = useState(false);
-  const [isBotVisible, setIsBotVisible] = useState(true);
+  // DEFAULT TO FALSE ON ENTRY so the full 3D World scene & Robo on UAV is visible first!
+  const [isBotVisible, setIsBotVisible] = useState(false);
   const [activeDoorId, setActiveDoorId] = useState<string>('ai-agent');
   const [isMuted, setIsMuted] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'ai' | 'user'; text: string; formatted?: boolean }>>([
     {
       sender: 'ai',
-      text: "ONLINE & ACCURATE\n\nI am ARIA (White AI Core), trained A-to-Z on K S Indra Kumar's entire portfolio data.\n\nAsk me about ToLetHub, I-Mall (Frontend Only), Supreme Cart (Full-Stack), skills, B.E. AI/ML degree, or contact info."
+      text: "ONLINE & READY\n\nI am ARIA (White AI Core), trained A-to-Z on K S Indra Kumar's verified portfolio.\n\nAsk me about ToLetHub (Real Estate Platform), I-Mall (Frontend Only E-Commerce UI), skills, B.E. AI/ML degree, or contact info."
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
-  const [holoProgress, setHoloProgress] = useState(1.0);
 
   useEffect(() => {
     sfx.isMuted = isMuted;
-    if (isMuted) {
-      sfx.stopHum();
-    } else if (aiModeState === 'world') {
-      sfx.startHum();
-    }
-  }, [isMuted, aiModeState]);
+  }, [isMuted]);
 
   useEffect(() => {
     if (aiModeState === 'activating') {
-      sfx.playWarp(false);
+      sfx.playEntryBgm(); // Play powerful entry BGM during activation transition!
       setTerminalLogs([]);
 
       const intervals = [800, 1800, 2800];
       const logTexts = [
-        "> INITIALIZING AI SECURE DECK...",
+        "> INITIALIZING ADVANCED AI ROBOTICS DECK...",
         "> ENGAGING DIRECT COGNITIVE PATHWAY...",
         "> REALITY DECONSTRUCTION OVERRIDE SEQUENCE LOADED.",
       ];
@@ -813,19 +585,12 @@ export default function AICorePortal() {
       }, 3500);
       return () => clearTimeout(timer);
     } else if (aiModeState === 'world') {
-      sfx.startHum();
-      setVaultOpened(true);
-      setIsBotVisible(true);
+      // Once fully arrived inside World, stop entry BGM so world is quiet and peaceful!
+      sfx.stopEntryBgm();
+      // Keep bot closed by default so world scene is fully visible!
+      setIsBotVisible(false);
     }
   }, [aiModeState, setAiModeState]);
-
-  const handleVaultClick = () => {
-    if (!vaultOpened) {
-      setVaultOpened(true);
-    }
-    setIsBotVisible(true);
-    sfx.playBeep(880, 0.15, 0.02);
-  };
 
   const handleDoorSelect = (door: DoorItem) => {
     sfx.playClick();
@@ -834,7 +599,7 @@ export default function AICorePortal() {
         ...prev,
         {
           sender: 'ai',
-          text: `🔒 DOOR LOCKED: ${door.title}\n\nThis door is currently reserved for future deployment. Append an entry to the DOORS hub list to unlock!`
+          text: `🔒 DOOR LOCKED: ${door.title}\n\nThis door is reserved for future deployment. Append an entry to the DOORS hub list to unlock!`
         }
       ]);
       setIsBotVisible(true);
@@ -845,18 +610,16 @@ export default function AICorePortal() {
     if (door.id === 'ai-agent') {
       setIsBotVisible(true);
     } else if (door.id === 'projects') {
-      const el = document.getElementById('projects');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-        setAiModeState('inactive');
-      } else {
-        setChatMessages((prev) => [
-          ...prev,
-          { sender: 'user', text: "Projects" },
-          { sender: 'ai', text: "Selected Repositories" }
-        ]);
-        setIsBotVisible(true);
-      }
+      // Smooth redirect directly to Projects section on website without landing on top button
+      setAiModeState('inactive');
+      setTimeout(() => {
+        const el = document.getElementById('projects');
+        if (el) {
+          const offset = 80;
+          const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+          window.scrollTo({ top, behavior: 'smooth' });
+        }
+      }, 150);
     }
   };
 
@@ -869,10 +632,6 @@ export default function AICorePortal() {
 
     if (q.includes('imall') || q.includes('i-mall') || q.includes('i mall')) {
       return `I-Mall Project Info`;
-    }
-
-    if (q.includes('supreme cart') || q.includes('supremecart') || q.includes('cart engine') || q.includes('fullstack cart') || q.includes('full-stack cart')) {
-      return `Supreme Cart Project Info`;
     }
 
     if (q.includes('who is') || q.includes('about indra') || q.includes('profile') || q.includes('biography') || q.includes('who are you') || q.includes('bio') || q.includes('tell me about him') || q.includes('summary')) {
@@ -899,7 +658,7 @@ export default function AICorePortal() {
       return `Resume Access Link`;
     }
 
-    return `VERIFIED RECORD INTELLIGENCE: "${query}"\n\nK S Indra Kumar — Full-Stack Developer & B.E. AI/ML Graduate (SJC Institute of Technology, CGPA: 8.59/10).\n\nPortfolio Projects:\n• ToLetHub: House & Apartment Rental Property Platform.\n• I-Mall: Pure Frontend E-Commerce Web Application (HTML, CSS, JavaScript).\n• Supreme Cart: Full-Stack E-Commerce Platform (Java, Hibernate, PostgreSQL).\n• Portfolio Intelligence (ARIA): 3D AI World Portal.\n\nCore Tech: Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, Supabase, Python, DSA.\n\nContact: ik9893344@gmail.com | GitHub: github.com/indra9346 | LinkedIn: linkedin.com/in/k-s-indra-kumar-7049b1289`;
+    return `VERIFIED RECORD INTELLIGENCE: "${query}"\n\nK S Indra Kumar — Full-Stack Web Developer & B.E. AI/ML Graduate (SJC Institute of Technology, CGPA: 8.59/10).\n\nPortfolio Projects:\n• ToLetHub: House & Apartment Rental Property Platform.\n• I-Mall: Pure Frontend E-Commerce Web Application (HTML, CSS, JavaScript).\n• Portfolio Intelligence (ARIA): 3D AI World Portal.\n\nCore Tech: Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, Supabase, Python, DSA.\n\nContact: ik9893344@gmail.com | GitHub: github.com/indra9346 | LinkedIn: linkedin.com/in/k-s-indra-kumar-7049b1289`;
   };
 
   const handleSendMessage = (textOverride?: string) => {
@@ -943,9 +702,9 @@ export default function AICorePortal() {
             <b>ToLetHub</b> is Indra's Property Rental & Real Estate Platform built for discovering apartments, homes, and rental spaces.
           </p>
           <div className="text-slate-300 flex flex-col gap-1.5 text-[11px] mt-1">
-            <div>• <b>Purpose</b>: Simplifies house rentals by connecting property owners directly with tenants.</div>
-            <div>• <b>Features</b>: Location-based search, price filters, property detail views, contact node.</div>
-            <div>• <b>Tech Stack</b>: HTML5, CSS3, JavaScript, dynamic web UI interfaces.</div>
+            <div>• <b>Purpose</b>: Connects house seekers directly with property owners.</div>
+            <div>• <b>Features</b>: Location filtering, price categorization, property detail cards, contact inquiry node.</div>
+            <div>• <b>Tech Stack</b>: HTML5, CSS3, JavaScript, dynamic web components.</div>
           </div>
         </div>
       );
@@ -962,29 +721,9 @@ export default function AICorePortal() {
             <b>I-Mall</b> is an interactive <b>Pure Frontend E-Commerce Web Application</b>.
           </p>
           <div className="text-slate-300 flex flex-col gap-1.5 text-[11px] mt-1">
-            <div>• <b>Architecture</b>: Pure Frontend Web Application (distinct from Full-Stack engines like Supreme Cart).</div>
+            <div>• <b>Architecture</b>: Pure Frontend Web Application (HTML, CSS, JavaScript).</div>
             <div>• <b>Features</b>: Dynamic product marketplace UI, real-time shopping cart state, search filters.</div>
             <div>• <b>Tech Stack</b>: Pure HTML5, CSS3, JavaScript & DOM manipulation.</div>
-          </div>
-        </div>
-      );
-    }
-
-    if (msg.text.includes('Supreme Cart Project Info')) {
-      return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3.5 rounded-lg flex flex-col gap-2 font-mono text-xs">
-          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5 text-xs sm:text-sm">
-            <FolderGit2 size={14} />
-            <span>[ FEATURED PROJECT: SUPREME CART (FULL-STACK) ]</span>
-          </div>
-          <p className="text-slate-200 leading-relaxed">
-            <b>Supreme Cart</b> is Indra's flagship <b>Full-Stack E-Commerce Shopping Platform</b>.
-          </p>
-          <div className="text-slate-300 flex flex-col gap-1.5 text-[11px] mt-1">
-            <div>• <b>Architecture</b>: End-to-End Full-Stack System (Java Backend + ORM + Relational DB + Frontend).</div>
-            <div>• <b>Backend Engine</b>: Java with Hibernate ORM & REST API controllers.</div>
-            <div>• <b>Database Storage</b>: PostgreSQL relational database schema.</div>
-            <div>• <b>Frontend Layer</b>: Dynamic HTML5, CSS3, JavaScript interface.</div>
           </div>
         </div>
       );
@@ -1055,15 +794,6 @@ export default function AICorePortal() {
             <span className="text-[10px] text-green-400 font-normal">VERIFIED</span>
           </div>
           <div className="flex flex-col gap-2 mt-1.5 w-full">
-            <div className="border border-slate-800 p-2.5 rounded bg-black/60">
-              <div className="text-white font-bold flex justify-between items-center text-xs">
-                <span>🛒 SUPREME CART</span>
-                <span className="text-[9px] border border-green-500/40 text-green-400 px-1.5 py-0.5 rounded font-bold">FULLSTACK</span>
-              </div>
-              <div className="text-slate-400 text-[11px] mt-1 leading-relaxed">
-                Full-stack shopping application built with Java, Hibernate ORM, and PostgreSQL database.
-              </div>
-            </div>
             <div className="border border-slate-800 p-2.5 rounded bg-black/60">
               <div className="text-white font-bold flex justify-between items-center text-xs">
                 <span>🏠 TOLETHUB</span>
@@ -1152,7 +882,7 @@ export default function AICorePortal() {
             src="/ai-world-background.mp4"
             className="w-full h-full object-cover object-center"
           />
-          {/* Subtle gradient overlay for contrast */}
+          {/* Subtle gradient overlay for high contrast readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-slate-950/60 backdrop-blur-[0.5px]" />
         </div>
       )}
@@ -1169,10 +899,7 @@ export default function AICorePortal() {
               )}
 
               {aiModeState === 'world' && (
-                <>
-                  <RoboticCity />
-                  <QuantumVault isOpened={vaultOpened} progress={holoProgress} onClick={handleVaultClick} />
-                </>
+                <RoboticCity onBotClick={() => setIsBotVisible(true)} />
               )}
             </Suspense>
           </Canvas>
@@ -1238,16 +965,16 @@ export default function AICorePortal() {
             </div>
           </div>
 
-          {/* Interactive Doors Hub Bar (Desktop & Mobile responsive) */}
-          <div className="w-full flex flex-col items-center justify-end mb-1 sm:mb-3 z-40 pointer-events-auto gap-2">
+          {/* Interactive Doors Hub Bar (Desktop & Mobile responsive fit with safe area padding) */}
+          <div className="w-full flex flex-col items-center justify-end mb-1 sm:mb-3 pb-safe z-40 pointer-events-auto gap-1">
             
-            <div className="bg-slate-950/85 backdrop-blur-md border border-neon-cyan/30 rounded-xl p-2 max-w-2xl w-[96%] sm:w-auto shadow-[0_0_25px_rgba(3,233,244,0.2)]">
-              <div className="text-[9px] sm:text-[10px] font-mono text-gray-400 text-center uppercase tracking-wider mb-1.5 font-bold flex items-center justify-center gap-1.5">
+            <div className="bg-slate-950/90 backdrop-blur-md border border-neon-cyan/30 rounded-xl p-2 max-w-2xl w-[98%] sm:w-auto shadow-[0_0_25px_rgba(3,233,244,0.2)]">
+              <div className="text-[9px] sm:text-[10px] font-mono text-gray-400 text-center uppercase tracking-wider mb-1 font-bold flex items-center justify-center gap-1.5">
                 <Bot size={11} className="text-neon-cyan" />
                 <span>AI Robotics Doors Hub</span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {DOORS.map((door) => {
                   const isActive = activeDoorId === door.id && isBotVisible;
                   return (
@@ -1259,10 +986,10 @@ export default function AICorePortal() {
                           ? 'border-gray-800 bg-slate-900/40 text-gray-500 cursor-not-allowed'
                           : isActive
                           ? 'border-neon-cyan bg-neon-cyan/15 text-white shadow-[0_0_15px_rgba(3,233,244,0.3)]'
-                          : 'border-slate-800 bg-slate-950/60 text-slate-300 hover:border-neon-cyan/50 hover:bg-slate-900/80'
+                          : 'border-slate-800 bg-slate-950/70 text-slate-300 hover:border-neon-cyan/50 hover:bg-slate-900/90'
                       }`}
                     >
-                      <div className="flex items-center justify-between w-full mb-1">
+                      <div className="flex items-center justify-between w-full mb-0.5">
                         <span className="text-[10px] sm:text-xs font-bold flex items-center gap-1">
                           {door.type === 'ai' && <Bot size={12} className="text-neon-cyan" />}
                           {door.type === 'projects' && <FolderGit2 size={12} className="text-green-400" />}
@@ -1293,26 +1020,26 @@ export default function AICorePortal() {
             </div>
           </div>
 
-          {/* Sci-Fi ARIA White AI Agent Card Dashboard */}
+          {/* Sci-Fi ARIA White AI Agent Card Dashboard (Mobile-friendly max-height and fit) */}
           {isBotVisible && (
-            <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-3 sm:p-6">
-              <div className="w-[94%] sm:w-full max-w-lg max-h-[82vh] sm:max-h-[80vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-4 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
+            <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-2 sm:p-6 pb-20 sm:pb-24">
+              <div className="w-[94%] sm:w-full max-w-lg max-h-[70vh] sm:max-h-[78vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2.5 pointer-events-auto relative overflow-hidden">
                 
                 <button
                   onClick={() => setIsBotVisible(false)}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-neon-cyan transition-colors"
+                  className="absolute top-3.5 right-3.5 text-gray-400 hover:text-neon-cyan transition-colors"
                 >
                   <X size={16} />
                 </button>
 
                 {/* Header */}
-                <div className="flex items-center gap-2.5 border-b border-gray-800/80 pb-3">
-                  <div className="w-8 h-8 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 flex items-center justify-center text-neon-cyan shadow-[0_0_10px_rgba(3,233,244,0.2)]">
-                    <Bot size={18} />
+                <div className="flex items-center gap-2.5 border-b border-gray-800/80 pb-2.5">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 flex items-center justify-center text-neon-cyan shadow-[0_0_10px_rgba(3,233,244,0.2)]">
+                    <Bot size={16} />
                   </div>
                   <div>
                     <h3 className="font-mono text-xs sm:text-sm font-bold text-white leading-tight">ARIA · WHITE AI INTELLIGENCE</h3>
-                    <p className="text-[9px] sm:text-[10px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1.5 mt-0.5">
+                    <p className="text-[8px] sm:text-[10px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1.5 mt-0.5">
                       <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
                       <span>REAL-TIME VERIFIED SYSTEM</span>
                     </p>
@@ -1320,7 +1047,7 @@ export default function AICorePortal() {
                 </div>
 
                 {/* Chat Feed */}
-                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-3 font-mono text-xs p-3 bg-black/70 border border-gray-900 rounded-xl">
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2.5 font-mono text-xs p-2.5 bg-black/70 border border-gray-900 rounded-xl">
                   {chatMessages.map((msg, idx) => (
                     <div key={idx} className="w-full flex flex-col">
                       {renderMessageContent(msg)}
@@ -1336,13 +1063,13 @@ export default function AICorePortal() {
                   )}
                 </div>
 
-                {/* Quick Topic Chips */}
-                <div className="flex flex-wrap gap-1.5 justify-center py-1">
-                  {['Bio', 'ToLetHub', 'I-Mall', 'Supreme Cart', 'Skills', 'Education', 'Contact', 'Resume'].map((cat) => (
+                {/* Quick Topic Chips (Optimized for Mobile) */}
+                <div className="flex flex-wrap gap-1 justify-center py-0.5">
+                  {['Bio', 'ToLetHub', 'I-Mall', 'Skills', 'Education', 'Contact', 'Resume'].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => handleSendMessage(cat)}
-                      className="border border-neon-cyan/30 hover:border-neon-cyan text-neon-cyan/90 hover:text-neon-cyan bg-slate-950/60 font-mono text-[9px] sm:text-[10px] px-2.5 py-1 rounded-md transition-all duration-200 font-semibold"
+                      className="border border-neon-cyan/30 hover:border-neon-cyan text-neon-cyan/90 hover:text-neon-cyan bg-slate-950/60 font-mono text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md transition-all duration-200 font-semibold"
                     >
                       {cat}
                     </button>
@@ -1356,12 +1083,12 @@ export default function AICorePortal() {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Ask ARIA about ToLetHub, I-Mall, Supreme Cart, skills..."
-                    className="flex-1 bg-black/80 border border-gray-800 rounded-lg px-3 py-2 font-mono text-xs text-white focus:outline-none focus:border-neon-cyan placeholder:text-gray-600"
+                    placeholder="Ask ARIA about ToLetHub, I-Mall, skills..."
+                    className="flex-1 bg-black/80 border border-gray-800 rounded-lg px-3 py-1.5 font-mono text-xs text-white focus:outline-none focus:border-neon-cyan placeholder:text-gray-600"
                   />
                   <button
                     onClick={() => handleSendMessage()}
-                    className="border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black px-3.5 py-2 rounded-lg transition-colors font-bold flex items-center justify-center"
+                    className="border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black px-3 py-1.5 rounded-lg transition-colors font-bold flex items-center justify-center"
                   >
                     <Send size={14} />
                   </button>
