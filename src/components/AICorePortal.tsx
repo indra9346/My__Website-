@@ -1,9 +1,8 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useAI } from '../context/AIContext';
-import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
-import { TextureLoader } from 'three';
 import { Shield, Activity, Volume2, VolumeX, Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, Cpu } from 'lucide-react';
 
 // ==========================================
@@ -145,38 +144,72 @@ const SpaceTunnel = ({ speed }: { speed: number }) => {
 };
 
 // ==========================================
-// 3. Realistic Escort Tactical Drone (Using HD Cut-Out Texture matching Pic 4 & 5)
+// 3. 3D Tactical Escort Quadcopter Drone (Pure 3D Metallic Mesh & Spinning Rotors)
 // ==========================================
-const EscortDroneSprite = ({ offset }: { offset: [number, number, number] }) => {
-  const droneGroupRef = useRef<THREE.Group>(null);
-  const texture = useLoader(TextureLoader, '/escort-drone-1.png');
+const EscortDrone3D = ({ offset }: { offset: [number, number, number] }) => {
+  const droneRef = useRef<THREE.Group>(null);
+  const rotorGroupRef = useRef<THREE.Group>(null);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
-    if (droneGroupRef.current) {
-      droneGroupRef.current.position.x = offset[0] + Math.sin(t * 1.1 + offset[0]) * 0.4;
-      droneGroupRef.current.position.y = offset[1] + Math.cos(t * 1.4 + offset[1]) * 0.3;
-      droneGroupRef.current.position.z = offset[2] + Math.sin(t * 0.8 + offset[2]) * 0.3;
-      droneGroupRef.current.rotation.z = Math.sin(t * 1.1) * 0.05;
+    if (droneRef.current) {
+      droneRef.current.position.x = offset[0] + Math.sin(t * 1.2 + offset[0]) * 0.35;
+      droneRef.current.position.y = offset[1] + Math.cos(t * 1.5 + offset[1]) * 0.25;
+      droneRef.current.position.z = offset[2] + Math.sin(t * 0.9 + offset[2]) * 0.25;
+      droneRef.current.rotation.z = Math.sin(t * 1.2) * 0.06;
+    }
+    if (rotorGroupRef.current) {
+      rotorGroupRef.current.children.forEach((rotor) => {
+        rotor.rotation.y += delta * 25;
+      });
     }
   });
 
   return (
-    <group ref={droneGroupRef} position={offset}>
-      {/* HD Cutout Tactical Drone Billboard */}
-      <mesh scale={[2.4, 1.2, 1]}>
-        <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial
-          map={texture}
-          transparent
-          alphaTest={0.05}
-          side={THREE.DoubleSide}
-        />
+    <group ref={droneRef} position={offset}>
+      {/* Carbon Fiber Stealth Fuselage Hull */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[0.9, 0.22, 0.7]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
       </mesh>
 
-      {/* Volumetric Downward Spotlight Scanning Cone */}
-      <mesh position={[0, -1.2, 0]}>
-        <cylinderGeometry args={[0.02, 0.9, 2.4, 16, 1, true]} />
+      {/* Sensor Pod & Cyan Camera Lens */}
+      <mesh position={[0, -0.15, 0.25]}>
+        <sphereGeometry args={[0.12, 16, 16]} />
+        <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.5} />
+      </mesh>
+
+      {/* 4 Rotor Arms */}
+      {[
+        [-0.55, 0, 0.45],
+        [0.55, 0, 0.45],
+        [-0.55, 0, -0.45],
+        [0.55, 0, -0.45],
+      ].map((armPos, idx) => (
+        <mesh key={idx} position={armPos as [number, number, number]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
+          <meshStandardMaterial color="#334155" metalness={0.8} />
+        </mesh>
+      ))}
+
+      {/* 4 Spinning Rotor Discs */}
+      <group ref={rotorGroupRef}>
+        {[
+          [-0.7, 0.1, 0.6],
+          [0.7, 0.1, 0.6],
+          [-0.7, 0.1, -0.6],
+          [0.7, 0.1, -0.6],
+        ].map((pos, idx) => (
+          <mesh key={idx} position={pos as [number, number, number]}>
+            <cylinderGeometry args={[0.38, 0.38, 0.02, 16]} />
+            <meshBasicMaterial color="#03e9f4" transparent opacity={0.5} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Volumetric Downward Scanning Beam Cone */}
+      <mesh position={[0, -1.0, 0]}>
+        <cylinderGeometry args={[0.02, 0.8, 1.8, 16, 1, true]} />
         <meshBasicMaterial color="#03e9f4" transparent opacity={0.15} side={THREE.DoubleSide} />
       </mesh>
     </group>
@@ -184,60 +217,140 @@ const EscortDroneSprite = ({ offset }: { offset: [number, number, number] }) => 
 };
 
 // ==========================================
-// 4. Central UAV Platform & Standing Metallic Silver Robot Agent (Matching Pic 3 & Pic 5 Exactly)
+// 4. Central UAV Platform & Standing 3D White AI Metallic Robot Agent
 // ==========================================
-const CentralUAVAndRobotSprite = ({ onClick }: { onClick: () => void }) => {
+const CentralUAVAndRobot3D = ({ onClick }: { onClick: () => void }) => {
   const mainGroupRef = useRef<THREE.Group>(null);
-  const roboTexture = useLoader(TextureLoader, '/white-ai-robot.png'); // Exact Pic 3 Silver Robot Cutout
-  const uavTexture = useLoader(TextureLoader, '/uav-carrier.png'); // Exact Pic 5 Stealth UAV Carrier
+  const chestReactorRef = useRef<THREE.MeshBasicMaterial>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (mainGroupRef.current) {
-      mainGroupRef.current.position.y = -0.5 + Math.sin(t * 1.2) * 0.15;
-      mainGroupRef.current.position.x = Math.sin(t * 0.6) * 0.15;
-      mainGroupRef.current.rotation.z = Math.sin(t * 0.8) * 0.015;
+      mainGroupRef.current.position.y = -0.3 + Math.sin(t * 1.2) * 0.12;
+      mainGroupRef.current.position.x = Math.sin(t * 0.6) * 0.1;
+      mainGroupRef.current.rotation.y = Math.sin(t * 0.5) * 0.05;
+    }
+    if (chestReactorRef.current) {
+      chestReactorRef.current.opacity = 0.7 + Math.sin(t * 4) * 0.3;
     }
   });
 
   return (
-    <group ref={mainGroupRef} position={[0, -0.5, 0]} onClick={onClick}>
+    <group ref={mainGroupRef} position={[0, -0.2, 0]} onClick={onClick}>
       
-      {/* 1. Tactical Stealth UAV Carrier Vessel (Pic 5) */}
-      <group position={[0, -1.2, 0]}>
-        <mesh scale={[4.8, 2.2, 1]}>
-          <planeGeometry args={[1, 1]} />
-          <meshBasicMaterial
-            map={uavTexture}
-            transparent
-            alphaTest={0.05}
-            side={THREE.DoubleSide}
-          />
+      {/* 1. Tactical Stealth UAV Carrier Vessel Base */}
+      <group position={[0, -1.1, 0]}>
+        {/* Main Body Hull */}
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[4.2, 0.45, 2.6]} />
+          <meshStandardMaterial color="#020617" metalness={0.95} roughness={0.15} />
+        </mesh>
+        
+        {/* Cockpit Canopy Glass */}
+        <mesh position={[0, 0.3, 0.4]}>
+          <boxGeometry args={[2.2, 0.35, 1.2]} />
+          <meshStandardMaterial color="#03e9f4" transparent opacity={0.35} metalness={0.9} />
         </mesh>
 
-        {/* Illuminated Energy Deck Ring Under Robot Feet */}
-        <mesh position={[0, 0.4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.8, 1.1, 32]} />
-          <meshBasicMaterial color="#03e9f4" side={THREE.DoubleSide} transparent opacity={0.7} />
+        {/* Outer Heavy Wing Engines */}
+        <mesh position={[-2.3, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.45, 0.45, 0.8, 16]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.9} />
+        </mesh>
+        <mesh position={[2.3, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.45, 0.45, 0.8, 16]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.9} />
+        </mesh>
+
+        {/* Illuminated Blue/Cyan Landing Deck Ring */}
+        <mesh position={[0, 0.23, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.85, 1.2, 32]} />
+          <meshBasicMaterial color="#03e9f4" side={THREE.DoubleSide} transparent opacity={0.8} />
         </mesh>
       </group>
 
-      {/* 2. Standing Ultra-Realistic Silver Metallic Robot (Pic 3 - Exact Cutout matching user image!) */}
-      <group position={[0, 0.6, 0.1]}>
-        <mesh scale={[2.6, 4.8, 1]}>
-          <planeGeometry args={[1, 1]} />
-          <meshBasicMaterial
-            map={roboTexture}
-            transparent
-            alphaTest={0.05}
-            side={THREE.DoubleSide}
-          />
+      {/* 2. Articulated Standing Metallic White AI Cyborg Robot */}
+      <group position={[0, 0.4, 0]}>
+        
+        {/* Head / Helmet */}
+        <mesh position={[0, 1.3, 0]}>
+          <sphereGeometry args={[0.32, 32, 32]} />
+          <meshStandardMaterial color="#f8fafc" metalness={0.95} roughness={0.1} />
+        </mesh>
+
+        {/* Neon Cyan Visor Eye Band */}
+        <mesh position={[0, 1.34, 0.22]}>
+          <boxGeometry args={[0.42, 0.1, 0.2]} />
+          <meshBasicMaterial color="#03e9f4" />
+        </mesh>
+
+        {/* Neck */}
+        <mesh position={[0, 0.95, 0]}>
+          <cylinderGeometry args={[0.1, 0.12, 0.2, 16]} />
+          <meshStandardMaterial color="#334155" metalness={0.8} />
+        </mesh>
+
+        {/* Torso / Upper Body Chest Armor */}
+        <mesh position={[0, 0.45, 0]}>
+          <boxGeometry args={[0.75, 0.8, 0.45]} />
+          <meshStandardMaterial color="#f1f5f9" metalness={0.9} roughness={0.15} />
+        </mesh>
+
+        {/* Pulsing Arc Reactor Chest Core */}
+        <mesh position={[0, 0.52, 0.24]}>
+          <sphereGeometry args={[0.12, 16, 16]} />
+          <meshBasicMaterial ref={chestReactorRef} color="#03e9f4" transparent opacity={0.9} />
+        </mesh>
+
+        {/* Shoulder Armor Pads */}
+        <mesh position={[-0.48, 0.72, 0]}>
+          <sphereGeometry args={[0.2, 16, 16]} />
+          <meshStandardMaterial color="#020617" metalness={0.9} />
+        </mesh>
+        <mesh position={[0.48, 0.72, 0]}>
+          <sphereGeometry args={[0.2, 16, 16]} />
+          <meshStandardMaterial color="#020617" metalness={0.9} />
+        </mesh>
+
+        {/* Arms */}
+        <mesh position={[-0.48, 0.3, 0]}>
+          <cylinderGeometry args={[0.08, 0.07, 0.6, 16]} />
+          <meshStandardMaterial color="#e2e8f0" metalness={0.85} />
+        </mesh>
+        <mesh position={[0.48, 0.3, 0]}>
+          <cylinderGeometry args={[0.08, 0.07, 0.6, 16]} />
+          <meshStandardMaterial color="#e2e8f0" metalness={0.85} />
+        </mesh>
+
+        {/* Hips & Pelvis */}
+        <mesh position={[0, -0.05, 0]}>
+          <boxGeometry args={[0.6, 0.2, 0.38]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.9} />
+        </mesh>
+
+        {/* Legs */}
+        <mesh position={[-0.22, -0.55, 0]}>
+          <cylinderGeometry args={[0.1, 0.08, 0.8, 16]} />
+          <meshStandardMaterial color="#f8fafc" metalness={0.9} />
+        </mesh>
+        <mesh position={[0.22, -0.55, 0]}>
+          <cylinderGeometry args={[0.1, 0.08, 0.8, 16]} />
+          <meshStandardMaterial color="#f8fafc" metalness={0.9} />
+        </mesh>
+
+        {/* Boots */}
+        <mesh position={[-0.22, -0.98, 0.06]}>
+          <boxGeometry args={[0.16, 0.12, 0.3]} />
+          <meshStandardMaterial color="#020617" metalness={0.95} />
+        </mesh>
+        <mesh position={[0.22, -0.98, 0.06]}>
+          <boxGeometry args={[0.16, 0.12, 0.3]} />
+          <meshStandardMaterial color="#020617" metalness={0.95} />
         </mesh>
       </group>
     </group>
   );
 };
-
 
 // ==========================================
 // 5. Clean Scene Container with UAV, Robo & Escort Drones
@@ -246,24 +359,24 @@ const RoboticCity = ({ onBotClick }: { onBotClick: () => void }) => {
   return (
     <group>
       <fog attach="fog" args={['#020617', 12, 50]} />
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 20, 10]} intensity={1.5} />
-      <pointLight position={[0, 4, 2]} intensity={3.0} color="#03e9f4" distance={30} />
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[10, 20, 10]} intensity={1.8} />
+      <pointLight position={[0, 4, 2]} intensity={3.5} color="#03e9f4" distance={30} />
 
-      {/* Central Tactical UAV Platform & Standing Silver Robot (Pic 3 & Pic 5) */}
-      <CentralUAVAndRobotSprite onClick={onBotClick} />
+      {/* Central Tactical Stealth UAV Platform & Standing Metallic White AI Robot */}
+      <CentralUAVAndRobot3D onClick={onBotClick} />
 
-      {/* 4 Escort Tactical Quadcopter Drones (Pic 4) */}
-      <EscortDroneSprite offset={[-3.8, 1.8, -0.5]} />
-      <EscortDroneSprite offset={[3.8, 1.8, -0.5]} />
-      <EscortDroneSprite offset={[-2.4, 0.6, 1.8]} />
-      <EscortDroneSprite offset={[2.4, 0.6, 1.8]} />
+      {/* 4 Escort Tactical Quadcopter Drones */}
+      <EscortDrone3D offset={[-3.6, 1.8, -0.5]} />
+      <EscortDrone3D offset={[3.6, 1.8, -0.5]} />
+      <EscortDrone3D offset={[-2.2, 0.5, 1.6]} />
+      <EscortDrone3D offset={[2.2, 0.5, 1.6]} />
     </group>
   );
 };
 
 // ==========================================
-// 6. Automated Movie Camera Controller
+// 6. Centered Hero Camera Controller
 // ==========================================
 const SceneController = ({ state }: { state: string }) => {
   const { camera } = useThree();
@@ -275,28 +388,11 @@ const SceneController = ({ state }: { state: string }) => {
       camera.position.set(0, 0, -t * 15);
       camera.lookAt(0, 0, -t * 15 - 10);
     } else if (state === 'world') {
-      const s = t % 60;
-      
-      if (s < 4.5) {
-        const progress = s / 4.5;
-        const startPos = new THREE.Vector3(12, 6, 15);
-        const endPos = new THREE.Vector3(-6, 4, 12);
-        camera.position.lerpVectors(startPos, endPos, progress);
-        camera.lookAt(0, 0.5, 0);
-      } else if (s < 9.5) {
-        const progress = (s - 4.5) / 5.0;
-        const startPos = new THREE.Vector3(-6, 4, 12);
-        const endPos = new THREE.Vector3(0, 1.8, 8.0);
-        camera.position.lerpVectors(startPos, endPos, progress);
-        camera.lookAt(0, 0.5, 0);
-      } else {
-        const progress = s - 9.5;
-        const orbitAngle = progress * 0.12;
-        camera.position.x = Math.sin(orbitAngle) * 7.5;
-        camera.position.z = Math.cos(orbitAngle) * 7.5 + 1.5;
-        camera.position.y = 1.4 + Math.sin(progress * 0.4) * 0.15;
-        camera.lookAt(0, 0.4, 0);
-      }
+      // Perfectly centered, steady camera focusing on the standing Robot & UAV
+      camera.position.x = Math.sin(t * 0.15) * 0.4;
+      camera.position.y = 1.0 + Math.sin(t * 0.3) * 0.1;
+      camera.position.z = 7.2;
+      camera.lookAt(0, 0.2, 0);
     }
   });
 
@@ -704,7 +800,7 @@ export default function AICorePortal() {
       {/* 3D Canvas Viewport */}
       {(aiModeState === 'portal' || aiModeState === 'world' || aiModeState === 'deactivating') && (
         <div className="absolute top-0 left-0 w-screen h-screen z-10">
-          <Canvas camera={{ position: [0, 0, 0], fov: 60 }}>
+          <Canvas camera={{ position: [0, 1.0, 7.5], fov: 55 }}>
             <Suspense fallback={null}>
               <SceneController state={aiModeState} />
 
