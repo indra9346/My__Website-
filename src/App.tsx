@@ -12,6 +12,7 @@ import Admin from "./pages/Admin";
 import AdminProjects from "./pages/AdminProjects";
 import AdminSettings from "./pages/AdminSettings";
 import AdminPromotions from "./pages/AdminPromotions";
+import AdminKBKOwnership from "./pages/AdminKBKOwnership";
 import AdminLayout from "./components/AdminLayout";
 import CustomCursor from "./components/CustomCursor";
 import { AIContextProvider, useAI } from "./context/AIContext";
@@ -37,6 +38,7 @@ const AppContent = () => {
             <Route index element={<Admin />} />
             <Route path="projects" element={<AdminProjects />} />
             <Route path="promotions" element={<AdminPromotions />} />
+            <Route path="kbk-ownership" element={<AdminKBKOwnership />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
