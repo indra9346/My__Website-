@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FolderKanban, Settings, Megaphone, Film, ShieldCheck } from 'lucide-react';
+import { FolderKanban, Settings, Megaphone, ShieldCheck } from 'lucide-react';
 
 const Admin = () => {
   return (
@@ -23,15 +23,14 @@ const Admin = () => {
           </div>
         </Link>
 
-        {/* KBK Film Studios Ownership Card */}
-        <Link to="/admin/kbk-ownership" className="glass p-6 rounded-lg hover:border-neon-cyan border border-neon-cyan/20 transition-colors flex items-start gap-4">
-          <Film className="w-8 h-8 text-neon-cyan shrink-0 mt-1" />
+        <Link to="/admin/client-access" className="glass p-6 rounded-lg hover:border-neon-cyan border border-neon-cyan/20 transition-colors flex items-start gap-4">
+          <ShieldCheck className="w-8 h-8 text-neon-cyan shrink-0 mt-1" />
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold mb-2">KBK Studios Ownership</h3>
+              <h3 className="text-xl font-bold mb-2">Client Sites & Access</h3>
               <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-neon-cyan/20 text-neon-cyan">Primary</span>
             </div>
-            <p className="text-muted-foreground">Manage primary ownership and studio access for KBK Film Studios</p>
+            <p className="text-muted-foreground">Control client-site owners, staff roles, and restricted project access</p>
           </div>
         </Link>
 
