@@ -2,6 +2,8 @@ import { Github, Linkedin, Cloud } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import myPhoto from '../assets/myphoto.jpg';
+import swanDigitalLogo from '../assets/swan-digital-logo.png';
+import hostingBabaLogo from '../assets/hosting-baba-logo.png';
 import RobotAssistant from './RobotAssistant';
 
 const AboutSection = () => {
@@ -121,6 +123,7 @@ const AboutSection = () => {
                 <ul className="grid grid-cols-1 gap-2.5">
                   {[
                     '📍 Based in India',
+                    '💼 Full Stack Developer at Swan Digital Solutions & Hosting Baba',
                     '🎓 B.E. Graduate in Artificial Intelligence & Machine Learning (2026)',
                     '💻 Full-Stack Developer',
                     '⚡ Java • React.js • JavaScript • HTML • CSS • Hibernate • PostgreSQL • Supabase',
@@ -172,6 +175,83 @@ const AboutSection = () => {
 
           {/* Right Column: High-tech Timeline */}
           <div className="w-full lg:w-7/12">
+            {/* Professional Experience Matrix */}
+            <div className="mb-14">
+              <h3 className="text-xl font-mono text-neon-cyan mb-6 flex items-center gap-2">
+                <span className="text-neon-cyan">&lt;</span>
+                Professional Experience Matrix
+                <span className="text-neon-cyan">/&gt;</span>
+              </h3>
+
+              <div className="relative pl-6 border-l-2 border-dashed border-gray-800/80 space-y-8">
+                {/* Swan Digital Solutions */}
+                <div className="relative group">
+                  <div className="absolute -left-[33px] top-1.5 w-4 h-4 rounded-full bg-gray-900 border-2 border-red-500 shadow-[0_0_10px_#ef4444] group-hover:scale-125 transition-transform duration-300" />
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-12 h-12 rounded-xl bg-black/90 border border-red-500/40 p-1 flex items-center justify-center shrink-0 shadow-inner group-hover:border-red-400 group-hover:scale-105 transition-all overflow-hidden">
+                        <img
+                          src={swanDigitalLogo}
+                          alt="Swan Digital Solutions Logo"
+                          className="w-full h-full object-contain rounded-md"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-white group-hover:text-red-400 transition-colors duration-300">
+                          FULL STACK DEVELOPER
+                        </h4>
+                        <p className="text-sm font-semibold text-gray-300">
+                          Swan Digital Solutions
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1 max-w-md">
+                          Designing and developing full-stack web applications, scalable APIs, database architecture, and modern responsive user interfaces.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-left md:text-right flex flex-col items-start md:items-end pl-15 md:pl-0 shrink-0">
+                      <span className="text-xs font-mono bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Present
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hosting Baba */}
+                <div className="relative group">
+                  <div className="absolute -left-[33px] top-1.5 w-4 h-4 rounded-full bg-gray-900 border-2 border-neon-cyan shadow-[0_0_10px_#03e9f4] group-hover:scale-125 transition-transform duration-300" />
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3">
+                    <div className="flex items-start gap-3.5">
+                      <div className="h-11 px-2.5 rounded-xl bg-black/90 border border-neon-cyan/40 flex items-center justify-center shrink-0 shadow-inner group-hover:border-neon-cyan group-hover:scale-105 transition-all overflow-hidden">
+                        <img
+                          src={hostingBabaLogo}
+                          alt="Hosting Baba Logo"
+                          className="h-7 w-auto object-contain"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-white group-hover:text-neon-cyan transition-colors duration-300">
+                          FULL STACK DEVELOPER
+                        </h4>
+                        <p className="text-sm font-semibold text-gray-300">
+                          Hosting Baba
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1 max-w-md">
+                          Building responsive web solutions, backend integrations, hosting infrastructure services, and performance-tuned web features.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-left md:text-right flex flex-col items-start md:items-end pl-15 md:pl-0 shrink-0">
+                      <span className="text-xs font-mono bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Present
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <h3 className="text-xl font-mono text-neon-cyan mb-6 flex items-center gap-2">
               <span className="text-neon-cyan">&lt;</span>
               Academic Core Matrix

@@ -3,8 +3,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useAI } from '../context/AIContext';
 
+import swanDigitalLogo from '../assets/swan-digital-logo.png';
+import hostingBabaLogo from '../assets/hosting-baba-logo.png';
+
 const roles = [
-  'Aspiring Software Developer',
+  'Full Stack Developer',
+  'Software Developer',
   'Java Developer',
   'AI/ML Enthusiast',
   'Web Developer',
@@ -179,6 +183,81 @@ const HeroSection = () => {
               {displayText}
               <span className="inline-block w-0.5 h-5 bg-neon-cyan ml-1 animate-blink align-middle" />
             </motion.h3>
+
+            {/* Current Working Designations */}
+            <motion.div variants={itemVariants} className="pt-1 pb-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono mb-2.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_6px_#10b981]" />
+                </span>
+                <span className="tracking-wider uppercase font-semibold text-[11px] sm:text-xs">
+                  Current Working Designations
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-xl mx-auto">
+                {/* Swan Digital Solutions */}
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative group overflow-hidden rounded-xl border border-red-500/30 bg-gradient-to-br from-red-950/25 via-gray-900/85 to-black/95 p-3.5 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-red-500/70 hover:shadow-[0_0_25px_rgba(239,68,68,0.25)] text-left flex flex-col justify-between"
+                >
+                  <div className="absolute top-0 right-0 -mr-6 -mt-6 w-20 h-20 bg-red-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-red-500/20 transition-colors" />
+                  <div className="flex items-center justify-between gap-2 mb-2 relative z-10">
+                    <div className="w-11 h-11 rounded-lg bg-black/90 border border-red-500/40 p-1 flex items-center justify-center shrink-0 shadow-inner group-hover:border-red-400 group-hover:scale-105 transition-all overflow-hidden">
+                      <img
+                        src={swanDigitalLogo}
+                        alt="Swan Digital Solutions"
+                        className="w-full h-full object-contain rounded-md"
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 inline-flex items-center gap-1.5 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Current
+                    </span>
+                  </div>
+                  <div className="relative z-10">
+                    <div className="text-[11px] sm:text-xs font-black tracking-wider uppercase text-red-400 group-hover:text-red-300 transition-colors">
+                      FULL STACK DEVELOPER
+                    </div>
+                    <p className="text-xs sm:text-sm font-semibold text-gray-200 truncate mt-0.5">
+                      Swan Digital Solutions
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* Hosting Baba */}
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative group overflow-hidden rounded-xl border border-neon-cyan/30 bg-gradient-to-br from-cyan-950/25 via-gray-900/85 to-black/95 p-3.5 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-neon-cyan/70 hover:shadow-[0_0_25px_rgba(3,233,244,0.25)] text-left flex flex-col justify-between"
+                >
+                  <div className="absolute top-0 right-0 -mr-6 -mt-6 w-20 h-20 bg-neon-cyan/10 rounded-full blur-xl pointer-events-none group-hover:bg-neon-cyan/20 transition-colors" />
+                  <div className="flex items-center justify-between gap-2 mb-2 relative z-10">
+                    <div className="h-11 px-2.5 rounded-lg bg-black/90 border border-neon-cyan/40 flex items-center justify-center shrink-0 shadow-inner group-hover:border-neon-cyan group-hover:scale-105 transition-all overflow-hidden">
+                      <img
+                        src={hostingBabaLogo}
+                        alt="Hosting Baba"
+                        className="h-7 w-auto object-contain"
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 inline-flex items-center gap-1.5 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Current
+                    </span>
+                  </div>
+                  <div className="relative z-10">
+                    <div className="text-[11px] sm:text-xs font-black tracking-wider uppercase text-neon-cyan group-hover:text-cyan-300 transition-colors">
+                      FULL STACK DEVELOPER
+                    </div>
+                    <p className="text-xs sm:text-sm font-semibold text-gray-200 truncate mt-0.5">
+                      Hosting Baba
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
 
             <motion.p variants={itemVariants} className="text-sm sm:text-base text-gray-300 max-w-xl mx-auto leading-relaxed px-1 sm:px-0">
               Java development and web technologies. Skilled in{' '}

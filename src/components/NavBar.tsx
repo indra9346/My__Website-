@@ -148,7 +148,7 @@ const NavBar = () => {
             whileHover={{ scale: 1.03 }}
           >
             K S INDRA KUMAR
-            <span className="block text-xs text-muted-foreground">Aspiring Software Developer</span>
+            <span className="block text-xs text-muted-foreground">Full Stack Developer</span>
           </motion.a>
 
           {/* Desktop Navigation */}

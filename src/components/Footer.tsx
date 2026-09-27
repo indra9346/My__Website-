@@ -11,7 +11,7 @@ const Footer = () => {
           <div className="mb-6 md:mb-0 text-center md:text-left">
             <h2 className="text-xl font-bold gradient-text">K S INDRA KUMAR</h2>
             <p className="mt-1 text-gray-400 text-sm">
-              Aspiring Software Developer | Java & Web Enthusiast
+              Full Stack Developer | Java & Web Enthusiast
             </p>
           </div>
 
