@@ -71,12 +71,13 @@ People can sign in with their email or phone number. Five wrong passwords lock t
    ```
 
    `cp_can` is false for anyone not signed in, signed out, suspended, past their end date, or still on a temporary password.
+   For owner-only rows (an audit log, say) use `(select public.cp_session_role('acme-erp')) in ('owner', 'co_owner', 'developer')`.
 
 ## Database functions
 
 | For | Functions |
 |---|---|
-| Client sites (anon key) | `cp_login`, `cp_session`, `cp_logout`, `cp_invite_info`, `cp_redeem_invite`, `cp_change_password`, `cp_exchange_handoff`, `cp_can` |
+| Client sites (anon key) | `cp_login`, `cp_session`, `cp_logout`, `cp_invite_info`, `cp_redeem_invite`, `cp_change_password`, `cp_exchange_handoff`, `cp_can`, `cp_session_role` |
 | Owners inside a site | `cp_team_list`, `cp_team_invite`, `cp_team_update`, `cp_team_set_status`, `cp_team_resend_invite` |
 | Admin panel (platform admins) | `cp_admin_overview`, `cp_admin_site_detail`, `cp_admin_save_site`, `cp_admin_delete_site`, `cp_admin_create_member`, `cp_admin_update_member`, `cp_admin_set_member_status`, `cp_admin_reset_member`, `cp_admin_delete_member`, `cp_admin_issue_handoff`, `cp_admin_set_developer_password`, `cp_admin_end_sessions` |
 

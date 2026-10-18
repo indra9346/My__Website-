@@ -1764,6 +1764,45 @@ begin
 end;
 $$;
 
+-- The role behind the request's "x-cp-session" header ('developer', 'owner',
+-- 'co_owner', 'manager', 'staff', 'viewer'), or null. For owner-only rows, e.g.
+--   using ((select public.cp_session_role('my-site')) in ('owner', 'co_owner', 'developer'))
+create or replace function public.cp_session_role(p_site text)
+returns text
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_token text := public.cp_request_header('x-cp-session');
+  v_session public.cp_sessions;
+  v_site public.client_sites;
+  v_role text;
+begin
+  if coalesce(v_token, '') = '' then
+    return null;
+  end if;
+  select * into v_session from public.cp_sessions where token_hash = public.cp_hash(v_token) and expires_at > now();
+  if not found then
+    return null;
+  end if;
+  select * into v_site from public.client_sites
+    where id = v_session.site_id and slug = lower(trim(coalesce(p_site, ''))) and status = 'active';
+  if not found then
+    return null;
+  end if;
+  if v_session.admin_user_id is not null then
+    return case when v_site.developer_access and exists (select 1 from public.cp_platform_admins where user_id = v_session.admin_user_id)
+      then 'developer' end;
+  end if;
+  select m.role into v_role from public.client_site_access m
+    where m.id = v_session.member_id and m.status = 'active' and not m.must_change_password
+      and (m.access_expires_at is null or m.access_expires_at > now());
+  return v_role;
+end;
+$$;
+
 -- -----------------------------------------------------------------------------
 -- Team management inside a client ERP (owners, co-owners and the developer)
 -- -----------------------------------------------------------------------------
@@ -1962,7 +2001,7 @@ declare
   r record;
   v_public constant text[] := array[
     'cp_login', 'cp_session', 'cp_logout', 'cp_invite_info', 'cp_redeem_invite', 'cp_change_password',
-    'cp_exchange_handoff', 'cp_can', 'cp_team_list', 'cp_team_invite', 'cp_team_update', 'cp_team_set_status',
+    'cp_exchange_handoff', 'cp_can', 'cp_session_role', 'cp_team_list', 'cp_team_invite', 'cp_team_update', 'cp_team_set_status',
     'cp_team_resend_invite'
   ];
   v_admin constant text[] := array[
