@@ -1,0 +1,100 @@
+/* AI mode only (boot screen and intro). Transform/opacity animations only, so
+   they run on the compositor and stay smooth while the 3D world prepares. */
+
+@keyframes ai-crt-on {
+  0% { transform: scale(0.35, 0.004); opacity: 0; }
+  30% { transform: scale(1, 0.004); opacity: 1; }
+  100% { transform: scale(1, 1); opacity: 1; }
+}
+
+@keyframes ai-crt-off {
+  0% { transform: scale(1, 1); opacity: 1; }
+  55% { transform: scale(1, 0.004); opacity: 1; }
+  100% { transform: scale(0, 0.004); opacity: 0; }
+}
+
+@keyframes ai-glitch {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 1px) skewX(-6deg); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, 0) skewX(4deg); }
+  80% { transform: translate(2px, 1px); }
+}
+
+@keyframes ai-type {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes ai-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes ai-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ai-pulse-soft {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+.ai-boot-card {
+  transform-origin: center;
+  animation: ai-crt-on 460ms cubic-bezier(0.22, 0.9, 0.24, 1) backwards;
+}
+
+.ai-boot-exit .ai-boot-card {
+  animation: ai-crt-off 320ms cubic-bezier(0.6, 0, 0.85, 0.3) forwards;
+}
+
+.ai-glitch-burst {
+  animation: ai-glitch 150ms steps(3) 2;
+}
+
+.ai-type-line {
+  animation: ai-type 520ms cubic-bezier(0.3, 0.6, 0.4, 1) backwards;
+}
+
+.ai-progress-bar {
+  transform-origin: left center;
+  animation: ai-progress 2.6s cubic-bezier(0.25, 0.1, 0.25, 1) backwards;
+}
+
+.ai-progress-wait {
+  animation: ai-pulse-soft 1s ease-in-out infinite;
+}
+
+.ai-spin-layer {
+  transform-origin: 50% 50%;
+  animation: ai-spin 5s linear infinite;
+  will-change: transform;
+}
+
+.ai-spin-layer-reverse {
+  transform-origin: 50% 50%;
+  animation: ai-spin 3.2s linear infinite reverse;
+  will-change: transform;
+}
+
+.ai-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(3, 233, 244, 0.045) 0px,
+    rgba(3, 233, 244, 0.045) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-boot-card,
+  .ai-glitch-burst,
+  .ai-type-line,
+  .ai-progress-bar,
+  .ai-spin-layer,
+  .ai-spin-layer-reverse {
+    animation: none !important;
+  }
+}

@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useMemo, type ReactNode } from 'react';
+import { Component, Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, X } from 'lucide-react';
 import { useAI } from '../../context/AIContext';
 import VideoBridge from '../VideoBridge';
@@ -83,13 +83,30 @@ export default function AIModeLayer() {
   const AICorePortal = useMemo(() => lazy(loadAICorePortal), [attempt]);
 
   const active = aiModeState !== 'inactive';
-  const showWorld = (aiModeState === 'portal' || aiModeState === 'world') && !aiError;
+  // Mount the 3D world from the start (hidden under the boot screen and intro) so it
+  // downloads and compiles while they play; the warp then starts without a hitch.
+  const showWorld = active && !aiError;
+
+  // Keep the boot screen for its CRT power-off as the intro takes over.
+  const [bootExiting, setBootExiting] = useState(false);
+  const previous = useRef(aiModeState);
+  useEffect(() => {
+    const was = previous.current;
+    previous.current = aiModeState;
+    if (was === 'activating' && aiModeState !== 'activating' && aiModeState !== 'inactive') {
+      setBootExiting(true);
+      const timer = window.setTimeout(() => setBootExiting(false), 380);
+      return () => window.clearTimeout(timer);
+    }
+    if (aiModeState === 'inactive') setBootExiting(false);
+    return undefined;
+  }, [aiModeState]);
 
   return (
     <>
       {/* Solid backdrop so the page never shows through between steps. */}
       {active && <div className="fixed inset-0 z-[9989] bg-[#020617]" aria-hidden="true" />}
-      {active && aiModeState === 'activating' && <AIActivationScreen />}
+      {active && (aiModeState === 'activating' || bootExiting) && <AIActivationScreen exiting={aiModeState !== 'activating'} />}
       {showWorld && (
         <PortalBoundary key={attempt} onError={() => failAIMode('load_failed')}>
           <Suspense fallback={<PortalLoading />}>

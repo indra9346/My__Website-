@@ -1,9 +1,9 @@
-import { Component, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAI } from '../context/AIContext';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
-import * as THREE from 'three';
-import { Volume2, VolumeX, Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, Play, ExternalLink } from 'lucide-react';
+import { Canvas } from '@react-three/fiber';
+import { Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, Play, ExternalLink } from 'lucide-react';
+import WorldScene from './ai/world/WorldScene';
+import type { WorldPhase } from './ai/world/physics';
 import { sfx } from './ai/sfx';
 import { DOORS, safeHref, youtubeId, type DoorItem } from './ai/doors';
 import { answer, DEFAULT_SUGGESTIONS, type AriaContext } from './ai/aria/engine';
@@ -11,6 +11,8 @@ import AriaMessage, { type AriaChatMessage } from './ai/aria/AriaMessage';
 import { ARIA_LLM_ENABLED, streamAriaAnswer, type RemoteTurn } from './ai/aria/remote';
 
 export { DOORS, type DoorItem };
+
+const CANVAS_GL = { powerPreference: 'high-performance' as const, antialias: true };
 
 // Compressed copies of public/ai-world-background.mp4 (41 MB).
 const WORLD_VIDEO = {
@@ -57,312 +59,6 @@ class SceneBoundary extends Component<{ onError: () => void; children: ReactNode
   }
 }
 
-// ==========================================
-// 1. 3D Space Warp Tunnel (R3F Component)
-// ==========================================
-const SpaceTunnel = ({ speed }: { speed: number }) => {
-  const tunnelRef = useRef<THREE.Group>(null);
-  const ringCount = 20;
-
-  useFrame((_, rawDelta) => {
-    if (!tunnelRef.current) return;
-    const delta = Math.min(rawDelta, 0.05); // no jumps after a background tab
-    tunnelRef.current.children.forEach((child) => {
-      child.position.z += speed * delta * 5;
-      if (speed > 0 && child.position.z > 5) {
-        child.position.z = -100;
-      } else if (speed < 0 && child.position.z < -100) {
-        child.position.z = 5;
-      }
-      child.rotation.z += 0.005;
-    });
-  });
-
-  return (
-    <>
-      {/* Star field stays put; only the rings fly past */}
-      <Stars radius={100} depth={50} count={3000} factor={6} saturation={0.5} fade speed={2} />
-      <group ref={tunnelRef}>
-        {Array.from({ length: ringCount }).map((_, i) => {
-          const z = -(i * (100 / ringCount));
-          const color = i % 2 === 0 ? '#03e9f4' : '#7B2CBF';
-          return (
-            <mesh key={i} position={[0, 0, z]}>
-              <torusGeometry args={[3.5, 0.05, 8, 32]} />
-              <meshBasicMaterial color={color} transparent opacity={0.6} />
-            </mesh>
-          );
-        })}
-      </group>
-    </>
-  );
-};
-
-// ==========================================
-// 2. 3D Tactical Escort Quadcopter Drone (Pure 3D Metallic Mesh & Spinning Rotors)
-// ==========================================
-const EscortDrone3D = ({ offset }: { offset: [number, number, number] }) => {
-  const droneRef = useRef<THREE.Group>(null);
-  const rotorGroupRef = useRef<THREE.Group>(null);
-
-  useFrame((state, rawDelta) => {
-    const delta = Math.min(rawDelta, 0.05);
-    const t = state.clock.getElapsedTime();
-    if (droneRef.current) {
-      droneRef.current.position.x = offset[0] + Math.sin(t * 1.2 + offset[0]) * 0.35;
-      droneRef.current.position.y = offset[1] + Math.cos(t * 1.5 + offset[1]) * 0.25;
-      droneRef.current.position.z = offset[2] + Math.sin(t * 0.9 + offset[2]) * 0.25;
-      droneRef.current.rotation.z = Math.sin(t * 1.2) * 0.06;
-    }
-    if (rotorGroupRef.current) {
-      rotorGroupRef.current.children.forEach((rotor) => {
-        rotor.rotation.y += delta * 25;
-      });
-    }
-  });
-
-  return (
-    <group ref={droneRef} position={offset}>
-      {/* Carbon Fiber Stealth Fuselage Hull */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[0.9, 0.22, 0.7]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
-      </mesh>
-
-      {/* Sensor Pod & Cyan Camera Lens */}
-      <mesh position={[0, -0.15, 0.25]}>
-        <sphereGeometry args={[0.12, 16, 16]} />
-        <meshStandardMaterial color="#03e9f4" emissive="#03e9f4" emissiveIntensity={1.5} />
-      </mesh>
-
-      {/* 4 Rotor Arms */}
-      {[
-        [-0.55, 0, 0.45],
-        [0.55, 0, 0.45],
-        [-0.55, 0, -0.45],
-        [0.55, 0, -0.45],
-      ].map((armPos, idx) => (
-        <mesh key={idx} position={armPos as [number, number, number]}>
-          <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
-          <meshStandardMaterial color="#334155" metalness={0.8} />
-        </mesh>
-      ))}
-
-      {/* 4 Spinning Rotor Discs */}
-      <group ref={rotorGroupRef}>
-        {[
-          [-0.7, 0.1, 0.6],
-          [0.7, 0.1, 0.6],
-          [-0.7, 0.1, -0.6],
-          [0.7, 0.1, -0.6],
-        ].map((pos, idx) => (
-          <mesh key={idx} position={pos as [number, number, number]}>
-            <cylinderGeometry args={[0.38, 0.38, 0.02, 16]} />
-            <meshBasicMaterial color="#03e9f4" transparent opacity={0.5} />
-          </mesh>
-        ))}
-      </group>
-
-      {/* Volumetric Downward Scanning Beam Cone */}
-      <mesh position={[0, -1.0, 0]}>
-        <cylinderGeometry args={[0.02, 0.8, 1.8, 16, 1, true]} />
-        <meshBasicMaterial color="#03e9f4" transparent opacity={0.15} side={THREE.DoubleSide} />
-      </mesh>
-    </group>
-  );
-};
-
-// ==========================================
-// 3. Central UAV Platform & Standing 3D White AI Metallic Robot Agent
-// ==========================================
-const CentralUAVAndRobot3D = ({ onClick }: { onClick: () => void }) => {
-  const mainGroupRef = useRef<THREE.Group>(null);
-  const chestReactorRef = useRef<THREE.MeshBasicMaterial>(null);
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    if (mainGroupRef.current) {
-      mainGroupRef.current.position.y = -0.3 + Math.sin(t * 1.2) * 0.12;
-      mainGroupRef.current.position.x = Math.sin(t * 0.6) * 0.1;
-      mainGroupRef.current.rotation.y = Math.sin(t * 0.5) * 0.05;
-    }
-    if (chestReactorRef.current) {
-      chestReactorRef.current.opacity = 0.7 + Math.sin(t * 4) * 0.3;
-    }
-  });
-
-  return (
-    <group
-      ref={mainGroupRef}
-      position={[0, -0.2, 0]}
-      onClick={onClick}
-      onPointerOver={() => (document.body.style.cursor = 'pointer')}
-      onPointerOut={() => (document.body.style.cursor = '')}
-    >
-      {/* 1. Tactical Stealth UAV Carrier Vessel Base */}
-      <group position={[0, -1.1, 0]}>
-        {/* Main Body Hull */}
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[4.2, 0.45, 2.6]} />
-          <meshStandardMaterial color="#020617" metalness={0.95} roughness={0.15} />
-        </mesh>
-
-        {/* Cockpit Canopy Glass */}
-        <mesh position={[0, 0.3, 0.4]}>
-          <boxGeometry args={[2.2, 0.35, 1.2]} />
-          <meshStandardMaterial color="#03e9f4" transparent opacity={0.35} metalness={0.9} />
-        </mesh>
-
-        {/* Outer Heavy Wing Engines */}
-        <mesh position={[-2.3, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.45, 0.45, 0.8, 16]} />
-          <meshStandardMaterial color="#1e293b" metalness={0.9} />
-        </mesh>
-        <mesh position={[2.3, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.45, 0.45, 0.8, 16]} />
-          <meshStandardMaterial color="#1e293b" metalness={0.9} />
-        </mesh>
-
-        {/* Illuminated Blue/Cyan Landing Deck Ring */}
-        <mesh position={[0, 0.23, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.85, 1.2, 32]} />
-          <meshBasicMaterial color="#03e9f4" side={THREE.DoubleSide} transparent opacity={0.8} />
-        </mesh>
-      </group>
-
-      {/* 2. Articulated Standing Metallic White AI Cyborg Robot */}
-      <group position={[0, 0.4, 0]}>
-        {/* Head / Helmet */}
-        <mesh position={[0, 1.3, 0]}>
-          <sphereGeometry args={[0.32, 32, 32]} />
-          <meshStandardMaterial color="#f8fafc" metalness={0.95} roughness={0.1} />
-        </mesh>
-
-        {/* Neon Cyan Visor Eye Band */}
-        <mesh position={[0, 1.34, 0.22]}>
-          <boxGeometry args={[0.42, 0.1, 0.2]} />
-          <meshBasicMaterial color="#03e9f4" />
-        </mesh>
-
-        {/* Neck */}
-        <mesh position={[0, 0.95, 0]}>
-          <cylinderGeometry args={[0.1, 0.12, 0.2, 16]} />
-          <meshStandardMaterial color="#334155" metalness={0.8} />
-        </mesh>
-
-        {/* Torso / Upper Body Chest Armor */}
-        <mesh position={[0, 0.45, 0]}>
-          <boxGeometry args={[0.75, 0.8, 0.45]} />
-          <meshStandardMaterial color="#f1f5f9" metalness={0.9} roughness={0.15} />
-        </mesh>
-
-        {/* Pulsing Arc Reactor Chest Core */}
-        <mesh position={[0, 0.52, 0.24]}>
-          <sphereGeometry args={[0.12, 16, 16]} />
-          <meshBasicMaterial ref={chestReactorRef} color="#03e9f4" transparent opacity={0.9} />
-        </mesh>
-
-        {/* Shoulder Armor Pads */}
-        <mesh position={[-0.48, 0.72, 0]}>
-          <sphereGeometry args={[0.2, 16, 16]} />
-          <meshStandardMaterial color="#020617" metalness={0.9} />
-        </mesh>
-        <mesh position={[0.48, 0.72, 0]}>
-          <sphereGeometry args={[0.2, 16, 16]} />
-          <meshStandardMaterial color="#020617" metalness={0.9} />
-        </mesh>
-
-        {/* Arms */}
-        <mesh position={[-0.48, 0.3, 0]}>
-          <cylinderGeometry args={[0.08, 0.07, 0.6, 16]} />
-          <meshStandardMaterial color="#e2e8f0" metalness={0.85} />
-        </mesh>
-        <mesh position={[0.48, 0.3, 0]}>
-          <cylinderGeometry args={[0.08, 0.07, 0.6, 16]} />
-          <meshStandardMaterial color="#e2e8f0" metalness={0.85} />
-        </mesh>
-
-        {/* Hips & Pelvis */}
-        <mesh position={[0, -0.05, 0]}>
-          <boxGeometry args={[0.6, 0.2, 0.38]} />
-          <meshStandardMaterial color="#0f172a" metalness={0.9} />
-        </mesh>
-
-        {/* Legs */}
-        <mesh position={[-0.22, -0.55, 0]}>
-          <cylinderGeometry args={[0.1, 0.08, 0.8, 16]} />
-          <meshStandardMaterial color="#f8fafc" metalness={0.9} />
-        </mesh>
-        <mesh position={[0.22, -0.55, 0]}>
-          <cylinderGeometry args={[0.1, 0.08, 0.8, 16]} />
-          <meshStandardMaterial color="#f8fafc" metalness={0.9} />
-        </mesh>
-
-        {/* Boots */}
-        <mesh position={[-0.22, -0.98, 0.06]}>
-          <boxGeometry args={[0.16, 0.12, 0.3]} />
-          <meshStandardMaterial color="#020617" metalness={0.95} />
-        </mesh>
-        <mesh position={[0.22, -0.98, 0.06]}>
-          <boxGeometry args={[0.16, 0.12, 0.3]} />
-          <meshStandardMaterial color="#020617" metalness={0.95} />
-        </mesh>
-      </group>
-    </group>
-  );
-};
-
-// ==========================================
-// 4. Clean Scene Container with UAV, Robo & Escort Drones
-// ==========================================
-const RoboticCity = ({ onBotClick }: { onBotClick: () => void }) => {
-  const { viewport } = useThree();
-  const isMobile = viewport.width < 5.5;
-
-  return (
-    <group>
-      <fog attach="fog" args={['#020617', 12, 50]} />
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[10, 20, 10]} intensity={1.8} />
-      <pointLight position={[0, 4, 2]} intensity={3.5} color="#03e9f4" distance={30} />
-
-      {/* Central Tactical Stealth UAV Platform & Standing Metallic White AI Robot */}
-      <CentralUAVAndRobot3D onClick={onBotClick} />
-
-      {/* 4 Escort Tactical Quadcopter Drones - Responsive Offsets for 100% Mobile Phone visibility */}
-      <EscortDrone3D offset={isMobile ? [-1.6, 1.9, 0.2] : [-3.6, 1.8, -0.5]} />
-      <EscortDrone3D offset={isMobile ? [1.6, 1.9, 0.2] : [3.6, 1.8, -0.5]} />
-      <EscortDrone3D offset={isMobile ? [-1.3, 0.3, 1.2] : [-2.2, 0.5, 1.6]} />
-      <EscortDrone3D offset={isMobile ? [1.3, 0.3, 1.2] : [2.2, 0.5, 1.6]} />
-    </group>
-  );
-};
-
-// ==========================================
-// 5. Centered Hero Camera Controller
-// ==========================================
-const SceneController = ({ state }: { state: string }) => {
-  const { camera, viewport } = useThree();
-  const isMobile = viewport.width < 5.5;
-
-  useFrame((stateData) => {
-    const t = stateData.clock.getElapsedTime();
-
-    if (state === 'portal') {
-      camera.position.set(0, 0, -t * 15);
-      camera.lookAt(0, 0, -t * 15 - 10);
-    } else if (state === 'world') {
-      // Perfectly centered camera with mobile depth adjustment
-      camera.position.x = Math.sin(t * 0.15) * 0.3;
-      camera.position.y = 1.0 + Math.sin(t * 0.3) * 0.1;
-      camera.position.z = isMobile ? 8.4 : 7.2;
-      camera.lookAt(0, 0.2, 0);
-    }
-  });
-
-  return null;
-};
-
 /** CSS-only warp used when the device has no WebGL. */
 const FlatWarp = () => (
   <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none">
@@ -388,7 +84,7 @@ const GalleryPanel = ({ door, onClose }: { door: DoorItem; onClose: () => void }
       <div
         role="dialog"
         aria-label={door.title}
-        className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden"
+        className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden"
       >
         <button onClick={onClose} aria-label="Close" className="absolute top-3.5 right-3.5 text-gray-400 hover:text-neon-cyan transition-colors">
           <X size={16} />
@@ -465,12 +161,11 @@ const nextId = () => ++messageId;
 // 7. Main Interactive Portal Component
 // ==========================================
 export default function AICorePortal() {
-  const { aiModeState, exitAIMode, exitToSection } = useAI();
+  const { aiModeState, exitAIMode, exitToSection, reducedMotion } = useAI();
   // Bot card starts closed so the 3D scene with the robot on the UAV is seen first.
   const [isBotVisible, setIsBotVisible] = useState(false);
   const [activeDoorId, setActiveDoorId] = useState<string>('ai-agent');
   const [galleryDoor, setGalleryDoor] = useState<DoorItem | null>(null);
-  const [isMuted, setIsMuted] = useState(sfx.isMuted);
   const [sceneFailed, setSceneFailed] = useState(() => !supportsWebGL());
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<AriaChatMessage[]>([
@@ -503,9 +198,12 @@ export default function AICorePortal() {
     };
   }, []);
 
-  useEffect(() => {
-    sfx.isMuted = isMuted;
-  }, [isMuted]);
+  // The 3D world is built while the boot screen and intro run ("standby"), so the
+  // warp and the arrival start instantly with every shader already compiled.
+  const phase: WorldPhase = aiModeState === 'world' ? 'world' : aiModeState === 'portal' ? 'portal' : 'standby';
+  const [hudVisible, setHudVisible] = useState(false);
+  const [arrivalFlash, setArrivalFlash] = useState(false);
+  const [compact] = useState(() => window.matchMedia?.('(max-width: 639px)').matches === true);
 
   useEffect(() => {
     if (aiModeState === 'portal') {
@@ -513,14 +211,30 @@ export default function AICorePortal() {
     } else if (aiModeState === 'world') {
       sfx.stopEntryBgm(); // Quiet when in world
       setIsBotVisible(false);
+      // Light flash out of the warp, then the HUD fades in once the robot has arrived.
+      setArrivalFlash(true);
+      const flashTimer = window.setTimeout(() => setArrivalFlash(false), 40);
+      const hudTimer = window.setTimeout(() => setHudVisible(true), reducedMotion ? 0 : 1900);
+      return () => {
+        window.clearTimeout(flashTimer);
+        window.clearTimeout(hudTimer);
+      };
     }
-  }, [aiModeState]);
+    return undefined;
+  }, [aiModeState, reducedMotion]);
 
   // Keep the newest message in view.
   useEffect(() => {
     const feed = feedRef.current;
     if (feed) feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
   }, [chatMessages, isTyping, isBotVisible]);
+
+  // The background loop buffers during the warp and starts playing on arrival.
+  useEffect(() => {
+    const video = bgVideoRef.current;
+    if (!video || aiModeState !== 'world') return;
+    void video.play().catch(() => undefined);
+  }, [aiModeState]);
 
   // Pause the background loop while the tab is hidden.
   useEffect(() => {
@@ -678,17 +392,38 @@ export default function AICorePortal() {
     exitAIMode();
   };
 
-  const showCanvas = !sceneFailed && (aiModeState === 'portal' || aiModeState === 'world');
+  const showCanvas = !sceneFailed;
+  const handleRobotSelect = useCallback(() => {
+    setGalleryDoor(null);
+    setIsBotVisible(true);
+  }, []);
+  const canvasDpr = useMemo<[number, number]>(() => [1, compact ? 1.5 : 1.75], [compact]);
+  const canvasCamera = useMemo(() => ({ position: [0, 0, 0] as [number, number, number], fov: compact ? 68 : 55, near: 0.1, far: 250 }), [compact]);
+  const handleCanvasCreated = useCallback(({ gl }: { gl: { domElement: HTMLCanvasElement } }) => {
+    gl.domElement.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      setSceneFailed(true);
+    });
+  }, []);
 
   return (
-    <div className="fixed inset-0 w-screen h-screen z-[9990] bg-[#020617] text-white overflow-hidden font-sans select-none" role="dialog" aria-modal="true" aria-label="AI mode">
+    <div
+      className="fixed inset-0 w-screen h-screen z-[9990] bg-[#020617] text-white overflow-hidden font-sans select-none"
+      style={{ visibility: phase === 'standby' ? 'hidden' : 'visible' }}
+      role="dialog"
+      aria-modal={phase !== 'standby'}
+      aria-hidden={phase === 'standby'}
+      aria-label="AI mode"
+    >
       {/* Background video (looping, muted) */}
-      {aiModeState === 'world' && (
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      {(aiModeState === 'portal' || aiModeState === 'world') && (
+        <div
+          className="absolute inset-0 z-0 pointer-events-none overflow-hidden transition-opacity ease-out"
+          style={{ opacity: aiModeState === 'world' ? 1 : 0, transitionDuration: '1200ms' }}
+        >
           {worldVideo.src ? (
             <video
               ref={bgVideoRef}
-              autoPlay
               muted
               loop
               playsInline
@@ -700,36 +435,36 @@ export default function AICorePortal() {
           ) : (
             <img src={WORLD_VIDEO.poster} alt="" className="w-full h-full object-cover object-center" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-slate-950/60 backdrop-blur-[0.5px]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-slate-950/60" />
         </div>
       )}
 
-      {/* 3D Canvas Viewport */}
+      {/* 3D world: warp tunnel, UAV carrier with the robot, escort drones */}
       {showCanvas && (
-        <div className="absolute top-0 left-0 w-screen h-screen z-10">
+        <div className="absolute inset-0 z-10" style={{ touchAction: 'none' }}>
           <SceneBoundary onError={() => setSceneFailed(true)}>
             <Canvas
-              dpr={[1, 1.75]}
-              gl={{ powerPreference: 'high-performance', antialias: true }}
-              camera={{ position: [0, 1.0, 7.5], fov: typeof window !== 'undefined' && window.innerWidth < 640 ? 68 : 55 }}
-              onCreated={({ gl }) => {
-                gl.domElement.addEventListener('webglcontextlost', (event) => {
-                  event.preventDefault();
-                  setSceneFailed(true);
-                });
-              }}
+              dpr={canvasDpr}
+              frameloop={phase === 'standby' ? 'demand' : 'always'}
+              gl={CANVAS_GL}
+              camera={canvasCamera}
+              onCreated={handleCanvasCreated}
             >
               <Suspense fallback={null}>
-                <SceneController state={aiModeState} />
-
-                {aiModeState === 'portal' && <SpaceTunnel speed={30} />}
-
-                {aiModeState === 'world' && <RoboticCity onBotClick={() => { setGalleryDoor(null); setIsBotVisible(true); }} />}
+                <WorldScene phase={phase} compact={compact} reducedMotion={reducedMotion} onRobotSelect={handleRobotSelect} />
               </Suspense>
             </Canvas>
           </SceneBoundary>
-          <div className="absolute inset-0 pointer-events-none z-20 bg-scanlines opacity-10" />
         </div>
+      )}
+
+      {/* Light flash out of the warp into the world */}
+      {aiModeState === 'world' && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-20 pointer-events-none bg-gradient-to-b from-white via-cyan-100 to-white"
+          style={{ opacity: arrivalFlash ? 0.9 : 0, transition: arrivalFlash ? 'none' : 'opacity 750ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+        />
       )}
 
       {/* Without WebGL the warp is drawn with CSS */}
@@ -739,21 +474,17 @@ export default function AICorePortal() {
       {aiModeState === 'world' && (
         <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-3 sm:p-6">
           {/* Top Bar Navigation */}
-          <div className="flex justify-between items-center w-full gap-2 z-50 pointer-events-auto">
-            <div className="border border-neon-cyan/30 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-md font-mono text-[10px] sm:text-xs text-neon-cyan flex items-center gap-2 shadow-[0_0_15px_rgba(3,233,244,0.15)]">
+          <div
+            className={`flex justify-between items-center w-full gap-2 z-50 transition-all duration-700 ease-out ${
+              hudVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-3 pointer-events-none'
+            }`}
+          >
+            <div className="border border-neon-cyan/30 bg-slate-950/90 px-3 py-1.5 rounded-md font-mono text-[10px] sm:text-xs text-neon-cyan flex items-center gap-2 shadow-[0_0_15px_rgba(3,233,244,0.15)]">
               <Radio size={12} className="animate-pulse" />
               <span className="font-bold tracking-wide">WHITE AI ROBOTICS WORLD</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="border border-gray-700 text-gray-400 hover:text-neon-cyan bg-slate-950/80 p-2 rounded-md transition-colors"
-                aria-label={isMuted ? 'Unmute Portal Sounds' : 'Mute Portal Sounds'}
-              >
-                {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-              </button>
-
               <button
                 onClick={handleTriggerReturn}
                 className="border border-pink-500/60 text-pink-400 bg-slate-950/80 hover:bg-pink-500 hover:text-black font-mono text-[10px] sm:text-xs px-3 py-1.5 rounded-md transition-all duration-300 flex items-center gap-1 font-bold shadow-[0_0_12px_rgba(255,46,99,0.3)]"
@@ -765,8 +496,13 @@ export default function AICorePortal() {
           </div>
 
           {/* Interactive Doors Hub Bar */}
-          <div className="w-full flex flex-col items-center justify-end mb-1 sm:mb-3 z-40 pointer-events-auto gap-1" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-            <div className="bg-slate-950/90 backdrop-blur-md border border-neon-cyan/30 rounded-xl p-2 max-w-2xl w-[98%] sm:w-auto shadow-[0_0_25px_rgba(3,233,244,0.2)]">
+          <div
+            className={`w-full flex flex-col items-center justify-end mb-1 sm:mb-3 z-40 gap-1 transition-all duration-700 ease-out delay-150 ${
+              hudVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
+            }`}
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          >
+            <div className="bg-slate-950/90 border border-neon-cyan/30 rounded-xl p-2 max-w-2xl w-[98%] sm:w-auto shadow-[0_0_25px_rgba(3,233,244,0.2)]">
               <div className="text-[9px] sm:text-[10px] font-mono text-gray-400 text-center uppercase tracking-wider mb-1 font-bold flex items-center justify-center gap-1.5">
                 <Bot size={11} className="text-neon-cyan" />
                 <span>AI Robotics Doors Hub</span>
@@ -823,7 +559,7 @@ export default function AICorePortal() {
               <div
                 role="dialog"
                 aria-label="ARIA assistant"
-                className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden select-text"
+                className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden select-text"
               >
                 <button
                   onClick={() => setIsBotVisible(false)}

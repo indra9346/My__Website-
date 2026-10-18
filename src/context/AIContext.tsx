@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { loadAICorePortal, resetAICorePortal } from '../components/ai/loadPortal';
 import { sfx } from '../components/ai/sfx';
+import { INTRO_VIDEO, preloadIntro, releaseIntro, waitForIntro } from '../components/ai/introVideo';
+import { EYE_TIMELINE } from '../components/ai/eyeTrack';
 
 export type AIModeState =
   | 'inactive'
@@ -27,6 +29,8 @@ interface AIContextProps {
   failAIMode: (reason?: Exclude<AIModeError, null>) => void;
   retryAIMode: () => void;
   aiError: AIModeError;
+  /** True while the boot screen waits for the intro video to buffer. */
+  bootWaiting: boolean;
   /** Increments on every retry so lazy components can be recreated. */
   attempt: number;
   reducedMotion: boolean;
@@ -35,11 +39,13 @@ interface AIContextProps {
 
 const AIContext = createContext<AIContextProps | undefined>(undefined);
 
-// Timeline of the experience (same as the original design).
-const BOOT_MS = 2600; // boot log screen
+// Timeline of the experience.
+const BOOT_MS = 2600; // boot log screen (minimum)
 const BOOT_MS_REDUCED = 900;
-const INTRO_WATCHDOG_MS = 6500; // VideoBridge normally hands over at 4.2 s
-const PORTAL_MS = 1500; // warp tunnel
+const INTRO_BUFFER_WAIT_MS = 2200; // extra time the boot screen may wait for the intro video
+// VideoBridge hands over when the clip reaches its white flash (about 5 s); this is only a safety net.
+const INTRO_WATCHDOG_MS = (EYE_TIMELINE.end / INTRO_VIDEO.clipSpeed + 4) * 1000;
+const PORTAL_MS = 1200; // 3D warp tunnel after the video's own tunnel
 const PORTAL_MS_REDUCED = 250;
 const LOAD_TIMEOUT_MS = 15000; // give up waiting for the 3D world after this
 const SECTION_OFFSET = 80; // same offset the page uses for its anchor links
@@ -51,6 +57,7 @@ function prefersReducedMotion(): boolean {
 export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [aiModeState, setState] = useState<AIModeState>('inactive');
   const [aiError, setAiError] = useState<AIModeError>(null);
+  const [bootWaiting, setBootWaiting] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [scrollPos, setScrollPos] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(prefersReducedMotion);
@@ -107,7 +114,9 @@ export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (stateRef.current === 'inactive') return;
       go('inactive');
       setAiError(null);
+      setBootWaiting(false);
       sfx.sleep();
+      releaseIntro();
       unlockPage();
 
       const ownsHistoryEntry = historyEntryRef.current && !fromHistory;
@@ -155,7 +164,8 @@ export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         historyEntryRef.current = false;
       }
 
-      // Start downloading the 3D world now; it's needed about 7 seconds from here.
+      // Start downloading the intro video and the 3D world now, while the boot screen runs.
+      if (!reduced) preloadIntro();
       loadAICorePortal().catch(() => undefined);
       go('activating');
     },
@@ -195,10 +205,25 @@ export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // so no step can be left waiting forever.
   useEffect(() => {
     if (aiModeState === 'activating') {
+      let cancelled = false;
       const timer = window.setTimeout(() => {
-        if (stateRef.current === 'activating') go(reducedMotion ? 'portal' : 'video_forward');
+        if (cancelled || stateRef.current !== 'activating') return;
+        if (reducedMotion) {
+          go('portal');
+          return;
+        }
+        // Only play the intro once it can play smoothly; otherwise go straight to the warp.
+        setBootWaiting(true);
+        void waitForIntro(INTRO_BUFFER_WAIT_MS).then((ready) => {
+          if (cancelled || stateRef.current !== 'activating') return;
+          setBootWaiting(false);
+          go(ready ? 'video_forward' : 'portal');
+        });
       }, reducedMotion ? BOOT_MS_REDUCED : BOOT_MS);
-      return () => window.clearTimeout(timer);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
     }
 
     if (aiModeState === 'video_forward') {
@@ -274,11 +299,12 @@ export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       failAIMode,
       retryAIMode,
       aiError,
+      bootWaiting,
       attempt,
       reducedMotion,
       scrollPos,
     }),
-    [aiModeState, enterAIMode, exitAIMode, exitToSection, setAiModeState, failAIMode, retryAIMode, aiError, attempt, reducedMotion, scrollPos],
+    [aiModeState, enterAIMode, exitAIMode, exitToSection, setAiModeState, failAIMode, retryAIMode, aiError, bootWaiting, attempt, reducedMotion, scrollPos],
   );
 
   return <AIContext.Provider value={value}>{children}</AIContext.Provider>;
