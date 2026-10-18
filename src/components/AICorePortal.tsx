@@ -1,120 +1,72 @@
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { Component, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useAI } from '../context/AIContext';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
-import { Shield, Activity, Volume2, VolumeX, Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, Cpu } from 'lucide-react';
+import { Volume2, VolumeX, Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, Play, ExternalLink } from 'lucide-react';
+import { sfx } from './ai/sfx';
+import { DOORS, safeHref, youtubeId, type DoorItem } from './ai/doors';
+import { answer, DEFAULT_SUGGESTIONS, type AriaContext } from './ai/aria/engine';
+import AriaMessage, { type AriaChatMessage } from './ai/aria/AriaMessage';
+import { ARIA_LLM_ENABLED, streamAriaAnswer, type RemoteTurn } from './ai/aria/remote';
 
-// ==========================================
-// 1. Advanced Web Audio Synthesizer (SFX & Entry BGM)
-// ==========================================
-class PortaSfxSynth {
-  private ctx: AudioContext | null = null;
-  private bgmOsc1: OscillatorNode | null = null;
-  private bgmOsc2: OscillatorNode | null = null;
-  private bgmGain: GainNode | null = null;
-  public isMuted = false;
+export { DOORS, type DoorItem };
 
-  isMobile() {
-    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
-  }
+// Compressed copies of public/ai-world-background.mp4 (41 MB).
+const WORLD_VIDEO = {
+  hd: '/media/ai-world-1080.mp4', // 6.7 MB
+  sd: '/media/ai-world-720.mp4', // 2.8 MB
+  poster: '/media/ai-world-poster.jpg',
+};
 
-  init() {
-    if (this.ctx) return;
-    try {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    } catch (e) {
-      console.error("Audio Context initialization failed", e);
-    }
-  }
+function connectionInfo() {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  return {
+    saveData: Boolean(connection?.saveData),
+    slow: /(^|-)(2g|3g)$/.test(connection?.effectiveType ?? ''),
+  };
+}
 
-  playBeep(freq = 550, duration = 0.08, gainVal = 0.015) {
-    if (this.isMuted || this.isMobile()) return;
-    this.init();
-    if (!this.ctx) return;
-    try {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-      gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-
-      osc.start();
-      osc.stop(this.ctx.currentTime + duration);
-    } catch (e) {}
-  }
-
-  playClick() {
-    this.playBeep(330, 0.06, 0.02);
-  }
-
-  // Powerful Advanced AI & Robo Entry BGM
-  playEntryBgm() {
-    if (this.isMuted || this.isMobile()) return;
-    this.init();
-    if (!this.ctx) return;
-    try {
-      this.stopEntryBgm();
-
-      const now = this.ctx.currentTime;
-      this.bgmOsc1 = this.ctx.createOscillator();
-      this.bgmOsc2 = this.ctx.createOscillator();
-      const filter = this.ctx.createBiquadFilter();
-      this.bgmGain = this.ctx.createGain();
-
-      this.bgmOsc1.type = 'sawtooth';
-      this.bgmOsc2.type = 'sine';
-      filter.type = 'lowpass';
-
-      this.bgmOsc1.frequency.setValueAtTime(65, now);
-      this.bgmOsc1.frequency.exponentialRampToValueAtTime(220, now + 3.0);
-
-      this.bgmOsc2.frequency.setValueAtTime(130, now);
-      this.bgmOsc2.frequency.exponentialRampToValueAtTime(440, now + 3.0);
-
-      filter.frequency.setValueAtTime(300, now);
-      filter.frequency.exponentialRampToValueAtTime(2500, now + 3.0);
-
-      this.bgmGain.gain.setValueAtTime(0.01, now);
-      this.bgmGain.gain.linearRampToValueAtTime(0.06, now + 1.5);
-      this.bgmGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
-
-      this.bgmOsc1.connect(filter);
-      this.bgmOsc2.connect(filter);
-      filter.connect(this.bgmGain);
-      this.bgmGain.connect(this.ctx.destination);
-
-      this.bgmOsc1.start(now);
-      this.bgmOsc2.start(now);
-      this.bgmOsc1.stop(now + 3.5);
-      this.bgmOsc2.stop(now + 3.5);
-    } catch (e) {}
-  }
-
-  stopEntryBgm() {
-    try {
-      if (this.bgmOsc1) { this.bgmOsc1.stop(); this.bgmOsc1.disconnect(); this.bgmOsc1 = null; }
-      if (this.bgmOsc2) { this.bgmOsc2.stop(); this.bgmOsc2.disconnect(); this.bgmOsc2 = null; }
-      if (this.bgmGain) { this.bgmGain.disconnect(); this.bgmGain = null; }
-    } catch (e) {}
+function supportsWebGL(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = (canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
+    if (!gl) return false;
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return true;
+  } catch {
+    return false;
   }
 }
 
-const sfx = new PortaSfxSynth();
+/** If the 3D scene throws (old GPU, driver issue), the world continues without it. */
+class SceneBoundary extends Component<{ onError: () => void; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.warn('3D scene unavailable, continuing without it:', error);
+    this.props.onError();
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 // ==========================================
-// 2. 3D Space Warp Tunnel (R3F Component)
+// 1. 3D Space Warp Tunnel (R3F Component)
 // ==========================================
 const SpaceTunnel = ({ speed }: { speed: number }) => {
   const tunnelRef = useRef<THREE.Group>(null);
   const ringCount = 20;
 
-  useFrame((_, delta) => {
+  useFrame((_, rawDelta) => {
     if (!tunnelRef.current) return;
+    const delta = Math.min(rawDelta, 0.05); // no jumps after a background tab
     tunnelRef.current.children.forEach((child) => {
       child.position.z += speed * delta * 5;
       if (speed > 0 && child.position.z > 5) {
@@ -127,30 +79,34 @@ const SpaceTunnel = ({ speed }: { speed: number }) => {
   });
 
   return (
-    <group ref={tunnelRef}>
+    <>
+      {/* Star field stays put; only the rings fly past */}
       <Stars radius={100} depth={50} count={3000} factor={6} saturation={0.5} fade speed={2} />
-      {Array.from({ length: ringCount }).map((_, i) => {
-        const z = -(i * (100 / ringCount));
-        const color = i % 2 === 0 ? '#03e9f4' : '#7B2CBF';
-        return (
-          <mesh key={i} position={[0, 0, z]}>
-            <torusGeometry args={[3.5, 0.05, 8, 32]} />
-            <meshBasicMaterial color={color} transparent opacity={0.6} />
-          </mesh>
-        );
-      })}
-    </group>
+      <group ref={tunnelRef}>
+        {Array.from({ length: ringCount }).map((_, i) => {
+          const z = -(i * (100 / ringCount));
+          const color = i % 2 === 0 ? '#03e9f4' : '#7B2CBF';
+          return (
+            <mesh key={i} position={[0, 0, z]}>
+              <torusGeometry args={[3.5, 0.05, 8, 32]} />
+              <meshBasicMaterial color={color} transparent opacity={0.6} />
+            </mesh>
+          );
+        })}
+      </group>
+    </>
   );
 };
 
 // ==========================================
-// 3. 3D Tactical Escort Quadcopter Drone (Pure 3D Metallic Mesh & Spinning Rotors)
+// 2. 3D Tactical Escort Quadcopter Drone (Pure 3D Metallic Mesh & Spinning Rotors)
 // ==========================================
 const EscortDrone3D = ({ offset }: { offset: [number, number, number] }) => {
   const droneRef = useRef<THREE.Group>(null);
   const rotorGroupRef = useRef<THREE.Group>(null);
 
-  useFrame((state, delta) => {
+  useFrame((state, rawDelta) => {
+    const delta = Math.min(rawDelta, 0.05);
     const t = state.clock.getElapsedTime();
     if (droneRef.current) {
       droneRef.current.position.x = offset[0] + Math.sin(t * 1.2 + offset[0]) * 0.35;
@@ -217,7 +173,7 @@ const EscortDrone3D = ({ offset }: { offset: [number, number, number] }) => {
 };
 
 // ==========================================
-// 4. Central UAV Platform & Standing 3D White AI Metallic Robot Agent
+// 3. Central UAV Platform & Standing 3D White AI Metallic Robot Agent
 // ==========================================
 const CentralUAVAndRobot3D = ({ onClick }: { onClick: () => void }) => {
   const mainGroupRef = useRef<THREE.Group>(null);
@@ -236,8 +192,13 @@ const CentralUAVAndRobot3D = ({ onClick }: { onClick: () => void }) => {
   });
 
   return (
-    <group ref={mainGroupRef} position={[0, -0.2, 0]} onClick={onClick}>
-      
+    <group
+      ref={mainGroupRef}
+      position={[0, -0.2, 0]}
+      onClick={onClick}
+      onPointerOver={() => (document.body.style.cursor = 'pointer')}
+      onPointerOut={() => (document.body.style.cursor = '')}
+    >
       {/* 1. Tactical Stealth UAV Carrier Vessel Base */}
       <group position={[0, -1.1, 0]}>
         {/* Main Body Hull */}
@@ -245,7 +206,7 @@ const CentralUAVAndRobot3D = ({ onClick }: { onClick: () => void }) => {
           <boxGeometry args={[4.2, 0.45, 2.6]} />
           <meshStandardMaterial color="#020617" metalness={0.95} roughness={0.15} />
         </mesh>
-        
+
         {/* Cockpit Canopy Glass */}
         <mesh position={[0, 0.3, 0.4]}>
           <boxGeometry args={[2.2, 0.35, 1.2]} />
@@ -271,7 +232,6 @@ const CentralUAVAndRobot3D = ({ onClick }: { onClick: () => void }) => {
 
       {/* 2. Articulated Standing Metallic White AI Cyborg Robot */}
       <group position={[0, 0.4, 0]}>
-        
         {/* Head / Helmet */}
         <mesh position={[0, 1.3, 0]}>
           <sphereGeometry args={[0.32, 32, 32]} />
@@ -353,7 +313,7 @@ const CentralUAVAndRobot3D = ({ onClick }: { onClick: () => void }) => {
 };
 
 // ==========================================
-// 5. Clean Scene Container with UAV, Robo & Escort Drones
+// 4. Clean Scene Container with UAV, Robo & Escort Drones
 // ==========================================
 const RoboticCity = ({ onBotClick }: { onBotClick: () => void }) => {
   const { viewport } = useThree();
@@ -379,7 +339,7 @@ const RoboticCity = ({ onBotClick }: { onBotClick: () => void }) => {
 };
 
 // ==========================================
-// 6. Centered Hero Camera Controller
+// 5. Centered Hero Camera Controller
 // ==========================================
 const SceneController = ({ state }: { state: string }) => {
   const { camera, viewport } = useThree();
@@ -387,7 +347,7 @@ const SceneController = ({ state }: { state: string }) => {
 
   useFrame((stateData) => {
     const t = stateData.clock.getElapsedTime();
-    
+
     if (state === 'portal') {
       camera.position.set(0, 0, -t * 15);
       camera.lookAt(0, 0, -t * 15 - 10);
@@ -403,111 +363,200 @@ const SceneController = ({ state }: { state: string }) => {
   return null;
 };
 
-// ==========================================
-// 7. Door Hub Configuration
-// ==========================================
-export interface DoorItem {
-  id: string;
-  title: string;
-  subtitle: string;
-  type: 'ai' | 'projects' | 'vlogs' | 'creations';
-  status: 'active' | 'locked';
-  target?: string;
-}
-
-export const DOORS: DoorItem[] = [
-  {
-    id: 'ai-agent',
-    title: 'AI Agent (ARIA)',
-    subtitle: 'Real-Time Portfolio Intelligence',
-    type: 'ai',
-    status: 'active',
-  },
-  {
-    id: 'projects',
-    title: 'Projects Hub',
-    subtitle: 'ToLetHub, I-Mall & Projects',
-    type: 'projects',
-    status: 'active',
-    target: '#projects',
-  },
-  {
-    id: 'vlogs',
-    title: 'Vlogs & Media',
-    subtitle: 'Tech Talks & Video Streams',
-    type: 'vlogs',
-    status: 'locked',
-  },
-  {
-    id: 'ai-creations',
-    title: 'AI Creations',
-    subtitle: 'Generative AI & ML Experiments',
-    type: 'creations',
-    status: 'locked',
-  },
-];
+/** CSS-only warp used when the device has no WebGL. */
+const FlatWarp = () => (
+  <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none">
+    {[0, 1, 2, 3].map((i) => (
+      <span
+        key={i}
+        className="absolute rounded-full border border-neon-cyan/40 animate-ping"
+        style={{ width: `${8 + i * 10}rem`, height: `${8 + i * 10}rem`, animationDelay: `${i * 220}ms`, animationDuration: '1.4s' }}
+      />
+    ))}
+  </div>
+);
 
 // ==========================================
-// 8. Main Interactive Portal Component
+// 6. Gallery panel for doors activated later (vlogs, AI creations)
+// ==========================================
+const GalleryPanel = ({ door, onClose }: { door: DoorItem; onClose: () => void }) => {
+  const [playing, setPlaying] = useState<string | null>(null);
+  const items = door.items ?? [];
+
+  return (
+    <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-2 sm:p-6 pb-20 sm:pb-24">
+      <div
+        role="dialog"
+        aria-label={door.title}
+        className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden"
+      >
+        <button onClick={onClose} aria-label="Close" className="absolute top-3.5 right-3.5 text-gray-400 hover:text-neon-cyan transition-colors">
+          <X size={16} />
+        </button>
+        <div className="flex items-center gap-2.5 border-b border-gray-800/80 pb-2 pr-6">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 flex items-center justify-center text-neon-cyan">
+            {door.type === 'vlogs' ? <Video size={16} /> : <Sparkles size={16} />}
+          </div>
+          <div>
+            <h3 className="font-mono text-xs sm:text-sm font-bold text-white leading-tight">{door.title.toUpperCase()}</h3>
+            <p className="text-[8px] sm:text-[10px] font-mono text-neon-cyan tracking-wider uppercase mt-0.5">{door.subtitle}</p>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2.5 font-mono text-xs p-1">
+          {items.length === 0 && <p className="text-slate-400 text-center py-8">Nothing here yet. Check back soon.</p>}
+          {items.map((item, index) => {
+            const key = `${index}-${item.title}`;
+            const yt = youtubeId(item.youtube);
+            const link = safeHref(item.url);
+            const video = safeHref(item.video);
+            const image = safeHref(item.image);
+            return (
+              <div key={key} className="border border-slate-800 rounded-lg bg-black/60 overflow-hidden">
+                {yt &&
+                  (playing === key ? (
+                    <iframe
+                      className="w-full aspect-video"
+                      src={`https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0`}
+                      title={item.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <button onClick={() => setPlaying(key)} className="relative block w-full aspect-video group" aria-label={`Play ${item.title}`}>
+                      <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" loading="lazy" className="w-full h-full object-cover" />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10 transition-colors">
+                        <span className="w-12 h-12 rounded-full bg-neon-cyan/90 text-black flex items-center justify-center">
+                          <Play size={20} />
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                {!yt && video && <video src={video} controls preload="none" playsInline className="w-full aspect-video bg-black" />}
+                {!yt && !video && image && <img src={image} alt={item.title} loading="lazy" className="w-full object-cover" />}
+                <div className="p-2.5">
+                  <div className="text-white font-bold">{item.title}</div>
+                  {item.description && <p className="text-slate-400 text-[11px] mt-1 leading-relaxed">{item.description}</p>}
+                  {link && (
+                    <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1.5 text-neon-cyan hover:underline text-[11px] font-bold">
+                      <ExternalLink size={11} /> Open
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GREETING = `ONLINE & READY
+
+I'm ARIA, the assistant in Indra's AI world. I answer from the facts on this portfolio and his resume.
+
+Ask me about his projects (ToLetHub, I-Mall, client websites), his work at Swan Digital Solutions and Hosting Baba, his skills, education, or how to contact him.`;
+
+let messageId = 1;
+const nextId = () => ++messageId;
+
+// ==========================================
+// 7. Main Interactive Portal Component
 // ==========================================
 export default function AICorePortal() {
-  const { aiModeState, setAiModeState } = useAI();
-  const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
-  // DEFAULT TO FALSE ON ENTRY so full 3D scene & Silver Robot on UAV is visible first!
+  const { aiModeState, exitAIMode, exitToSection } = useAI();
+  // Bot card starts closed so the 3D scene with the robot on the UAV is seen first.
   const [isBotVisible, setIsBotVisible] = useState(false);
   const [activeDoorId, setActiveDoorId] = useState<string>('ai-agent');
-  const [isMuted, setIsMuted] = useState(false);
+  const [galleryDoor, setGalleryDoor] = useState<DoorItem | null>(null);
+  const [isMuted, setIsMuted] = useState(sfx.isMuted);
+  const [sceneFailed, setSceneFailed] = useState(() => !supportsWebGL());
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'ai' | 'user'; text: string; formatted?: boolean }>>([
-    {
-      sender: 'ai',
-      text: "ONLINE & READY\n\nI am ARIA (White AI Core), trained A-to-Z on K S Indra Kumar's verified portfolio.\n\nAsk me about ToLetHub (Real Estate Platform), I-Mall (Frontend Only E-Commerce UI), skills, B.E. AI/ML degree, or contact info."
-    }
+  const [chatMessages, setChatMessages] = useState<AriaChatMessage[]>([
+    { id: 1, sender: 'ai', text: GREETING, blocks: [{ kind: 'text', text: GREETING }] },
   ]);
+  const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
   const [isTyping, setIsTyping] = useState(false);
+  const [worldVideo] = useState(() => {
+    const { saveData, slow } = connectionInfo();
+    const small = window.matchMedia?.('(max-width: 767px)').matches === true;
+    return { src: saveData ? null : small || slow ? WORLD_VIDEO.sd : WORLD_VIDEO.hd };
+  });
+
+  const ariaContextRef = useRef<AriaContext>({});
+  const feedRef = useRef<HTMLDivElement>(null);
+  const bgVideoRef = useRef<HTMLVideoElement>(null);
+  const timersRef = useRef<number[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
+  const remoteFailuresRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const timers = timersRef.current;
+    return () => {
+      mountedRef.current = false;
+      timers.forEach((t) => window.clearTimeout(t));
+      abortRef.current?.abort();
+      document.body.style.cursor = '';
+    };
+  }, []);
 
   useEffect(() => {
     sfx.isMuted = isMuted;
   }, [isMuted]);
 
   useEffect(() => {
-    if (aiModeState === 'activating') {
-      sfx.playEntryBgm(); // Play entry BGM during activation
-      setTerminalLogs([]);
-
-      const intervals = [600, 1400, 2200];
-      const logTexts = [
-        "> INITIALIZING ADVANCED AI ROBOTICS DECK...",
-        "> ENGAGING DIRECT COGNITIVE PATHWAY...",
-        "> REALITY DECONSTRUCTION OVERRIDE SEQUENCE LOADED.",
-      ];
-
-      intervals.forEach((time, index) => {
-        setTimeout(() => {
-          setTerminalLogs((prev) => [...prev, logTexts[index]]);
-          sfx.playBeep(550 + index * 40, 0.06, 0.015);
-        }, time);
-      });
-
-      // Quick 2.6s transition to video bridge
-      const timer = setTimeout(() => {
-        document.body.classList.remove('ai-portal-glitch');
-        setAiModeState('video_forward');
-      }, 2600);
-
-      return () => clearTimeout(timer);
-    } else if (aiModeState === 'portal') {
+    if (aiModeState === 'portal') {
       sfx.playBeep(660, 0.2, 0.02);
-      // Quick 1.5s transition to 3D world
-      const timer = setTimeout(() => {
-        setAiModeState('world');
-      }, 1500);
-      return () => clearTimeout(timer);
     } else if (aiModeState === 'world') {
       sfx.stopEntryBgm(); // Quiet when in world
       setIsBotVisible(false);
     }
-  }, [aiModeState, setAiModeState]);
+  }, [aiModeState]);
+
+  // Keep the newest message in view.
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (feed) feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+  }, [chatMessages, isTyping, isBotVisible]);
+
+  // Pause the background loop while the tab is hidden.
+  useEffect(() => {
+    const onVisibility = () => {
+      const video = bgVideoRef.current;
+      if (!video) return;
+      if (document.hidden) video.pause();
+      else void video.play().catch(() => undefined);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  // Esc closes an open panel first (the AI context exits AI mode otherwise).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (galleryDoor) {
+        event.preventDefault();
+        setGalleryDoor(null);
+      } else if (isBotVisible) {
+        event.preventDefault();
+        setIsBotVisible(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [galleryDoor, isBotVisible]);
+
+  const later = (fn: () => void, ms: number) => {
+    const id = window.setTimeout(() => {
+      timersRef.current = timersRef.current.filter((t) => t !== id);
+      if (mountedRef.current) fn();
+    }, ms);
+    timersRef.current.push(id);
+  };
 
   const handleDoorSelect = (door: DoorItem) => {
     sfx.playClick();
@@ -515,351 +564,187 @@ export default function AICorePortal() {
       setChatMessages((prev) => [
         ...prev,
         {
+          id: nextId(),
           sender: 'ai',
-          text: `🔒 DOOR LOCKED: ${door.title}\n\nThis door is reserved for future deployment. Append an entry to the DOORS hub list to unlock!`
-        }
+          text: `${door.title} is coming soon.`,
+          blocks: [
+            {
+              kind: 'text',
+              text: `${door.title} is coming soon.\n\nMeanwhile, ask me about Indra's projects, skills, experience or how to contact him.`,
+            },
+          ],
+        },
       ]);
+      setGalleryDoor(null);
       setIsBotVisible(true);
       return;
     }
 
     setActiveDoorId(door.id);
-    if (door.id === 'ai-agent') {
+    if (door.type === 'ai') {
+      setGalleryDoor(null);
       setIsBotVisible(true);
-    } else if (door.id === 'projects') {
-      // INSTANT exit to Projects section on website
-      setAiModeState('inactive');
-      setTimeout(() => {
-        const el = document.getElementById('projects');
-        if (el) {
-          const offset = 80;
-          const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
-          window.scrollTo({ top, behavior: 'smooth' });
-        }
-      }, 50);
+    } else if (door.type === 'projects') {
+      // Leave AI mode and scroll to the Projects section of the website
+      exitToSection(door.target ?? 'projects');
+    } else {
+      setIsBotVisible(false);
+      setGalleryDoor(door);
     }
   };
 
-  const queryDatabase = (query: string): string => {
-    const q = query.toLowerCase().trim();
+  const appendLocalAnswer = useCallback((question: string, replaceId?: number) => {
+    const { reply, ctx } = answer(question, ariaContextRef.current);
+    ariaContextRef.current = ctx;
+    const message: AriaChatMessage = { id: replaceId ?? nextId(), sender: 'ai', text: reply.text, blocks: reply.blocks, source: 'local' };
+    setChatMessages((prev) => (replaceId ? prev.map((m) => (m.id === replaceId ? message : m)) : [...prev, message]));
+    setSuggestions(reply.suggestions);
+  }, []);
 
-    if (q.includes('tolethub') || q.includes('to let hub') || q.includes('tolet') || q.includes('rental') || q.includes('house') || q.includes('property') || q.includes('apartment')) {
-      return `ToLetHub Project Info`;
+  const askRemote = async (question: string, history: AriaChatMessage[]) => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const id = nextId();
+    setChatMessages((prev) => [...prev, { id, sender: 'ai', text: '', streaming: true, source: 'llm' }]);
+    const turns: RemoteTurn[] = [...history, { id: 0, sender: 'user' as const, text: question }]
+      .filter((m) => m.text.trim())
+      .map((m): RemoteTurn => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
+
+    let received = '';
+    let frame = 0;
+    const flush = () => {
+      frame = 0;
+      if (!mountedRef.current) return;
+      const text = received;
+      setChatMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text } : m)));
+    };
+
+    try {
+      for await (const chunk of streamAriaAnswer(turns, controller.signal)) {
+        received += chunk;
+        if (!frame) frame = window.requestAnimationFrame(flush);
+      }
+      if (!received.trim()) throw new Error('empty answer');
+      remoteFailuresRef.current = 0;
+      if (frame) window.cancelAnimationFrame(frame);
+      if (mountedRef.current) setChatMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text: received, streaming: false } : m)));
+      // Keep follow-ups ("what tech did it use?") working with the local engine too.
+      ariaContextRef.current = answer(question, ariaContextRef.current).ctx;
+    } catch {
+      if (frame) window.cancelAnimationFrame(frame);
+      if (!mountedRef.current) return;
+      remoteFailuresRef.current += 1;
+      if (received.trim()) {
+        setChatMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text: `${received}\n\n(connection dropped)`, streaming: false } : m)));
+      } else {
+        appendLocalAnswer(question, id);
+      }
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null;
     }
-
-    if (q.includes('imall') || q.includes('i-mall') || q.includes('i mall')) {
-      return `I-Mall Project Info`;
-    }
-
-    if (q.includes('who is') || q.includes('about indra') || q.includes('profile') || q.includes('biography') || q.includes('who are you') || q.includes('bio') || q.includes('tell me about him') || q.includes('summary')) {
-      return `Indra Kumar Bio`;
-    }
-
-    if (q.includes('project') || q.includes('work') || q.includes('built') || q.includes('develop') || q.includes('repo') || q.includes('apps') || q.includes('applications')) {
-      return `Selected Repositories`;
-    }
-
-    if (q.includes('skill') || q.includes('language') || q.includes('technology') || q.includes('database') || q.includes('stack') || q.includes('tool') || q.includes('java') || q.includes('react') || q.includes('postgres') || q.includes('html') || q.includes('css') || q.includes('hibernate') || q.includes('supabase') || q.includes('python') || q.includes('dsa') || q.includes('c ')) {
-      return `Technical Stack Verification`;
-    }
-
-    if (q.includes('education') || q.includes('graduate') || q.includes('college') || q.includes('school') || q.includes('degree') || q.includes('study') || q.includes('cgpa') || q.includes('sjc') || q.includes('marks') || q.includes('puc') || q.includes('vtu')) {
-      return `Academic Matrix Verification`;
-    }
-
-    if (q.includes('contact') || q.includes('email') || q.includes('connect') || q.includes('reach') || q.includes('linkedin') || q.includes('github') || q.includes('phone') || q.includes('mail')) {
-      return `Connection Channels`;
-    }
-
-    if (q.includes('resume') || q.includes('cv') || q.includes('pdf') || q.includes('download')) {
-      return `Resume Access Link`;
-    }
-
-    return `VERIFIED RECORD INTELLIGENCE: "${query}"\n\nK S Indra Kumar — Full-Stack Web Developer & B.E. AI/ML Graduate (SJC Institute of Technology, CGPA: 8.59/10).\n\nPortfolio Projects:\n• ToLetHub: House & Apartment Rental Property Platform.\n• I-Mall: Pure Frontend E-Commerce Web Application (HTML, CSS, JavaScript).\n• Portfolio Intelligence (ARIA): 3D AI World Portal.\n\nCore Tech: Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, Supabase, Python, DSA.\n\nContact: ik9893344@gmail.com | GitHub: github.com/indra9346 | LinkedIn: linkedin.com/in/k-s-indra-kumar-7049b1289`;
   };
 
   const handleSendMessage = (textOverride?: string) => {
-    const userText = (textOverride !== undefined ? textOverride : chatInput).trim();
+    const userText = (textOverride !== undefined ? textOverride : chatInput).trim().slice(0, 500);
     if (!userText || isTyping) return;
 
-    setChatMessages((prev) => [...prev, { sender: 'user', text: userText }]);
+    const history = chatMessages.slice(1); // skip the greeting
+    setChatMessages((prev) => [...prev, { id: nextId(), sender: 'user', text: userText }]);
     setChatInput('');
     setIsTyping(true);
     sfx.playClick();
 
-    setTimeout(() => {
-      const response = queryDatabase(userText);
-      setChatMessages((prev) => [...prev, { sender: 'ai', text: response, formatted: true }]);
+    // Typed questions go to Claude when it's switched on; topic chips always use the instant local answers.
+    const useRemote = ARIA_LLM_ENABLED && textOverride === undefined && remoteFailuresRef.current < 2;
+    if (useRemote) {
+      void askRemote(userText, history).finally(() => {
+        if (!mountedRef.current) return;
+        setIsTyping(false);
+        sfx.playBeep(660, 0.08, 0.01);
+      });
+      return;
+    }
+
+    later(() => {
+      appendLocalAnswer(userText);
       setIsTyping(false);
       sfx.playBeep(660, 0.08, 0.01);
-    }, 150);
+    }, 220);
   };
 
-  // INSTANT Exit / Disconnect button action (Zero lag!)
+  // EXIT WORLD: instant return to the portfolio
   const handleTriggerReturn = () => {
     sfx.playBeep(330, 0.2, 0.02);
-    setAiModeState('inactive'); // Instant exit to main portfolio view!
+    exitAIMode();
   };
 
-  const renderMessageContent = (msg: { sender: 'ai' | 'user'; text: string; formatted?: boolean }) => {
-    if (msg.sender === 'user') {
-      return <div className="text-right text-neon-cyan font-semibold">{msg.text}</div>;
-    }
-
-    if (msg.text.includes('ToLetHub Project Info')) {
-      return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
-          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5 text-xs sm:text-sm">
-            <FolderGit2 size={14} />
-            <span>[ PROJECT: TOLETHUB ]</span>
-          </div>
-          <p className="text-slate-200 leading-relaxed">
-            <b>ToLetHub</b> is Indra's Property Rental & Real Estate Platform built for discovering apartments, homes, and rental spaces.
-          </p>
-          <div className="text-slate-300 flex flex-col gap-1 text-[11px] mt-0.5">
-            <div>• <b>Purpose</b>: Connects house seekers directly with property owners.</div>
-            <div>• <b>Features</b>: Location filtering, price categorization, property detail cards, contact inquiry node.</div>
-            <div>• <b>Tech Stack</b>: HTML5, CSS3, JavaScript, dynamic web components.</div>
-          </div>
-        </div>
-      );
-    }
-
-    if (msg.text.includes('I-Mall Project Info')) {
-      return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
-          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5 text-xs sm:text-sm">
-            <FolderGit2 size={14} />
-            <span>[ PROJECT: I-MALL (FRONTEND ONLY) ]</span>
-          </div>
-          <p className="text-slate-200 leading-relaxed">
-            <b>I-Mall</b> is an interactive <b>Pure Frontend E-Commerce Web Application</b>.
-          </p>
-          <div className="text-slate-300 flex flex-col gap-1 text-[11px] mt-0.5">
-            <div>• <b>Architecture</b>: Pure Frontend Web Application (HTML, CSS, JavaScript).</div>
-            <div>• <b>Features</b>: Dynamic product marketplace UI, real-time shopping cart state, search filters.</div>
-            <div>• <b>Tech Stack</b>: Pure HTML5, CSS3, JavaScript & DOM manipulation.</div>
-          </div>
-        </div>
-      );
-    }
-
-    if (msg.text.includes('Indra Kumar Bio')) {
-      return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
-          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5 text-xs sm:text-sm">
-            <Shield size={14} />
-            <span>[ INDRA KUMAR - PROFILE SUMMARY ]</span>
-          </div>
-          <p className="text-slate-200 leading-relaxed">
-            Hi! I'm K S Indra Kumar, a B.E. graduate in Artificial Intelligence & Machine Learning with a strong focus on full-stack web application development.
-          </p>
-          <p className="text-slate-400 text-[11px] leading-relaxed">
-            Proficient in building scalable frontend UIs and robust backend architectures using Java, React.js, JavaScript, HTML, CSS, Hibernate, PostgreSQL, and Supabase.
-          </p>
-        </div>
-      );
-    }
-
-    if (msg.text.includes('Technical Stack Verification')) {
-      return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
-          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
-            <Cpu size={14} />
-            <span>[ SYSTEM: VERIFIED TECH STACK ]</span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1 text-slate-300">
-            <div>Java (Core/Backend):</div><div className="text-green-400 font-bold">██████████ 96%</div>
-            <div>React.js & JS:</div><div className="text-green-400 font-bold">████████░░ 85%</div>
-            <div>HTML & CSS:</div><div className="text-green-400 font-bold">█████████░ 90%</div>
-            <div>PostgreSQL & SQL:</div><div className="text-green-400 font-bold">████████░░ 82%</div>
-            <div>Hibernate & Supabase:</div><div className="text-green-400 font-bold">████████░░ 80%</div>
-            <div>Python (AI/ML & DSA):</div><div className="text-green-400 font-bold">█████████░ 88%</div>
-          </div>
-        </div>
-      );
-    }
-
-    if (msg.text.includes('Academic Matrix Verification')) {
-      return (
-        <div className="border border-purple-500/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
-          <div className="text-purple-400 border-b border-purple-500/20 pb-1 font-bold tracking-wider flex items-center gap-1.5">
-            <Activity size={14} />
-            <span>[ ACADEMIC QUALIFICATIONS ]</span>
-          </div>
-          <div className="flex flex-col gap-2 mt-1 text-slate-300">
-            <div className="border-l-2 border-purple-400 pl-2.5">
-              <div className="font-bold text-white">B.E. in Artificial Intelligence & Machine Learning (2026)</div>
-              <div className="text-gray-400">SJC Institute of Technology | CGPA: 8.59/10</div>
-            </div>
-            <div className="border-l-2 border-purple-400 pl-2.5">
-              <div className="font-bold text-white">PUC - PCMC (2022)</div>
-              <div className="text-gray-400">LRG Naidu Jr. College | Score: 85.3%</div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (msg.text.includes('Selected Repositories')) {
-      return (
-        <div className="border border-neon-cyan/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs w-full">
-          <div className="text-neon-cyan border-b border-neon-cyan/20 pb-1 font-bold tracking-wider flex items-center justify-between">
-            <span>[ REPOSITORY PORTFOLIO ]</span>
-            <span className="text-[10px] text-green-400 font-normal">VERIFIED</span>
-          </div>
-          <div className="flex flex-col gap-2 mt-1 w-full">
-            <div className="border border-slate-800 p-2.5 rounded bg-black/60">
-              <div className="text-white font-bold flex justify-between items-center text-xs">
-                <span>🏠 TOLETHUB</span>
-                <span className="text-[9px] border border-neon-cyan/40 text-neon-cyan px-1.5 py-0.5 rounded font-bold">REAL ESTATE</span>
-              </div>
-              <div className="text-slate-400 text-[11px] mt-1 leading-relaxed">
-                Property & apartment rental platform connecting owners and tenants with location search.
-              </div>
-            </div>
-            <div className="border border-slate-800 p-2.5 rounded bg-black/60">
-              <div className="text-white font-bold flex justify-between items-center text-xs">
-                <span>🛍️ I-MALL</span>
-                <span className="text-[9px] border border-purple-500/40 text-purple-400 px-1.5 py-0.5 rounded font-bold">FRONTEND ONLY</span>
-              </div>
-              <div className="text-slate-400 text-[11px] mt-1 leading-relaxed">
-                Interactive frontend e-commerce web app built with HTML5, CSS3, and JavaScript UI.
-              </div>
-            </div>
-            <div className="border border-slate-800 p-2.5 rounded bg-black/60">
-              <div className="text-white font-bold flex justify-between items-center text-xs">
-                <span>⚡ PORTFOLIO INTELLIGENCE (ARIA)</span>
-                <span className="text-[9px] border border-neon-cyan/40 text-neon-cyan px-1.5 py-0.5 rounded font-bold">LIVE WORLD</span>
-              </div>
-              <div className="text-slate-400 text-[11px] mt-1 leading-relaxed">
-                3D AI World portal with real-time portfolio intelligence bot and modular doors engine.
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (msg.text.includes('Connection Channels')) {
-      return (
-        <div className="border border-pink-500/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
-          <div className="text-pink-400 border-b border-pink-500/20 pb-1 font-bold tracking-wider">
-            <span>[ DIRECT CONTACT CHANNELS ]</span>
-          </div>
-          <div className="flex flex-col gap-1.5 mt-1 text-slate-300">
-            <div>Email: <span className="text-white font-bold">ik9893344@gmail.com</span></div>
-            <div>GitHub: <a href="https://github.com/indra9346" target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline font-bold">github.com/indra9346</a></div>
-            <div>LinkedIn: <a href="https://linkedin.com/in/k-s-indra-kumar-7049b1289" target="_blank" rel="noopener noreferrer" className="text-neon-cyan hover:underline font-bold">indra-kumar</a></div>
-          </div>
-        </div>
-      );
-    }
-
-    if (msg.text.includes('Resume Access Link')) {
-      return (
-        <div className="border border-pink-500/30 bg-slate-950/90 p-3 rounded-lg flex flex-col gap-1.5 font-mono text-xs">
-          <div className="text-pink-400 border-b border-pink-500/20 pb-1 font-bold tracking-wider">
-            <span>[ VERIFIED RESUME DOC ]</span>
-          </div>
-          <div className="text-slate-300 mt-1">
-            Indra Kumar's resume is ready for inspection:
-            <div className="mt-2.5">
-              <a 
-                href="/resume.pdf" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="border border-neon-cyan text-neon-cyan px-3.5 py-2 rounded hover:bg-neon-cyan hover:text-black transition-all inline-block text-xs font-bold shadow-[0_0_12px_rgba(3,233,244,0.2)]"
-              >
-                📥 DOWNLOAD RESUME (PDF)
-              </a>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return <div className="whitespace-pre-wrap text-slate-200 leading-relaxed font-mono">{msg.text}</div>;
-  };
+  const showCanvas = !sceneFailed && (aiModeState === 'portal' || aiModeState === 'world');
 
   return (
-    <div className="fixed inset-0 w-screen h-screen z-[9990] bg-[#020617] text-white overflow-hidden font-sans select-none">
-      
-      {/* Background Video (Looping continuously with CSS autoplay muted loop playsinline) */}
+    <div className="fixed inset-0 w-screen h-screen z-[9990] bg-[#020617] text-white overflow-hidden font-sans select-none" role="dialog" aria-modal="true" aria-label="AI mode">
+      {/* Background video (looping, muted) */}
       {aiModeState === 'world' && (
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            src="/ai-world-background.mp4"
-            className="w-full h-full object-cover object-center"
-          />
+          {worldVideo.src ? (
+            <video
+              ref={bgVideoRef}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              poster={WORLD_VIDEO.poster}
+              src={worldVideo.src}
+              className="w-full h-full object-cover object-center"
+            />
+          ) : (
+            <img src={WORLD_VIDEO.poster} alt="" className="w-full h-full object-cover object-center" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-slate-950/60 backdrop-blur-[0.5px]" />
         </div>
       )}
 
       {/* 3D Canvas Viewport */}
-      {(aiModeState === 'portal' || aiModeState === 'world' || aiModeState === 'deactivating') && (
+      {showCanvas && (
         <div className="absolute top-0 left-0 w-screen h-screen z-10">
-          <Canvas camera={{ position: [0, 1.0, 7.5], fov: typeof window !== 'undefined' && window.innerWidth < 640 ? 68 : 55 }}>
-            <Suspense fallback={null}>
-              <SceneController state={aiModeState} />
+          <SceneBoundary onError={() => setSceneFailed(true)}>
+            <Canvas
+              dpr={[1, 1.75]}
+              gl={{ powerPreference: 'high-performance', antialias: true }}
+              camera={{ position: [0, 1.0, 7.5], fov: typeof window !== 'undefined' && window.innerWidth < 640 ? 68 : 55 }}
+              onCreated={({ gl }) => {
+                gl.domElement.addEventListener('webglcontextlost', (event) => {
+                  event.preventDefault();
+                  setSceneFailed(true);
+                });
+              }}
+            >
+              <Suspense fallback={null}>
+                <SceneController state={aiModeState} />
 
-              {(aiModeState === 'portal' || aiModeState === 'deactivating') && (
-                <SpaceTunnel speed={30} />
-              )}
+                {aiModeState === 'portal' && <SpaceTunnel speed={30} />}
 
-              {aiModeState === 'world' && (
-                <RoboticCity onBotClick={() => setIsBotVisible(true)} />
-              )}
-            </Suspense>
-          </Canvas>
+                {aiModeState === 'world' && <RoboticCity onBotClick={() => { setGalleryDoor(null); setIsBotVisible(true); }} />}
+              </Suspense>
+            </Canvas>
+          </SceneBoundary>
           <div className="absolute inset-0 pointer-events-none z-20 bg-scanlines opacity-10" />
         </div>
       )}
 
-      {/* Activation logs screen */}
-      {aiModeState === 'activating' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-[#030712] z-50">
-          <div className="border border-neon-cyan/30 bg-black/80 max-w-sm sm:max-w-md w-[92%] rounded-lg p-5 font-mono text-sm shadow-[0_0_20px_rgba(3,233,244,0.1)] relative">
-            <div className="absolute -top-1 -left-1 w-4 h-4 border-t border-l border-neon-cyan" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 border-t border-r border-neon-cyan" />
-            <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b border-l border-neon-cyan" />
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b border-r border-neon-cyan" />
+      {/* Without WebGL the warp is drawn with CSS */}
+      {sceneFailed && aiModeState === 'portal' && <FlatWarp />}
 
-            <div className="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
-              <div className="flex items-center gap-2 text-neon-cyan text-xs sm:text-sm">
-                <Shield className="animate-pulse" size={14} />
-                <span>AI GATEWAY OVERRIDE</span>
-              </div>
-              <span className="text-[10px] sm:text-xs text-red-500 animate-ping font-bold">ACTIVE</span>
-            </div>
-
-            <div className="h-36 sm:h-44 flex flex-col gap-2 overflow-y-auto text-green-400 text-[10px] sm:text-xs leading-relaxed">
-              <div>&gt; System override initialized...</div>
-              {terminalLogs.map((log, idx) => (
-                <div key={idx} className="animate-fade-in">{log}</div>
-              ))}
-              <div className="animate-pulse inline-block w-1.5 h-3.5 bg-green-400 align-middle" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Metropolis HUD controls & Door Hub */}
+      {/* HUD controls & Door Hub */}
       {aiModeState === 'world' && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-3 sm:p-6 w-screen h-screen">
-          
+        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-3 sm:p-6">
           {/* Top Bar Navigation */}
           <div className="flex justify-between items-center w-full gap-2 z-50 pointer-events-auto">
             <div className="border border-neon-cyan/30 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-md font-mono text-[10px] sm:text-xs text-neon-cyan flex items-center gap-2 shadow-[0_0_15px_rgba(3,233,244,0.15)]">
               <Radio size={12} className="animate-pulse" />
               <span className="font-bold tracking-wide">WHITE AI ROBOTICS WORLD</span>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsMuted(!isMuted)}
@@ -879,9 +764,8 @@ export default function AICorePortal() {
             </div>
           </div>
 
-          {/* Interactive Doors Hub Bar (Desktop & Mobile responsive fit with safe area padding) */}
-          <div className="w-full flex flex-col items-center justify-end mb-1 sm:mb-3 pb-safe z-40 pointer-events-auto gap-1">
-            
+          {/* Interactive Doors Hub Bar */}
+          <div className="w-full flex flex-col items-center justify-end mb-1 sm:mb-3 z-40 pointer-events-auto gap-1" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="bg-slate-950/90 backdrop-blur-md border border-neon-cyan/30 rounded-xl p-2 max-w-2xl w-[98%] sm:w-auto shadow-[0_0_25px_rgba(3,233,244,0.2)]">
               <div className="text-[9px] sm:text-[10px] font-mono text-gray-400 text-center uppercase tracking-wider mb-1 font-bold flex items-center justify-center gap-1.5">
                 <Bot size={11} className="text-neon-cyan" />
@@ -890,11 +774,12 @@ export default function AICorePortal() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {DOORS.map((door) => {
-                  const isActive = activeDoorId === door.id && isBotVisible;
+                  const isActive = activeDoorId === door.id && (isBotVisible || galleryDoor?.id === door.id);
                   return (
                     <button
                       key={door.id}
                       onClick={() => handleDoorSelect(door)}
+                      aria-label={door.status === 'locked' ? `${door.title} (coming soon)` : door.title}
                       className={`flex flex-col items-start p-2 sm:p-2.5 rounded-lg border font-mono text-left transition-all duration-300 relative overflow-hidden ${
                         door.status === 'locked'
                           ? 'border-gray-800 bg-slate-900/40 text-gray-500 cursor-not-allowed'
@@ -907,8 +792,8 @@ export default function AICorePortal() {
                         <span className="text-[10px] sm:text-xs font-bold flex items-center gap-1">
                           {door.type === 'ai' && <Bot size={12} className="text-neon-cyan" />}
                           {door.type === 'projects' && <FolderGit2 size={12} className="text-green-400" />}
-                          {door.type === 'vlogs' && <Video size={12} className="text-gray-500" />}
-                          {door.type === 'creations' && <Sparkles size={12} className="text-gray-500" />}
+                          {door.type === 'vlogs' && <Video size={12} className={door.status === 'locked' ? 'text-gray-500' : 'text-neon-cyan'} />}
+                          {door.type === 'creations' && <Sparkles size={12} className={door.status === 'locked' ? 'text-gray-500' : 'text-neon-cyan'} />}
                           <span>{door.title}</span>
                         </span>
                         {door.status === 'locked' ? (
@@ -918,14 +803,10 @@ export default function AICorePortal() {
                         )}
                       </div>
 
-                      <div className="text-[8px] sm:text-[9px] text-gray-400 leading-tight line-clamp-1">
-                        {door.subtitle}
-                      </div>
+                      <div className="text-[8px] sm:text-[9px] text-gray-400 leading-tight line-clamp-1">{door.subtitle}</div>
 
                       {door.status === 'locked' && (
-                        <div className="absolute top-1 right-1 text-[7px] border border-gray-700 bg-black/60 px-1 rounded text-gray-400 uppercase">
-                          Locked
-                        </div>
+                        <div className="absolute top-1 right-1 text-[7px] border border-gray-700 bg-black/60 px-1 rounded text-gray-400 uppercase">Soon</div>
                       )}
                     </button>
                   );
@@ -934,13 +815,19 @@ export default function AICorePortal() {
             </div>
           </div>
 
-          {/* Sci-Fi ARIA White AI Agent Card Dashboard (Mobile-friendly max-height and fit) */}
+          {galleryDoor && <GalleryPanel door={galleryDoor} onClose={() => setGalleryDoor(null)} />}
+
+          {/* ARIA assistant card */}
           {isBotVisible && (
             <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-2 sm:p-6 pb-20 sm:pb-24">
-              <div className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden">
-                
+              <div
+                role="dialog"
+                aria-label="ARIA assistant"
+                className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 backdrop-blur-2xl rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden select-text"
+              >
                 <button
                   onClick={() => setIsBotVisible(false)}
+                  aria-label="Close ARIA"
                   className="absolute top-3.5 right-3.5 text-gray-400 hover:text-neon-cyan transition-colors"
                 >
                   <X size={16} />
@@ -955,35 +842,40 @@ export default function AICorePortal() {
                     <h3 className="font-mono text-xs sm:text-sm font-bold text-white leading-tight">ARIA · WHITE AI INTELLIGENCE</h3>
                     <p className="text-[8px] sm:text-[10px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1.5 mt-0.5">
                       <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
-                      <span>REAL-TIME VERIFIED SYSTEM</span>
+                      <span>{ARIA_LLM_ENABLED ? 'Online · Claude-assisted' : 'Online · Portfolio knowledge'}</span>
                     </p>
                   </div>
                 </div>
 
                 {/* Chat Feed */}
-                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin flex flex-col gap-2 font-mono text-xs p-2.5 bg-black/70 border border-gray-900 rounded-xl">
-                  {chatMessages.map((msg, idx) => (
-                    <div key={idx} className="w-full flex flex-col">
-                      {renderMessageContent(msg)}
+                <div
+                  ref={feedRef}
+                  aria-live="polite"
+                  className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin flex flex-col gap-2 font-mono text-xs p-2.5 bg-black/70 border border-gray-900 rounded-xl"
+                >
+                  {chatMessages.map((msg) => (
+                    <div key={msg.id} className="w-full flex flex-col">
+                      <AriaMessage message={msg} />
                     </div>
                   ))}
-                  {isTyping && (
+                  {isTyping && !chatMessages[chatMessages.length - 1]?.streaming && (
                     <div className="bg-slate-900/60 text-neon-cyan self-start border border-neon-cyan/20 rounded-md px-3 py-1.5 flex items-center gap-1.5 font-mono text-xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-bounce" style={{ animationDelay: '300ms' }} />
-                      <span className="text-[10px] text-gray-400">Processing real-time response...</span>
+                      <span className="text-[10px] text-gray-400">Thinking...</span>
                     </div>
                   )}
                 </div>
 
-                {/* Quick Topic Chips (Optimized for Mobile) */}
+                {/* Topic chips (follow the conversation) */}
                 <div className="flex flex-wrap gap-1 justify-center py-0.5">
-                  {['Bio', 'ToLetHub', 'I-Mall', 'Skills', 'Education', 'Contact', 'Resume'].map((cat) => (
+                  {suggestions.slice(0, 8).map((cat) => (
                     <button
                       key={cat}
                       onClick={() => handleSendMessage(cat)}
-                      className="border border-neon-cyan/30 hover:border-neon-cyan text-neon-cyan/90 hover:text-neon-cyan bg-slate-950/60 font-mono text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md transition-all duration-200 font-semibold"
+                      disabled={isTyping}
+                      className="border border-neon-cyan/30 hover:border-neon-cyan text-neon-cyan/90 hover:text-neon-cyan bg-slate-950/60 font-mono text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md transition-all duration-200 font-semibold disabled:opacity-50"
                     >
                       {cat}
                     </button>
@@ -991,36 +883,35 @@ export default function AICorePortal() {
                 </div>
 
                 {/* Input Controls */}
-                <div className="flex gap-2 pt-1 border-t border-gray-900">
+                <form
+                  className="flex gap-2 pt-1 border-t border-gray-900"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleSendMessage();
+                  }}
+                >
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Ask ARIA about ToLetHub, I-Mall, skills..."
-                    className="flex-1 bg-black/80 border border-gray-800 rounded-lg px-3 py-1.5 font-mono text-xs text-white focus:outline-none focus:border-neon-cyan placeholder:text-gray-600"
+                    maxLength={500}
+                    enterKeyHint="send"
+                    aria-label="Ask ARIA a question"
+                    placeholder="Ask ARIA about projects, skills, experience..."
+                    className="flex-1 min-w-0 bg-black/80 border border-gray-800 rounded-lg px-3 py-1.5 font-mono text-base sm:text-xs text-white focus:outline-none focus:border-neon-cyan placeholder:text-gray-600"
                   />
                   <button
-                    onClick={() => handleSendMessage()}
-                    className="border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black px-3 py-1.5 rounded-lg transition-colors font-bold flex items-center justify-center"
+                    type="submit"
+                    disabled={isTyping || !chatInput.trim()}
+                    aria-label="Send"
+                    className="border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black px-3 py-1.5 rounded-lg transition-colors font-bold flex items-center justify-center disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-neon-cyan"
                   >
                     <Send size={14} />
                   </button>
-                </div>
+                </form>
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Exit screen */}
-      {aiModeState === 'deactivating' && (
-        <div className="absolute inset-0 bg-[#020617] z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in pointer-events-none">
-          <div className="border border-pink-500/30 bg-black/90 p-5 rounded-xl max-w-xs w-full text-center shadow-[0_0_20px_rgba(255,46,99,0.15)]">
-            <Shield className="mx-auto text-pink-500 animate-pulse mb-3" size={24} />
-            <p className="font-mono text-xs text-pink-400 uppercase font-bold tracking-wider mb-1">🔌 Disconnecting AI World</p>
-            <p className="text-[10px] text-gray-400 font-mono">Returning to main portfolio view...</p>
-          </div>
         </div>
       )}
     </div>

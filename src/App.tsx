@@ -1,5 +1,5 @@
 
-import React, { Suspense, lazy } from "react";
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,16 +15,12 @@ import AdminPromotions from "./pages/AdminPromotions";
 import AdminClientAccess from "./pages/AdminClientAccess";
 import AdminLayout from "./components/AdminLayout";
 import CustomCursor from "./components/CustomCursor";
-import { AIContextProvider, useAI } from "./context/AIContext";
-import VideoBridge from "./components/VideoBridge";
-
-const AICorePortal = lazy(() => import("./components/AICorePortal"));
+import { AIContextProvider } from "./context/AIContext";
+import AIModeLayer from "./components/ai/AIModeLayer";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { aiModeState } = useAI();
-
   return (
     <TooltipProvider>
       <CustomCursor />
@@ -46,12 +42,8 @@ const AppContent = () => {
         </Routes>
       </BrowserRouter>
 
-      {aiModeState !== 'inactive' && (
-        <Suspense fallback={null}>
-          <AICorePortal />
-        </Suspense>
-      )}
-      <VideoBridge />
+      {/* GO INTO AI MODE: boot screen, eye intro, warp and the 3D world */}
+      <AIModeLayer />
     </TooltipProvider>
   );
 };
