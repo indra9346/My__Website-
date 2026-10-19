@@ -314,7 +314,7 @@ const HeroSection = () => {
               </motion.a>
 
               {/* A small robot lives in this button: it peeks out and beckons visitors in. */}
-              <div className="w-full sm:basis-full flex flex-col sm:flex-row sm:justify-center pt-9 sm:pt-10">
+              <div className="w-full sm:basis-full flex flex-col sm:flex-row sm:justify-center pt-11 sm:pt-12">
                 <PeekingRobotButton onClick={enterAIMode} />
               </div>
             </motion.div>

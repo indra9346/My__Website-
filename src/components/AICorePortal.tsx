@@ -206,6 +206,8 @@ export default function AICorePortal() {
   const [hudVisible, setHudVisible] = useState(false);
   const [arrivalFlash, setArrivalFlash] = useState(false);
   const [compact] = useState(() => window.matchMedia?.('(max-width: 639px)').matches === true);
+  // Below desktop width the cards sit in one swipeable row so they never cover the robot.
+  const [dockCarousel] = useState(() => window.matchMedia?.('(max-width: 1023px)').matches === true);
 
   useEffect(() => {
     if (aiModeState === 'portal') {
@@ -627,7 +629,7 @@ export default function AICorePortal() {
               hudVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
             } ${compact && panelOpen ? 'hidden' : ''}`}
           >
-            <DoorDock activeId={panelOpen ? activeDoorId : null} onAction={handleDoorSelect} compact={compact} />
+            <DoorDock activeId={panelOpen ? activeDoorId : null} onAction={handleDoorSelect} compact={dockCarousel} />
           </div>
         </div>
       )}
@@ -721,7 +723,7 @@ function DoorDock({ activeId, onAction, compact }: { activeId: string | null; on
         {compact && <span className="text-gray-500 normal-case tracking-normal font-normal">· swipe, tap to open</span>}
       </div>
       <div
-        className={compact ? 'flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-2 px-2 pb-0.5' : 'grid grid-cols-2 lg:grid-cols-4 gap-2'}
+        className={compact ? 'flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-2 px-2 pb-0.5' : 'grid grid-cols-4 gap-2'}
         style={compact ? { touchAction: 'pan-x', scrollPaddingInline: '0.5rem' } : undefined}
       >
         {DOORS.map((door) => {

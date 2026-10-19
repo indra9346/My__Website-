@@ -1,6 +1,6 @@
 import { useMemo, useRef, type RefObject } from 'react';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { RoundedBox } from '@react-three/drei';
+import { ContactShadows, RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import Glow from './Glow';
 import { Spring, clamp, lerp, phaseTime, safeDelta, smoothstep, vehicle, wobble, worldClock } from './physics';
@@ -39,18 +39,21 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
   const kneeR = useRef<THREE.Group>(null);
   const ankleL = useRef<THREE.Group>(null);
   const ankleR = useRef<THREE.Group>(null);
-  const eyeStrip = useRef<THREE.Mesh>(null);
+  const eyeStrip = useRef<THREE.Group>(null);
   const eyeGlow = useRef<THREE.Sprite>(null);
   const coreGlow = useRef<THREE.Sprite>(null);
 
   const m = useMemo(
     () => ({
-      shell: new THREE.MeshPhysicalMaterial({ color: '#eef2f7', metalness: 0.22, roughness: 0.26, clearcoat: 1, clearcoatRoughness: 0.1 }),
-      trim: new THREE.MeshPhysicalMaterial({ color: '#cfd8e3', metalness: 0.35, roughness: 0.34, clearcoat: 0.6, clearcoatRoughness: 0.2 }),
-      joint: new THREE.MeshStandardMaterial({ color: '#1a2130', metalness: 0.85, roughness: 0.38 }),
+      // Armour: polished white plates over a gunmetal under-suit, gold accents.
+      shell: new THREE.MeshPhysicalMaterial({ color: '#f1f4f8', metalness: 0.45, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.05 }),
+      trim: new THREE.MeshPhysicalMaterial({ color: '#d4a94e', metalness: 0.95, roughness: 0.22, clearcoat: 0.6, clearcoatRoughness: 0.15 }),
+      joint: new THREE.MeshStandardMaterial({ color: '#1c222c', metalness: 0.88, roughness: 0.34 }),
+      metal: new THREE.MeshStandardMaterial({ color: '#9aa5b4', metalness: 1, roughness: 0.16 }),
       dark: new THREE.MeshStandardMaterial({ color: '#0b1018', metalness: 0.7, roughness: 0.45 }),
-      visor: new THREE.MeshPhysicalMaterial({ color: '#04070d', metalness: 0.55, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.03 }),
-      glow: new THREE.MeshStandardMaterial({ color: '#03e9f4', emissive: '#03e9f4', emissiveIntensity: 0.4, toneMapped: false }),
+      seam: new THREE.MeshStandardMaterial({ color: '#05070b', metalness: 0.5, roughness: 0.6 }),
+      face: new THREE.MeshPhysicalMaterial({ color: '#e6ebf1', metalness: 0.92, roughness: 0.14, clearcoat: 1, clearcoatRoughness: 0.04 }),
+      glow: new THREE.MeshStandardMaterial({ color: '#bff6ff', emissive: '#22d3ee', emissiveIntensity: 0.4, toneMapped: false }),
       hit: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
     }),
     [],
@@ -184,67 +187,114 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
     onSelect();
   };
 
-  const arm = (side: 1 | -1, shoulderRef: RefObject<THREE.Group>, elbowRef: RefObject<THREE.Group>) => (
-    <group ref={shoulderRef} position={[0.43 * side, 0.6, 0]}>
+  // Five-finger hand: palm, back plate, four two-segment fingers and a thumb.
+  const hand = (side: 1 | -1) => (
+    <group position={[0, -0.335, 0]}>
       <mesh material={m.joint}>
-        <sphereGeometry args={[0.1, 24, 16]} />
+        <sphereGeometry args={[0.03, 16, 12]} />
       </mesh>
-      <mesh material={m.shell} position={[0.02 * side, 0.04, 0]} scale={[1.1, 0.85, 1.1]}>
-        <sphereGeometry args={[0.15, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2]} />
-      </mesh>
-      <mesh material={m.joint} position={[0, -0.07, 0]}>
-        <cylinderGeometry args={[0.072, 0.072, 0.05, 20]} />
-      </mesh>
-      <mesh material={m.shell} position={[0, -0.19, 0]}>
-        <capsuleGeometry args={[0.066, 0.22, 8, 20]} />
-      </mesh>
-      <group ref={elbowRef} position={[0, -0.36, 0]}>
-        <mesh material={m.joint}>
-          <sphereGeometry args={[0.07, 20, 14]} />
-        </mesh>
-        <mesh material={m.trim} position={[0, -0.17, 0]}>
-          <capsuleGeometry args={[0.062, 0.2, 8, 20]} />
-        </mesh>
-        <mesh material={m.glow} position={[0, -0.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.062, 0.008, 8, 28]} />
-        </mesh>
-        <group position={[0, -0.38, 0]}>
-          <RoundedBox args={[0.1, 0.12, 0.06]} radius={0.02} smoothness={3} material={m.joint} position={[0, -0.03, 0]} />
-          {[-0.032, 0, 0.032].map((x) => (
-            <RoundedBox key={x} args={[0.024, 0.07, 0.034]} radius={0.01} smoothness={2} material={m.joint} position={[x, -0.12, 0.004]} />
-          ))}
-          <RoundedBox args={[0.024, 0.06, 0.03]} radius={0.01} smoothness={2} material={m.joint} position={[-0.062 * side, -0.05, 0.02]} rotation={[0, 0, 0.5 * side]} />
+      <RoundedBox args={[0.074, 0.085, 0.028]} radius={0.012} smoothness={3} material={m.joint} position={[0, -0.06, 0]} />
+      <RoundedBox args={[0.068, 0.07, 0.012]} radius={0.006} smoothness={2} material={m.shell} position={[0, -0.058, -0.017 * side * 0 - 0.016]} />
+      {[-0.026, -0.009, 0.009, 0.026].map((x, i) => (
+        <group key={x} position={[x, -0.104, 0.002]} rotation={[0.18 + i * 0.03, 0, 0]}>
+          <mesh material={m.joint} position={[0, -0.018, 0]}>
+            <capsuleGeometry args={[0.0075, 0.026 - Math.abs(i - 1.5) * 0.004, 4, 8]} />
+          </mesh>
+          <group position={[0, -0.04, 0]} rotation={[0.32, 0, 0]}>
+            <mesh material={m.trim} position={[0, -0.014, 0]}>
+              <capsuleGeometry args={[0.0072, 0.02, 4, 8]} />
+            </mesh>
+          </group>
         </group>
+      ))}
+      <group position={[-0.044 * side, -0.05, 0.012]} rotation={[0.3, 0, 0.6 * side]}>
+        <mesh material={m.joint} position={[0, -0.02, 0]}>
+          <capsuleGeometry args={[0.0085, 0.026, 4, 8]} />
+        </mesh>
+        <mesh material={m.trim} position={[0, -0.05, 0.004]}>
+          <capsuleGeometry args={[0.008, 0.018, 4, 8]} />
+        </mesh>
       </group>
     </group>
   );
 
-  const leg = (side: 1 | -1, hipRef: RefObject<THREE.Group>, kneeRef: RefObject<THREE.Group>, ankleRef: RefObject<THREE.Group>) => (
-    <group ref={hipRef} position={[0.17 * side, -0.03, 0]}>
+  // Arm: shoulder cap, a dark mechanical core with pearl shell plates over it.
+  const arm = (side: 1 | -1, shoulderRef: RefObject<THREE.Group>, elbowRef: RefObject<THREE.Group>) => (
+    <group ref={shoulderRef} position={[0.335 * side, 0.58, 0]}>
       <mesh material={m.joint}>
-        <sphereGeometry args={[0.09, 22, 16]} />
+        <sphereGeometry args={[0.072, 24, 16]} />
       </mesh>
-      <mesh material={m.shell} position={[0, -0.23, 0]}>
-        <capsuleGeometry args={[0.088, 0.28, 8, 22]} />
+      <mesh material={m.shell} position={[0.022 * side, 0.02, 0]} scale={[1.05, 0.9, 1.15]}>
+        <sphereGeometry args={[0.105, 32, 16, 0, Math.PI * 2, 0, Math.PI / 1.85]} />
       </mesh>
-      <RoundedBox args={[0.14, 0.22, 0.05]} radius={0.02} smoothness={3} material={m.trim} position={[0, -0.21, 0.085]} />
+      <mesh material={m.joint} position={[0, -0.18, 0]}>
+        <cylinderGeometry args={[0.032, 0.036, 0.3, 14]} />
+      </mesh>
+      <mesh material={m.shell} position={[0, -0.18, 0.006]} scale={[0.92, 1, 1.02]}>
+        <capsuleGeometry args={[0.054, 0.16, 8, 22]} />
+      </mesh>
+      <mesh material={m.seam} position={[0, -0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.052, 0.0035, 6, 28]} />
+      </mesh>
+      <group ref={elbowRef} position={[0, -0.36, 0]}>
+        <mesh material={m.joint}>
+          <sphereGeometry args={[0.048, 20, 14]} />
+        </mesh>
+        <mesh material={m.joint} position={[0, -0.16, 0]}>
+          <cylinderGeometry args={[0.028, 0.03, 0.28, 12]} />
+        </mesh>
+        <mesh material={m.shell} position={[0, -0.15, 0.005]} scale={[0.9, 1, 1]}>
+          <capsuleGeometry args={[0.048, 0.15, 8, 20]} />
+        </mesh>
+        {/* forearm pistons */}
+        {[-1, 1].map((k) => (
+          <mesh key={k} material={m.metal} position={[0.03 * k, -0.17, -0.03]}>
+            <cylinderGeometry args={[0.006, 0.006, 0.2, 6]} />
+          </mesh>
+        ))}
+        {hand(side)}
+      </group>
+    </group>
+  );
+
+  // Leg: thigh and shin plates over dark cores, knee cap, sleek foot.
+  const leg = (side: 1 | -1, hipRef: RefObject<THREE.Group>, kneeRef: RefObject<THREE.Group>, ankleRef: RefObject<THREE.Group>) => (
+    <group ref={hipRef} position={[0.125 * side, -0.03, 0]}>
+      <mesh material={m.joint}>
+        <sphereGeometry args={[0.07, 22, 16]} />
+      </mesh>
+      <mesh material={m.joint} position={[0, -0.22, 0]}>
+        <cylinderGeometry args={[0.04, 0.044, 0.4, 14]} />
+      </mesh>
+      <mesh material={m.shell} position={[0, -0.2, 0.008]} scale={[0.95, 1, 1.08]}>
+        <capsuleGeometry args={[0.078, 0.2, 8, 24]} />
+      </mesh>
+      <mesh material={m.seam} position={[0, -0.32, 0.004]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.07, 0.004, 6, 28]} />
+      </mesh>
       <group ref={kneeRef} position={[0, -THIGH, 0]}>
         <mesh material={m.joint}>
-          <sphereGeometry args={[0.075, 20, 14]} />
+          <sphereGeometry args={[0.055, 20, 14]} />
         </mesh>
-        <RoundedBox args={[0.12, 0.1, 0.05]} radius={0.02} smoothness={3} material={m.trim} position={[0, 0.01, 0.07]} />
-        <mesh material={m.shell} position={[0, -0.23, 0]}>
-          <capsuleGeometry args={[0.074, 0.3, 8, 22]} />
+        <RoundedBox args={[0.085, 0.085, 0.04]} radius={0.018} smoothness={3} material={m.trim} position={[0, 0.005, 0.055]} />
+        <mesh material={m.joint} position={[0, -0.22, 0]}>
+          <cylinderGeometry args={[0.034, 0.03, 0.4, 14]} />
         </mesh>
-        <mesh material={m.glow} position={[0, -0.22, -0.074]}>
-          <boxGeometry args={[0.018, 0.16, 0.012]} />
+        <mesh material={m.shell} position={[0, -0.21, 0.01]} scale={[0.88, 1, 1.12]}>
+          <capsuleGeometry args={[0.066, 0.22, 8, 22]} />
         </mesh>
+        {/* calf pistons */}
+        {[-1, 1].map((k) => (
+          <mesh key={k} material={m.metal} position={[0.028 * k, -0.2, -0.05]}>
+            <cylinderGeometry args={[0.007, 0.007, 0.26, 6]} />
+          </mesh>
+        ))}
         <group ref={ankleRef} position={[0, -SHIN, 0]}>
           <mesh material={m.joint}>
-            <sphereGeometry args={[0.05, 16, 12]} />
+            <sphereGeometry args={[0.038, 16, 12]} />
           </mesh>
-          <RoundedBox args={[0.16, 0.1, 0.3]} radius={0.03} smoothness={3} material={m.dark} position={[0, -0.05, 0.05]} />
-          <RoundedBox args={[0.15, 0.06, 0.1]} radius={0.025} smoothness={3} material={m.shell} position={[0, -0.04, 0.17]} />
+          <RoundedBox args={[0.11, 0.045, 0.26]} radius={0.02} smoothness={3} material={m.dark} position={[0, -0.06, 0.045]} />
+          <RoundedBox args={[0.1, 0.05, 0.17]} radius={0.022} smoothness={3} material={m.shell} position={[0, -0.03, 0.06]} />
         </group>
       </group>
     </group>
@@ -268,77 +318,99 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
         <boxGeometry args={[1.2, 2.5, 0.9]} />
       </mesh>
 
+      {/* soft contact shadow on the deck */}
+      <ContactShadows position={[0, 0.006, 0]} scale={1.5} blur={2.2} far={1.4} opacity={0.6} resolution={256} color="#020617" />
+
       <group ref={pelvis} position={[0, PELVIS_Y, 0]}>
-        <RoundedBox args={[0.46, 0.2, 0.3]} radius={0.06} smoothness={4} material={m.trim} />
-        <mesh material={m.joint} position={[0, 0.12, 0]}>
-          <cylinderGeometry args={[0.15, 0.17, 0.16, 28]} />
-        </mesh>
+        <RoundedBox args={[0.32, 0.13, 0.2]} radius={0.05} smoothness={4} material={m.shell} position={[0, -0.01, 0]} />
+        <RoundedBox args={[0.24, 0.08, 0.16]} radius={0.03} smoothness={3} material={m.joint} position={[0, -0.07, 0]} />
 
         <group ref={torso} position={[0, 0.17, 0]}>
-          <RoundedBox args={[0.38, 0.2, 0.26]} radius={0.05} smoothness={4} material={m.trim} position={[0, 0.08, 0.01]} />
-          <RoundedBox args={[0.64, 0.46, 0.36]} radius={0.1} smoothness={5} material={m.shell} position={[0, 0.38, 0]} />
-          <RoundedBox args={[0.44, 0.26, 0.06]} radius={0.03} smoothness={4} material={m.trim} position={[0, 0.42, 0.175]} />
-          {/* Arc reactor */}
-          <mesh material={m.joint} position={[0, 0.4, 0.212]}>
-            <torusGeometry args={[0.066, 0.013, 12, 36]} />
-          </mesh>
-          <mesh material={m.glow} position={[0, 0.4, 0.208]}>
-            <circleGeometry args={[0.052, 32]} />
-          </mesh>
-          <Glow ref={coreGlow} position={[0, 0.4, 0.26]} size={0.55} opacity={0.2} />
-          {[-1, 1].map((side) => (
-            <mesh key={side} material={m.glow} position={[0.27 * side, 0.38, 0.165]}>
-              <boxGeometry args={[0.018, 0.18, 0.018]} />
+          {/* exposed spine: stacked vertebrae between hips and chest, with side pistons */}
+          {[-0.12, -0.065, -0.01, 0.045, 0.1].map((y, i) => (
+            <mesh key={y} material={i % 2 ? m.metal : m.joint} position={[0, y, -0.005]}>
+              <cylinderGeometry args={[0.1 + i * 0.006, 0.105 + i * 0.006, 0.04, 24]} />
             </mesh>
           ))}
-          <mesh material={m.joint} position={[0, 0.64, 0]}>
-            <cylinderGeometry args={[0.12, 0.13, 0.06, 28]} />
-          </mesh>
-          {/* Backpack with vents */}
-          <RoundedBox args={[0.42, 0.4, 0.14]} radius={0.05} smoothness={4} material={m.trim} position={[0, 0.38, -0.23]} />
-          {[-1, 1].map((side) => (
-            <mesh key={side} material={m.glow} position={[0.1 * side, 0.24, -0.305]} rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.045, 0.045, 0.02, 20]} />
+          {[-1, 1].map((k) => (
+            <mesh key={k} material={m.metal} position={[0.085 * k, -0.01, 0.04]} rotation={[0, 0, 0.12 * k]}>
+              <cylinderGeometry args={[0.009, 0.009, 0.26, 8]} />
             </mesh>
           ))}
+          {/* armoured chest: broad and squared, tapering into a gold abdomen plate */}
+          <RoundedBox args={[0.54, 0.3, 0.3]} radius={0.11} smoothness={5} material={m.shell} position={[0, 0.43, 0]} />
+          {[-1, 1].map((k) => (
+            <RoundedBox key={k} args={[0.2, 0.15, 0.05]} radius={0.04} smoothness={3} material={m.shell} position={[0.11 * k, 0.45, 0.135]} rotation={[0.08, 0.18 * k, 0]} />
+          ))}
+          <mesh material={m.trim} position={[0, 0.235, 0.005]}>
+            <cylinderGeometry args={[0.2, 0.135, 0.16, 32]} />
+          </mesh>
+          {[0.2, 0.25].map((y) => (
+            <mesh key={y} material={m.seam} position={[0, y, 0.005]}>
+              <cylinderGeometry args={[0.18 - (0.25 - y) * 0.4, 0.18 - (0.25 - y) * 0.4, 0.006, 32]} />
+            </mesh>
+          ))}
+          <mesh material={m.seam} position={[0, 0.43, 0.152]}>
+            <boxGeometry args={[0.004, 0.24, 0.004]} />
+          </mesh>
+          {/* heart light behind a dark ring */}
+          <mesh material={m.metal} position={[0, 0.4, 0.165]}>
+            <torusGeometry args={[0.05, 0.011, 12, 36]} />
+          </mesh>
+          <mesh material={m.glow} position={[0, 0.4, 0.163]}>
+            <circleGeometry args={[0.04, 32]} />
+          </mesh>
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <mesh key={i} material={m.joint} position={[Math.cos((i * Math.PI) / 4) * 0.03, 0.4 + Math.sin((i * Math.PI) / 4) * 0.03, 0.168]} rotation={[0, 0, (i * Math.PI) / 4]}>
+              <boxGeometry args={[0.018, 0.004, 0.003]} />
+            </mesh>
+          ))}
+          <Glow ref={coreGlow} position={[0, 0.4, 0.22]} size={0.45} opacity={0.2} />
+          {/* collarbone */}
+          <mesh material={m.joint} position={[0, 0.58, -0.01]} rotation={[0, 0, Math.PI / 2]}>
+            <capsuleGeometry args={[0.036, 0.5, 6, 14]} />
+          </mesh>
 
-          {/* Neck and head */}
-          <group position={[0, 0.7, 0]}>
-            <mesh material={m.joint} position={[0, 0.04, 0]}>
-              <cylinderGeometry args={[0.065, 0.08, 0.12, 20]} />
+          {/* Neck: core with three pistons, then the head */}
+          <group position={[0, 0.66, 0]}>
+            <mesh material={m.joint} position={[0, 0.06, 0]}>
+              <cylinderGeometry args={[0.038, 0.05, 0.14, 16]} />
             </mesh>
-            <group ref={head} position={[0, 0.1, 0]}>
-              <mesh material={m.shell} position={[0, 0.14, 0]} scale={[1, 1.08, 1.06]}>
-                <sphereGeometry args={[0.21, 40, 28]} />
+            {[0, 1, 2].map((i) => (
+              <mesh key={i} material={m.metal} position={[Math.sin((i * Math.PI * 2) / 3) * 0.045, 0.06, Math.cos((i * Math.PI * 2) / 3) * 0.045]}>
+                <cylinderGeometry args={[0.008, 0.008, 0.14, 6]} />
               </mesh>
-              <mesh material={m.visor} position={[0, 0.14, 0]} scale={[1.04, 1.1, 1.1]}>
-                <sphereGeometry args={[0.205, 40, 16, Math.PI / 2 - 1.1, 2.2, 1.12, 0.6]} />
+            ))}
+            <group ref={head} position={[0, 0.14, 0]}>
+              {/* egg-shaped skull */}
+              <mesh material={m.shell} position={[0, 0.13, -0.008]} scale={[0.86, 1.14, 0.98]}>
+                <sphereGeometry args={[0.165, 48, 32]} />
               </mesh>
-              <mesh ref={eyeStrip} material={m.glow} position={[0, 0.15, 0.228]}>
-                <boxGeometry args={[0.22, 0.032, 0.01]} />
+              {/* dark face plate, eyes, then a glass face over them */}
+              <mesh material={m.face} position={[0, 0.12, 0]} scale={[0.86, 1.1, 1]}>
+                <sphereGeometry args={[0.168, 48, 24, Math.PI / 2 - 0.95, 1.9, 0.62, 1.55]} />
               </mesh>
-              <Glow ref={eyeGlow} position={[0, 0.15, 0.27]} size={0.5} opacity={0.1} />
-              <RoundedBox args={[0.2, 0.08, 0.14]} radius={0.03} smoothness={3} material={m.trim} position={[0, -0.02, 0.06]} />
-              {[-1, 1].map((side) => (
-                <group key={side} position={[0.215 * side, 0.13, 0]}>
-                  <mesh material={m.joint} rotation={[0, 0, Math.PI / 2]}>
-                    <cylinderGeometry args={[0.06, 0.06, 0.06, 24]} />
+              {/* angled eye slits, like an Avengers helmet */}
+              <group ref={eyeStrip} position={[0, 0.148, 0.163]}>
+                {[-1, 1].map((k) => (
+                  <mesh key={k} material={m.glow} position={[0.047 * k, 0, 0]} rotation={[0, 0.32 * k, -0.2 * k]}>
+                    <boxGeometry args={[0.052, 0.013, 0.012]} />
                   </mesh>
-                  <mesh material={m.glow} position={[0.034 * side, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-                    <torusGeometry args={[0.044, 0.007, 8, 24]} />
-                  </mesh>
-                </group>
-              ))}
-              {/* Antennas (spring-driven secondary motion) */}
-              {[-1, 1].map((side) => (
-                <group key={side} ref={side === -1 ? antennaL : antennaR} position={[0.12 * side, 0.32, -0.05]}>
-                  <mesh material={m.joint} position={[0, 0.1, 0]}>
-                    <cylinderGeometry args={[0.007, 0.01, 0.2, 8]} />
-                  </mesh>
-                  <mesh material={m.glow} position={[0, 0.205, 0]}>
-                    <sphereGeometry args={[0.016, 12, 8]} />
-                  </mesh>
-                </group>
+                ))}
+              </group>
+              {/* faceplate seam and mouth grille */}
+              <mesh material={m.seam} position={[0, 0.07, 0.158]}>
+                <boxGeometry args={[0.05, 0.003, 0.006]} />
+              </mesh>
+              <mesh material={m.seam} position={[0, 0.215, 0.14]} rotation={[0.5, 0, 0]}>
+                <boxGeometry args={[0.004, 0.06, 0.004]} />
+              </mesh>
+              <Glow ref={eyeGlow} position={[0, 0.145, 0.24]} size={0.34} opacity={0.1} />
+              {/* side seams where a human would have ears */}
+              {[-1, 1].map((k) => (
+                <mesh key={k} material={m.seam} position={[0.142 * k, 0.12, -0.01]} rotation={[0, Math.PI / 2, 0]}>
+                  <torusGeometry args={[0.036, 0.004, 6, 24]} />
+                </mesh>
               ))}
             </group>
           </group>

@@ -24,7 +24,8 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 const CYCLE = 6.9; // seconds of one performance
 const REPEAT_MS = 8500; // pause between performances while the button is in view
-const HEAD_ABOVE = 64; // drawing room above the button for the robot
+const HEAD_ABOVE = 72; // drawing room above the button for the robot
+const BOT = 1.3; // robot drawing scale
 
 type Pose = {
   split: number; // label words move apart
@@ -125,16 +126,16 @@ export default function PeekingRobotButton({ onClick, label = 'Go Into AI Mode' 
       // robot
       const visible = p.rise > 0.01;
       set('robot', 'opacity', visible ? 1 : 0);
-      const headY = lerp(h * 0.62, -15 - bump, Math.min(p.rise, 1)) - Math.max(0, p.rise - 1) * 28;
+      const headY = lerp(h * 0.7, -19 - bump, Math.min(p.rise, 1)) - Math.max(0, p.rise - 1) * 34;
       const tilt = p.look * 9;
-      set('head', 'transform', `translate(${cx} ${headY}) rotate(${tilt})`);
-      set('body', 'transform', `translate(${cx} ${headY})`);
+      set('head', 'transform', `translate(${cx} ${headY}) rotate(${tilt}) scale(${BOT})`);
+      set('body', 'transform', `translate(${cx} ${headY}) scale(${BOT})`);
       const eyeShift = p.look * 3 + run.current.eyeX * (1 - Math.abs(p.look));
       const eyeLift = run.current.eyeY * (1 - Math.abs(p.look));
       const eyeScale = p.blink ? 0.12 : 1 + p.notice * 0.35;
       set('eyes', 'transform', `translate(${eyeShift} ${eyeLift}) scale(1 ${eyeScale})`);
       set('spark', 'opacity', p.notice);
-      set('spark', 'transform', `translate(${cx + 15} ${headY - 21}) scale(${0.6 + p.notice * 0.6})`);
+      set('spark', 'transform', `translate(${cx + 19} ${headY - 25}) scale(${0.6 + p.notice * 0.6})`);
 
       // hands grip the top edge either side of the head
       const grip = clamp01((p.rise - 0.35) / 0.4);
@@ -142,23 +143,23 @@ export default function PeekingRobotButton({ onClick, label = 'Go Into AI Mode' 
         const d = Math.abs(x - cx) / (bw / 2);
         return d >= 1 ? 0 : -bump * (1 - d * d);
       };
-      const lx = cx - 21;
-      set('handL', 'transform', `translate(${lx} ${lerp(h * 0.5, edgeAt(lx) - 3, grip)})`);
+      const lx = cx - 26;
+      set('handL', 'transform', `translate(${lx} ${lerp(h * 0.5, edgeAt(lx) - 3, grip)}) scale(${BOT})`);
       set('handL', 'opacity', grip);
 
       // right hand: grips, then rises beside the head and beckons
-      const gx = cx + 21;
+      const gx = cx + 26;
       const gy = lerp(h * 0.5, edgeAt(gx) - 3, grip);
-      const rx = lerp(gx, cx + 27, p.arm);
+      const rx = lerp(gx, cx + 34, p.arm);
       const ry = lerp(gy, headY + 4, p.arm);
-      set('handR', 'transform', `translate(${rx} ${ry}) rotate(${lerp(0, -18, p.arm) - p.curl * 38})`);
+      set('handR', 'transform', `translate(${rx} ${ry}) rotate(${lerp(0, -18, p.arm) - p.curl * 38}) scale(${BOT})`);
       set('handR', 'opacity', grip);
       set('fingers', 'transform', `scale(1 ${1 - p.curl * 0.55})`);
-      set('arm', 'd', `M ${cx + 10} ${headY + 16} Q ${cx + 24} ${headY + 20} ${rx} ${ry + 3}`);
+      set('arm', 'd', `M ${cx + 13} ${headY + 20} Q ${cx + 30} ${headY + 25} ${rx} ${ry + 4}`);
       set('arm', 'opacity', p.arm > 0.02 && p.rise > 1.02 ? p.arm : 0);
 
       set('bubble', 'opacity', p.bubble);
-      set('bubble', 'transform', `translate(${cx + 38} ${headY - 6}) scale(${0.7 + 0.3 * p.bubble})`);
+      set('bubble', 'transform', `translate(${cx + 47} ${headY - 8}) scale(${0.7 + 0.3 * p.bubble})`);
     },
     [size],
   );
@@ -282,6 +283,11 @@ export default function PeekingRobotButton({ onClick, label = 'Go Into AI Mode' 
             <stop offset="0" stopColor="#ffffff" />
             <stop offset="1" stopColor="#c7d2e0" />
           </linearGradient>
+          <linearGradient id="ai-bot-face" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#f8fafc" />
+            <stop offset="0.55" stopColor="#cbd5e1" />
+            <stop offset="1" stopColor="#8794a8" />
+          </linearGradient>
           <radialGradient id="ai-slit" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stopColor="#0e7490" stopOpacity="0.9" />
             <stop offset="0.6" stopColor="#020617" />
@@ -307,38 +313,48 @@ export default function PeekingRobotButton({ onClick, label = 'Go Into AI Mode' 
           <rect x={-40} y={-HEAD_ABOVE - 10} width={w + 80} height={HEAD_ABOVE + 10 + h * 0.5} />
         </clipPath>
         <g ref={ref('robot')} clipPath="url(#ai-bot-clip)" opacity={0}>
-          <path ref={ref('arm')} fill="none" stroke="url(#ai-bot-shell)" strokeWidth="4.2" strokeLinecap="round" opacity={0} />
+          <path ref={ref('arm')} fill="none" stroke="url(#ai-bot-shell)" strokeWidth="5.4" strokeLinecap="round" opacity={0} />
           {/* torso (shows when it rises further) */}
           <g ref={ref('body')}>
-            <rect x={-11} y={12} width={22} height={18} rx={6} fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
-            <circle cx={0} cy={19} r={2.6} fill="#22d3ee" filter="url(#ai-btn-glow)" />
+            <rect x={-3.5} y={10} width={7} height={4} rx={1.5} fill="#1c222c" />
+            <path d="M -12 14 C -12 12 12 12 12 14 L 10 30 L -10 30 Z" fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
+            <path d="M -15 14.5 C -15 11 -9 11 -9 14.5 L -10 18 L -14.5 18 Z" fill="#d4a94e" />
+            <path d="M 15 14.5 C 15 11 9 11 9 14.5 L 10 18 L 14.5 18 Z" fill="#d4a94e" />
+            <circle cx={0} cy={20} r={3.6} fill="#1c222c" stroke="#9aa5b4" strokeWidth="0.8" />
+            <circle cx={0} cy={20} r={2.4} fill="#c8f7ff" filter="url(#ai-btn-glow)" />
           </g>
           <g ref={ref('head')}>
-            <line x1={0} y1={-11} x2={0} y2={-17} stroke="#cbd5e1" strokeWidth="1.2" />
-            <circle cx={0} cy={-18} r={1.8} fill="#22d3ee" filter="url(#ai-btn-glow)">
-              <animate attributeName="opacity" values="1;0.35;1" dur="1.4s" repeatCount="indefinite" />
-            </circle>
-            <circle cx={-13} cy={0} r={3} fill="#cbd5e1" />
-            <circle cx={13} cy={0} r={3} fill="#cbd5e1" />
-            <rect x={-13} y={-11} width={26} height={23} rx={8} fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
-            <rect x={-10} y={-6} width={20} height={11} rx={5.5} fill="#05090f" />
+            {/* armoured helmet with a chrome faceplate */}
+            <path d="M -12 -1 C -12.5 -14 12.5 -14 12 -1 L 11 7 C 9 12.5 -9 12.5 -11 7 Z" fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
+            <path d="M 0 -12 L 0 -7" stroke="#d4a94e" strokeWidth="0.9" strokeLinecap="round" />
+            <path d="M -9.2 -3 C -9.2 -8.5 9.2 -8.5 9.2 -3 L 8.2 6 C 6.3 10.2 -6.3 10.2 -8.2 6 Z" fill="url(#ai-bot-face)" stroke="#d4a94e" strokeWidth="0.6" />
+            <path d="M -3 6.4 L 3 6.4" stroke="#64748b" strokeWidth="0.55" strokeLinecap="round" />
+            <path d="M -6 -6.2 C -3 -7.4 3 -7.4 6 -6.2" stroke="#ffffff" strokeOpacity="0.8" strokeWidth="0.7" fill="none" strokeLinecap="round" />
             <g ref={ref('eyes')}>
-              <rect x={-6.5} y={-3.4} width={4} height={5} rx={2} fill="#67e8f9" filter="url(#ai-btn-glow)" />
-              <rect x={2.5} y={-3.4} width={4} height={5} rx={2} fill="#67e8f9" filter="url(#ai-btn-glow)" />
+              <path d="M -7.6 -1.6 L -2 -0.6 L -2.5 1.1 L -7.1 0.3 Z" fill="#c8f7ff" filter="url(#ai-btn-glow)" />
+              <path d="M 7.6 -1.6 L 2 -0.6 L 2.5 1.1 L 7.1 0.3 Z" fill="#c8f7ff" filter="url(#ai-btn-glow)" />
             </g>
           </g>
         </g>
         {/* hands are drawn over the edge they grip */}
         <g ref={ref('handL')} opacity={0}>
-          <rect x={-4.5} y={-3} width={9} height={7} rx={3} fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
+          <rect x={-4.5} y={-3} width={9} height={7} rx={2.2} fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
+          {[-3, -1, 1, 3].map((x) => (
+            <rect key={x} x={x - 0.8} y={2.5} width={1.6} height={3} rx={0.8} fill="#d4a94e" />
+          ))}
         </g>
         <g ref={ref('handR')} opacity={0}>
-          <rect x={-4.5} y={-3} width={9} height={7} rx={3} fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
+          <rect x={-4.5} y={-3} width={9} height={7} rx={2.2} fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
+          <circle cx={0} cy={0.5} r={1.6} fill="#c8f7ff" filter="url(#ai-btn-glow)" />
           <g ref={ref('fingers')} style={{ transformOrigin: '0px -3px' }}>
-            <rect x={-4} y={-8} width={2.2} height={5.5} rx={1.1} fill="#e2e8f0" />
-            <rect x={-1.1} y={-9} width={2.2} height={6.5} rx={1.1} fill="#e2e8f0" />
-            <rect x={1.8} y={-8} width={2.2} height={5.5} rx={1.1} fill="#e2e8f0" />
+            {[-3.3, -1.1, 1.1, 3.3].map((x, i) => (
+              <g key={x}>
+                <rect x={x - 0.9} y={-8.6 + (i === 1 || i === 2 ? -0.8 : 0)} width={1.8} height={5.8} rx={0.9} fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.3" />
+                <rect x={x - 0.9} y={-8.6 + (i === 1 || i === 2 ? -0.8 : 0)} width={1.8} height={1.8} rx={0.9} fill="#d4a94e" />
+              </g>
+            ))}
           </g>
+          <rect x={-6.6} y={-2} width={2.2} height={4.5} rx={1.1} fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.3" transform="rotate(-25 -5.5 0)" />
         </g>
         {/* "!" spark when it spots the visitor */}
         <g ref={ref('spark')} opacity={0}>
