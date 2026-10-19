@@ -45,15 +45,18 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
 
   const m = useMemo(
     () => ({
-      // Armour: polished white plates over a gunmetal under-suit, gold accents.
-      shell: new THREE.MeshPhysicalMaterial({ color: '#f1f4f8', metalness: 0.45, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.05 }),
-      trim: new THREE.MeshPhysicalMaterial({ color: '#d4a94e', metalness: 0.95, roughness: 0.22, clearcoat: 0.6, clearcoatRoughness: 0.15 }),
+      // Armour: metallic candy-red plates over a gunmetal under-suit, gold and silver accents.
+      shell: new THREE.MeshPhysicalMaterial({ color: '#b3141e', metalness: 0.6, roughness: 0.24, clearcoat: 1, clearcoatRoughness: 0.04, emissive: '#3a0006', emissiveIntensity: 0.35, envMapIntensity: 0.7 }),
+      // Gold keeps its warmth under the city's cyan light: less mirror, a little warm glow.
+      trim: new THREE.MeshPhysicalMaterial({ color: '#f0b53c', metalness: 0.75, roughness: 0.28, clearcoat: 0.8, clearcoatRoughness: 0.12, emissive: '#6b3d00', emissiveIntensity: 0.45, envMapIntensity: 0.45 }),
+      silver: new THREE.MeshPhysicalMaterial({ color: '#d7dde5', metalness: 1, roughness: 0.18, clearcoat: 0.6, clearcoatRoughness: 0.1 }),
+      repulsor: new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#ffd27a', emissiveIntensity: 1.6, toneMapped: false }),
       joint: new THREE.MeshStandardMaterial({ color: '#1c222c', metalness: 0.88, roughness: 0.34 }),
       metal: new THREE.MeshStandardMaterial({ color: '#9aa5b4', metalness: 1, roughness: 0.16 }),
       dark: new THREE.MeshStandardMaterial({ color: '#0b1018', metalness: 0.7, roughness: 0.45 }),
       seam: new THREE.MeshStandardMaterial({ color: '#05070b', metalness: 0.5, roughness: 0.6 }),
-      face: new THREE.MeshPhysicalMaterial({ color: '#e6ebf1', metalness: 0.92, roughness: 0.14, clearcoat: 1, clearcoatRoughness: 0.04 }),
-      glow: new THREE.MeshStandardMaterial({ color: '#bff6ff', emissive: '#22d3ee', emissiveIntensity: 0.4, toneMapped: false }),
+      face: new THREE.MeshPhysicalMaterial({ color: '#f3bd4f', metalness: 0.75, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.05, emissive: '#6b3d00', emissiveIntensity: 0.5, envMapIntensity: 0.45 }),
+      glow: new THREE.MeshStandardMaterial({ color: '#f2fbff', emissive: '#9be7ff', emissiveIntensity: 0.4, toneMapped: false }),
       hit: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
     }),
     [],
@@ -194,6 +197,11 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
         <sphereGeometry args={[0.03, 16, 12]} />
       </mesh>
       <RoundedBox args={[0.074, 0.085, 0.028]} radius={0.012} smoothness={3} material={m.joint} position={[0, -0.06, 0]} />
+      {/* palm repulsor */}
+      <mesh material={m.repulsor} position={[0, -0.06, 0.0145]}>
+        <circleGeometry args={[0.019, 20]} />
+      </mesh>
+      <Glow position={[0, -0.06, 0.04]} size={0.16} opacity={0.55} color="#ffcf73" />
       <RoundedBox args={[0.068, 0.07, 0.012]} radius={0.006} smoothness={2} material={m.shell} position={[0, -0.058, -0.017 * side * 0 - 0.016]} />
       {[-0.026, -0.009, 0.009, 0.026].map((x, i) => (
         <group key={x} position={[x, -0.104, 0.002]} rotation={[0.18 + i * 0.03, 0, 0]}>
@@ -224,14 +232,14 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
       <mesh material={m.joint}>
         <sphereGeometry args={[0.072, 24, 16]} />
       </mesh>
-      <mesh material={m.shell} position={[0.022 * side, 0.02, 0]} scale={[1.05, 0.9, 1.15]}>
-        <sphereGeometry args={[0.105, 32, 16, 0, Math.PI * 2, 0, Math.PI / 1.85]} />
+      <mesh material={m.shell} position={[0.03 * side, 0.025, 0]} scale={[1.1, 0.95, 1.15]}>
+        <sphereGeometry args={[0.13, 32, 16, 0, Math.PI * 2, 0, Math.PI / 1.85]} />
       </mesh>
       <mesh material={m.joint} position={[0, -0.18, 0]}>
         <cylinderGeometry args={[0.032, 0.036, 0.3, 14]} />
       </mesh>
-      <mesh material={m.shell} position={[0, -0.18, 0.006]} scale={[0.92, 1, 1.02]}>
-        <capsuleGeometry args={[0.054, 0.16, 8, 22]} />
+      <mesh material={m.shell} position={[0, -0.18, 0.006]} scale={[0.95, 1, 1.02]}>
+        <capsuleGeometry args={[0.066, 0.16, 8, 22]} />
       </mesh>
       <mesh material={m.seam} position={[0, -0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.052, 0.0035, 6, 28]} />
@@ -243,8 +251,11 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
         <mesh material={m.joint} position={[0, -0.16, 0]}>
           <cylinderGeometry args={[0.028, 0.03, 0.28, 12]} />
         </mesh>
-        <mesh material={m.shell} position={[0, -0.15, 0.005]} scale={[0.9, 1, 1]}>
-          <capsuleGeometry args={[0.048, 0.15, 8, 20]} />
+        <mesh material={m.shell} position={[0, -0.16, 0.005]} scale={[0.95, 1, 1]}>
+          <cylinderGeometry args={[0.055, 0.068, 0.24, 24]} />
+        </mesh>
+        <mesh material={m.trim} position={[0, -0.27, 0.005]} scale={[0.95, 1, 1]}>
+          <cylinderGeometry args={[0.07, 0.07, 0.025, 24]} />
         </mesh>
         {/* forearm pistons */}
         {[-1, 1].map((k) => (
@@ -259,19 +270,21 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
 
   // Leg: thigh and shin plates over dark cores, knee cap, sleek foot.
   const leg = (side: 1 | -1, hipRef: RefObject<THREE.Group>, kneeRef: RefObject<THREE.Group>, ankleRef: RefObject<THREE.Group>) => (
-    <group ref={hipRef} position={[0.125 * side, -0.03, 0]}>
+    <group ref={hipRef} position={[0.14 * side, -0.03, 0]} rotation={[0, 0, 0.07 * side]}>
       <mesh material={m.joint}>
         <sphereGeometry args={[0.07, 22, 16]} />
       </mesh>
       <mesh material={m.joint} position={[0, -0.22, 0]}>
         <cylinderGeometry args={[0.04, 0.044, 0.4, 14]} />
       </mesh>
-      <mesh material={m.shell} position={[0, -0.2, 0.008]} scale={[0.95, 1, 1.08]}>
-        <capsuleGeometry args={[0.078, 0.2, 8, 24]} />
+      <mesh material={m.shell} position={[0, -0.2, 0.008]} scale={[0.98, 1, 1.1]}>
+        <capsuleGeometry args={[0.097, 0.2, 8, 24]} />
       </mesh>
       <mesh material={m.seam} position={[0, -0.32, 0.004]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.07, 0.004, 6, 28]} />
       </mesh>
+      <RoundedBox args={[0.035, 0.22, 0.12]} radius={0.014} smoothness={2} material={m.silver} position={[0.09 * side, -0.2, 0.012]} />
+      <RoundedBox args={[0.05, 0.18, 0.04]} radius={0.014} smoothness={2} material={m.trim} position={[0.04 * side, -0.2, 0.098]} rotation={[0, 0, 0.12 * side]} />
       <group ref={kneeRef} position={[0, -THIGH, 0]}>
         <mesh material={m.joint}>
           <sphereGeometry args={[0.055, 20, 14]} />
@@ -280,21 +293,25 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
         <mesh material={m.joint} position={[0, -0.22, 0]}>
           <cylinderGeometry args={[0.034, 0.03, 0.4, 14]} />
         </mesh>
-        <mesh material={m.shell} position={[0, -0.21, 0.01]} scale={[0.88, 1, 1.12]}>
-          <capsuleGeometry args={[0.066, 0.22, 8, 22]} />
+        <mesh material={m.shell} position={[0, -0.2, 0.01]} scale={[0.95, 1, 1.12]}>
+          <cylinderGeometry args={[0.072, 0.098, 0.4, 28]} />
         </mesh>
+        <mesh material={m.shell} position={[0, -0.36, 0.012]} scale={[1, 1, 1.15]}>
+          <cylinderGeometry args={[0.102, 0.108, 0.08, 28]} />
+        </mesh>
+        <RoundedBox args={[0.026, 0.16, 0.08]} radius={0.01} smoothness={2} material={m.trim} position={[0.06 * side, -0.16, 0.02]} />
         {/* calf pistons */}
         {[-1, 1].map((k) => (
           <mesh key={k} material={m.metal} position={[0.028 * k, -0.2, -0.05]}>
             <cylinderGeometry args={[0.007, 0.007, 0.26, 6]} />
           </mesh>
         ))}
-        <group ref={ankleRef} position={[0, -SHIN, 0]}>
+        <group ref={ankleRef} position={[0, -SHIN, 0]} rotation={[0, 0, -0.07 * side]}>
           <mesh material={m.joint}>
             <sphereGeometry args={[0.038, 16, 12]} />
           </mesh>
-          <RoundedBox args={[0.11, 0.045, 0.26]} radius={0.02} smoothness={3} material={m.dark} position={[0, -0.06, 0.045]} />
-          <RoundedBox args={[0.1, 0.05, 0.17]} radius={0.022} smoothness={3} material={m.shell} position={[0, -0.03, 0.06]} />
+          <RoundedBox args={[0.14, 0.05, 0.3]} radius={0.02} smoothness={3} material={m.dark} position={[0, -0.06, 0.05]} />
+          <RoundedBox args={[0.13, 0.06, 0.2]} radius={0.026} smoothness={3} material={m.shell} position={[0, -0.03, 0.08]} />
         </group>
       </group>
     </group>
@@ -338,12 +355,12 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
             </mesh>
           ))}
           {/* armoured chest: broad and squared, tapering into a gold abdomen plate */}
-          <RoundedBox args={[0.54, 0.3, 0.3]} radius={0.11} smoothness={5} material={m.shell} position={[0, 0.43, 0]} />
+          <RoundedBox args={[0.6, 0.32, 0.31]} radius={0.12} smoothness={5} material={m.shell} position={[0, 0.43, 0]} />
           {[-1, 1].map((k) => (
-            <RoundedBox key={k} args={[0.2, 0.15, 0.05]} radius={0.04} smoothness={3} material={m.shell} position={[0.11 * k, 0.45, 0.135]} rotation={[0.08, 0.18 * k, 0]} />
+            <RoundedBox key={k} args={[0.23, 0.16, 0.06]} radius={0.045} smoothness={3} material={m.shell} position={[0.125 * k, 0.45, 0.14]} rotation={[0.08, 0.18 * k, 0]} />
           ))}
           <mesh material={m.trim} position={[0, 0.235, 0.005]}>
-            <cylinderGeometry args={[0.2, 0.135, 0.16, 32]} />
+            <cylinderGeometry args={[0.19, 0.12, 0.16, 32]} />
           </mesh>
           {[0.2, 0.25].map((y) => (
             <mesh key={y} material={m.seam} position={[0, y, 0.005]}>
@@ -365,7 +382,7 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
               <boxGeometry args={[0.018, 0.004, 0.003]} />
             </mesh>
           ))}
-          <Glow ref={coreGlow} position={[0, 0.4, 0.22]} size={0.45} opacity={0.2} />
+          <Glow ref={coreGlow} position={[0, 0.4, 0.22]} size={0.45} opacity={0.2} color="#cdeeff" />
           {/* collarbone */}
           <mesh material={m.joint} position={[0, 0.58, -0.01]} rotation={[0, 0, Math.PI / 2]}>
             <capsuleGeometry args={[0.036, 0.5, 6, 14]} />
@@ -383,11 +400,11 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
             ))}
             <group ref={head} position={[0, 0.14, 0]}>
               {/* egg-shaped skull */}
-              <mesh material={m.shell} position={[0, 0.13, -0.008]} scale={[0.86, 1.14, 0.98]}>
+              <mesh material={m.shell} position={[0, 0.13, -0.008]} scale={[0.94, 1.08, 1.0]}>
                 <sphereGeometry args={[0.165, 48, 32]} />
               </mesh>
               {/* dark face plate, eyes, then a glass face over them */}
-              <mesh material={m.face} position={[0, 0.12, 0]} scale={[0.86, 1.1, 1]}>
+              <mesh material={m.face} position={[0, 0.12, 0]} scale={[0.93, 1.05, 1.02]}>
                 <sphereGeometry args={[0.168, 48, 24, Math.PI / 2 - 0.95, 1.9, 0.62, 1.55]} />
               </mesh>
               {/* angled eye slits, like an Avengers helmet */}
@@ -405,7 +422,7 @@ export default function RobotAgent({ onSelect }: { onSelect: () => void }) {
               <mesh material={m.seam} position={[0, 0.215, 0.14]} rotation={[0.5, 0, 0]}>
                 <boxGeometry args={[0.004, 0.06, 0.004]} />
               </mesh>
-              <Glow ref={eyeGlow} position={[0, 0.145, 0.24]} size={0.34} opacity={0.1} />
+              <Glow ref={eyeGlow} position={[0, 0.145, 0.24]} size={0.34} opacity={0.1} color="#e6f7ff" />
               {/* side seams where a human would have ears */}
               {[-1, 1].map((k) => (
                 <mesh key={k} material={m.seam} position={[0.142 * k, 0.12, -0.01]} rotation={[0, Math.PI / 2, 0]}>

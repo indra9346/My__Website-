@@ -45,6 +45,12 @@ function flashOrigin(origin: HTMLElement) {
 export function HoloFocusProvider({ children, reducedMotion }: { children: ReactNode; reducedMotion: boolean }) {
   const [request, setRequest] = useState<FocusRequest | null>(null);
   const [closing, setClosing] = useState(false);
+  // Card content (and its buttons) is created when the card opens, so close/open
+  // read the live state through refs rather than a stale closure.
+  const requestRef = useRef<FocusRequest | null>(null);
+  const closingRef = useRef(false);
+  requestRef.current = request;
+  closingRef.current = closing;
   const cardRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -53,12 +59,16 @@ export function HoloFocusProvider({ children, reducedMotion }: { children: React
   const closeButton = useRef<HTMLButtonElement>(null);
 
   const finishClose = useCallback(() => {
+    requestRef.current = null;
+    closingRef.current = false;
     setRequest(null);
     setClosing(false);
   }, []);
 
   const close = useCallback(() => {
-    if (!request || closing) return;
+    const request = requestRef.current;
+    if (!request || closingRef.current) return;
+    closingRef.current = true;
     setClosing(true);
     const card = cardRef.current;
     const back = card && request.origin.isConnected ? fromRect(card, request.origin) : null;
@@ -75,17 +85,17 @@ export function HoloFocusProvider({ children, reducedMotion }: { children: React
     anim.onfinish = finishClose;
     anim.oncancel = finishClose;
     request.origin.focus?.({ preventScroll: true });
-  }, [closing, finishClose, reducedMotion, request]);
+  }, [finishClose, reducedMotion]);
 
   const open = useCallback(
     (next: FocusRequest) => {
-      if (request?.key === next.key) return close();
+      if (requestRef.current?.key === next.key) return close();
       navigator.vibrate?.(8);
       flashOrigin(next.origin);
       setClosing(false);
       setRequest(next);
     },
-    [close, request],
+    [close],
   );
 
   // Pop in from the tapped card.

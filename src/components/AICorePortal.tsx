@@ -289,7 +289,7 @@ export default function AICorePortal() {
           blocks: [
             {
               kind: 'text',
-              text: `${door.title} is coming soon.\n\nMeanwhile, ask me about Indra's projects, skills, experience or how to contact him.`,
+              text: `${door.title.toUpperCase()} · COMING SOON\n\n${door.description}\n\nWhat it will have:\n${door.highlights.map((h) => `• ${h}`).join('\n')}\n\nUntil it opens, I can tell you about the projects these are based on, Indra's skills and experience, or how to reach him.`,
             },
           ],
         },
@@ -648,13 +648,6 @@ function doorIcon(door: DoorItem, size: number) {
   return <Sparkles size={size} />;
 }
 
-function doorAction(door: DoorItem): string {
-  if (door.status === 'locked') return 'Ask ARIA meanwhile';
-  if (door.type === 'ai') return 'Talk to ARIA';
-  if (door.type === 'projects') return 'Open the projects';
-  return 'Watch now';
-}
-
 function DoorFocusView({ door, onAction }: { door: DoorItem; onAction: () => void }) {
   const locked = door.status === 'locked';
   return (
@@ -689,7 +682,7 @@ function DoorFocusView({ door, onAction }: { door: DoorItem; onAction: () => voi
         onClick={onAction}
         className="mt-1 w-full flex items-center justify-center gap-2 rounded-xl bg-neon-cyan text-black font-bold text-sm py-3 hover:bg-cyan-300 transition-colors shadow-[0_0_24px_rgba(3,233,244,0.45)]"
       >
-        {doorAction(door)} <ArrowRight size={16} />
+        {door.cta} <ArrowRight size={16} />
       </button>
     </div>
   );

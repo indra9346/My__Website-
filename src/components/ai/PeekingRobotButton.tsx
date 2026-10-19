@@ -279,14 +279,21 @@ export default function PeekingRobotButton({ onClick, label = 'Go Into AI Mode' 
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          <linearGradient id="ai-bot-shell" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="1" stopColor="#c7d2e0" />
+          {/* candy-red armour with a highlight, gold faceplate */}
+          <linearGradient id="ai-bot-shell" x1="0" y1="0" x2="0.3" y2="1">
+            <stop offset="0" stopColor="#ff6b6b" />
+            <stop offset="0.35" stopColor="#d0202a" />
+            <stop offset="1" stopColor="#7a0a12" />
+          </linearGradient>
+          <linearGradient id="ai-bot-gold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff1b8" />
+            <stop offset="0.5" stopColor="#e2ae45" />
+            <stop offset="1" stopColor="#9b6b17" />
           </linearGradient>
           <linearGradient id="ai-bot-face" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#f8fafc" />
-            <stop offset="0.55" stopColor="#cbd5e1" />
-            <stop offset="1" stopColor="#8794a8" />
+            <stop offset="0" stopColor="#fff1b8" />
+            <stop offset="0.55" stopColor="#e2ae45" />
+            <stop offset="1" stopColor="#9b6b17" />
           </linearGradient>
           <radialGradient id="ai-slit" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stopColor="#0e7490" stopOpacity="0.9" />
@@ -317,44 +324,44 @@ export default function PeekingRobotButton({ onClick, label = 'Go Into AI Mode' 
           {/* torso (shows when it rises further) */}
           <g ref={ref('body')}>
             <rect x={-3.5} y={10} width={7} height={4} rx={1.5} fill="#1c222c" />
-            <path d="M -12 14 C -12 12 12 12 12 14 L 10 30 L -10 30 Z" fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
-            <path d="M -15 14.5 C -15 11 -9 11 -9 14.5 L -10 18 L -14.5 18 Z" fill="#d4a94e" />
-            <path d="M 15 14.5 C 15 11 9 11 9 14.5 L 10 18 L 14.5 18 Z" fill="#d4a94e" />
+            <path d="M -12 14 C -12 12 12 12 12 14 L 10 30 L -10 30 Z" fill="url(#ai-bot-shell)" stroke="#5c0a10" strokeWidth="0.5" />
+            <path d="M -15 14.5 C -15 11 -9 11 -9 14.5 L -10 18 L -14.5 18 Z" fill="url(#ai-bot-gold)" />
+            <path d="M 15 14.5 C 15 11 9 11 9 14.5 L 10 18 L 14.5 18 Z" fill="url(#ai-bot-gold)" />
             <circle cx={0} cy={20} r={3.6} fill="#1c222c" stroke="#9aa5b4" strokeWidth="0.8" />
-            <circle cx={0} cy={20} r={2.4} fill="#c8f7ff" filter="url(#ai-btn-glow)" />
+            <circle cx={0} cy={20} r={2.4} fill="#f2fbff" filter="url(#ai-btn-glow)" />
           </g>
           <g ref={ref('head')}>
             {/* armoured helmet with a chrome faceplate */}
-            <path d="M -12 -1 C -12.5 -14 12.5 -14 12 -1 L 11 7 C 9 12.5 -9 12.5 -11 7 Z" fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
-            <path d="M 0 -12 L 0 -7" stroke="#d4a94e" strokeWidth="0.9" strokeLinecap="round" />
-            <path d="M -9.2 -3 C -9.2 -8.5 9.2 -8.5 9.2 -3 L 8.2 6 C 6.3 10.2 -6.3 10.2 -8.2 6 Z" fill="url(#ai-bot-face)" stroke="#d4a94e" strokeWidth="0.6" />
+            <path d="M -12 -1 C -12.5 -14 12.5 -14 12 -1 L 11 7 C 9 12.5 -9 12.5 -11 7 Z" fill="url(#ai-bot-shell)" stroke="#5c0a10" strokeWidth="0.5" />
+            <path d="M 0 -12 L 0 -7" stroke="#9b6b17" strokeWidth="0.9" strokeLinecap="round" />
+            <path d="M -9.2 -3 C -9.2 -8.5 9.2 -8.5 9.2 -3 L 8.2 6 C 6.3 10.2 -6.3 10.2 -8.2 6 Z" fill="url(#ai-bot-face)" stroke="#9b6b17" strokeWidth="0.6" />
             <path d="M -3 6.4 L 3 6.4" stroke="#64748b" strokeWidth="0.55" strokeLinecap="round" />
-            <path d="M -6 -6.2 C -3 -7.4 3 -7.4 6 -6.2" stroke="#ffffff" strokeOpacity="0.8" strokeWidth="0.7" fill="none" strokeLinecap="round" />
+            <path d="M -6 -6.2 C -3 -7.4 3 -7.4 6 -6.2" stroke="#fffbe6" strokeOpacity="0.9" strokeWidth="0.7" fill="none" strokeLinecap="round" />
             <g ref={ref('eyes')}>
-              <path d="M -7.6 -1.6 L -2 -0.6 L -2.5 1.1 L -7.1 0.3 Z" fill="#c8f7ff" filter="url(#ai-btn-glow)" />
-              <path d="M 7.6 -1.6 L 2 -0.6 L 2.5 1.1 L 7.1 0.3 Z" fill="#c8f7ff" filter="url(#ai-btn-glow)" />
+              <path d="M -7.6 -1.6 L -2 -0.6 L -2.5 1.1 L -7.1 0.3 Z" fill="#f2fbff" filter="url(#ai-btn-glow)" />
+              <path d="M 7.6 -1.6 L 2 -0.6 L 2.5 1.1 L 7.1 0.3 Z" fill="#f2fbff" filter="url(#ai-btn-glow)" />
             </g>
           </g>
         </g>
         {/* hands are drawn over the edge they grip */}
         <g ref={ref('handL')} opacity={0}>
-          <rect x={-4.5} y={-3} width={9} height={7} rx={2.2} fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
+          <rect x={-4.5} y={-3} width={9} height={7} rx={2.2} fill="url(#ai-bot-shell)" stroke="#5c0a10" strokeWidth="0.5" />
           {[-3, -1, 1, 3].map((x) => (
-            <rect key={x} x={x - 0.8} y={2.5} width={1.6} height={3} rx={0.8} fill="#d4a94e" />
+            <rect key={x} x={x - 0.8} y={2.5} width={1.6} height={3} rx={0.8} fill="url(#ai-bot-gold)" />
           ))}
         </g>
         <g ref={ref('handR')} opacity={0}>
-          <rect x={-4.5} y={-3} width={9} height={7} rx={2.2} fill="url(#ai-bot-shell)" stroke="#94a3b8" strokeWidth="0.5" />
-          <circle cx={0} cy={0.5} r={1.6} fill="#c8f7ff" filter="url(#ai-btn-glow)" />
+          <rect x={-4.5} y={-3} width={9} height={7} rx={2.2} fill="url(#ai-bot-shell)" stroke="#5c0a10" strokeWidth="0.5" />
+          <circle cx={0} cy={0.5} r={1.7} fill="#ffe2a0" filter="url(#ai-btn-glow)" />
           <g ref={ref('fingers')} style={{ transformOrigin: '0px -3px' }}>
             {[-3.3, -1.1, 1.1, 3.3].map((x, i) => (
               <g key={x}>
-                <rect x={x - 0.9} y={-8.6 + (i === 1 || i === 2 ? -0.8 : 0)} width={1.8} height={5.8} rx={0.9} fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.3" />
-                <rect x={x - 0.9} y={-8.6 + (i === 1 || i === 2 ? -0.8 : 0)} width={1.8} height={1.8} rx={0.9} fill="#d4a94e" />
+                <rect x={x - 0.9} y={-8.6 + (i === 1 || i === 2 ? -0.8 : 0)} width={1.8} height={5.8} rx={0.9} fill="url(#ai-bot-shell)" stroke="#5c0a10" strokeWidth="0.3" />
+                <rect x={x - 0.9} y={-8.6 + (i === 1 || i === 2 ? -0.8 : 0)} width={1.8} height={1.8} rx={0.9} fill="url(#ai-bot-gold)" />
               </g>
             ))}
           </g>
-          <rect x={-6.6} y={-2} width={2.2} height={4.5} rx={1.1} fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.3" transform="rotate(-25 -5.5 0)" />
+          <rect x={-6.6} y={-2} width={2.2} height={4.5} rx={1.1} fill="url(#ai-bot-shell)" stroke="#5c0a10" strokeWidth="0.3" transform="rotate(-25 -5.5 0)" />
         </g>
         {/* "!" spark when it spots the visitor */}
         <g ref={ref('spark')} opacity={0}>
