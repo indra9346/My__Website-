@@ -98,3 +98,66 @@
     animation: none !important;
   }
 }
+
+/* ---- AI world cards ------------------------------------------------------ */
+
+/* Dock cards: a slow light sheen crosses each card (transform-only). */
+.ai-holo-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(105deg, transparent, rgba(165, 243, 252, 0.16), transparent);
+  transform: translateX(-160%);
+  animation: ai-card-sheen 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+.ai-holo-card:nth-child(2)::after { animation-delay: 1.1s; }
+.ai-holo-card:nth-child(3)::after { animation-delay: 2.2s; }
+.ai-holo-card:nth-child(4)::after { animation-delay: 3.3s; }
+.ai-holo-card:active { transform: scale(0.97); }
+
+@keyframes ai-card-sheen {
+  0%, 55% { transform: translateX(-160%); }
+  85%, 100% { transform: translateX(360%); }
+}
+
+/* Data cards inside ARIA's answers can be tapped to pop out. */
+.ai-zoomable { cursor: zoom-in; transition: transform 160ms ease, box-shadow 200ms ease; }
+.ai-zoomable:hover { box-shadow: 0 0 0 1px rgba(3, 233, 244, 0.45), 0 0 18px rgba(3, 233, 244, 0.18); }
+.ai-zoomable:active { transform: scale(0.985); }
+
+/* The popped-out copy of a card reads larger. */
+.ai-zoomed { zoom: 1.12; margin-top: 1.9rem; }
+@media (min-width: 640px) { .ai-zoomed { zoom: 1.22; } }
+
+.ai-icon-glow { animation: ai-icon-glow 2.4s ease-in-out infinite; }
+@keyframes ai-icon-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(3, 233, 244, 0.25); }
+  50% { box-shadow: 0 0 26px rgba(3, 233, 244, 0.6); }
+}
+
+.ai-panel-in { animation: ai-panel-in 360ms cubic-bezier(0.2, 0.9, 0.3, 1) backwards; }
+@keyframes ai-panel-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.ai-look-hint { animation: ai-look-hint 6s ease-in-out 1 both; }
+@keyframes ai-look-hint {
+  0% { opacity: 0; }
+  15%, 75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-holo-card::after,
+  .ai-icon-glow,
+  .ai-panel-in,
+  .ai-look-hint {
+    animation: none !important;
+  }
+}

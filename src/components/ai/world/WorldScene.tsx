@@ -6,6 +6,9 @@ import RobotAgent from './RobotAgent';
 import UAVCarrier from './UAVCarrier';
 import EscortDrone, { type DroneConfig } from './EscortDrone';
 import WarpTunnel from './WarpTunnel';
+import WorldBackdrop from './WorldBackdrop';
+import WorldAtmosphere from './WorldAtmosphere';
+import { look as lookAround, setLookLimits } from './lookAround';
 import {
   Spring,
   Spring3,
@@ -24,6 +27,10 @@ import {
 
 const DECK_Y = -1.25; // resting height of the carrier deck
 const ARRIVAL = 2.7; // seconds for the carrier to fly in
+// The world's fog reaches far enough for the air traffic and beacons to show.
+const WORLD_FOG: [number, number] = [20, 110];
+// After this long without a drag the view drifts back to the robot.
+const LOOK_IDLE_MS = 4500;
 
 // Flight path relative to the resting point: out of the haze, curving in, flaring to a hover.
 const PATH = new THREE.CatmullRomCurve3([
@@ -82,8 +89,7 @@ function WorldScene({ phase, compact, reducedMotion, onRobotSelect }: WorldScene
     if (tunnelGroup.current) tunnelGroup.current.visible = phase !== 'world';
     if (worldGroup.current) worldGroup.current.visible = phase === 'world';
     if (phase === 'world') {
-      fog.near = 14;
-      fog.far = 62;
+      [fog.near, fog.far] = WORLD_FOG;
     } else {
       fog.near = 500;
       fog.far = 1000;
@@ -102,7 +108,7 @@ function WorldScene({ phase, compact, reducedMotion, onRobotSelect }: WorldScene
     const cam = camera as THREE.PerspectiveCamera;
     const restZ = compact ? 8.4 : 7.2;
     const views = [
-      { world: true, place: () => { cam.position.set(0, 1, restZ); cam.lookAt(0, 0.2, 0); fog.near = 14; fog.far = 62; } },
+      { world: true, place: () => { cam.position.set(0, 1, restZ); cam.lookAt(0, 0.2, 0); [fog.near, fog.far] = WORLD_FOG; } },
       { world: false, place: () => { cam.position.set(0, 0, 0); cam.lookAt(0, 0, -10); fog.near = 500; fog.far = 1000; } },
     ];
     (async () => {
@@ -130,8 +136,8 @@ function WorldScene({ phase, compact, reducedMotion, onRobotSelect }: WorldScene
       const current = worldClock.phase;
       if (tunnelGroup.current) tunnelGroup.current.visible = current !== 'world';
       if (worldGroup.current) worldGroup.current.visible = current === 'world';
-      fog.near = current === 'world' ? 14 : 500;
-      fog.far = current === 'world' ? 62 : 1000;
+      fog.near = current === 'world' ? WORLD_FOG[0] : 500;
+      fog.far = current === 'world' ? WORLD_FOG[1] : 1000;
       invalidate();
     })();
     return () => {
@@ -160,6 +166,12 @@ function WorldScene({ phase, compact, reducedMotion, onRobotSelect }: WorldScene
   // --- camera -------------------------------------------------------------------
   const look = useMemo(() => new Spring3(10, 1), []);
   const lookTarget = useMemo(() => new THREE.Vector3(), []);
+  // Looking around the panorama (drag / phone tilt), eased so it has weight.
+  const viewYaw = useMemo(() => new Spring(0, 7, 1), []);
+  const viewPitch = useMemo(() => new Spring(0, 7, 1), []);
+  useEffect(() => setLookLimits(compact), [compact]);
+  const restZ = compact ? 8.4 : 7.2;
+  const backdropCenter = useMemo<[number, number, number]>(() => [0, 5, restZ], [restZ]);
 
   useFrame((state, rawDelta) => {
     const dt = safeDelta(rawDelta);
@@ -221,7 +233,6 @@ function WorldScene({ phase, compact, reducedMotion, onRobotSelect }: WorldScene
     vehicle.landed = reducedMotion || t > ARRIVAL + 0.6;
 
     // Camera: dolly in while tracking the carrier, then settle on the original framing with a slow drift.
-    const restZ = compact ? 8.4 : 7.2;
     const k = reducedMotion ? 1 : easeInOutCubic(t / 3.3);
     cam.position.set(
       lerp(0, Math.sin(t * 0.15) * 0.3, k),
@@ -233,6 +244,21 @@ function WorldScene({ phase, compact, reducedMotion, onRobotSelect }: WorldScene
     look.target.copy(lookTarget);
     look.step(dt);
     cam.lookAt(look.value);
+
+    if (performance.now() - lookAround.lastInput > LOOK_IDLE_MS) {
+      lookAround.yaw = 0;
+      lookAround.pitch = 0;
+    }
+    if (firstWorldFrame) {
+      viewYaw.snap(0);
+      viewPitch.snap(0);
+    }
+    viewYaw.target = reducedMotion ? lookAround.yaw : lookAround.yaw + lookAround.tiltYaw;
+    viewPitch.target = reducedMotion ? lookAround.pitch : lookAround.pitch + lookAround.tiltPitch;
+    viewYaw.step(dt);
+    viewPitch.step(dt);
+    cam.rotateY(viewYaw.value);
+    cam.rotateX(viewPitch.value);
   });
 
   return (
@@ -250,6 +276,8 @@ function WorldScene({ phase, compact, reducedMotion, onRobotSelect }: WorldScene
       </group>
 
       <group ref={worldGroup} visible={false}>
+        <WorldBackdrop center={backdropCenter} />
+        <WorldAtmosphere compact={compact} groundY={DECK_Y - 2.4} />
         <hemisphereLight args={['#9fdcff', '#0b1220', 0.55]} />
         <ambientLight intensity={0.25} />
         <directionalLight position={[5, 8, 6]} intensity={2.2} />

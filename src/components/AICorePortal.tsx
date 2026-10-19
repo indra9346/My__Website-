@@ -1,8 +1,11 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAI } from '../context/AIContext';
 import { Canvas } from '@react-three/fiber';
-import { Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, Play, ExternalLink } from 'lucide-react';
+import { Send, X, Radio, Bot, FolderGit2, Video, Sparkles, Lock, Play, ExternalLink, ArrowRight } from 'lucide-react';
 import WorldScene from './ai/world/WorldScene';
+import { worldVideo as panoramaVideo } from './ai/world/WorldBackdrop';
+import { attachLookAround, look } from './ai/world/lookAround';
+import { HoloFocusProvider, useHoloFocus } from './ai/HoloFocus';
 import type { WorldPhase } from './ai/world/physics';
 import { sfx } from './ai/sfx';
 import { DOORS, safeHref, youtubeId, type DoorItem } from './ai/doors';
@@ -80,13 +83,12 @@ const GalleryPanel = ({ door, onClose }: { door: DoorItem; onClose: () => void }
   const items = door.items ?? [];
 
   return (
-    <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-2 sm:p-6 pb-20 sm:pb-24">
       <div
         role="dialog"
         aria-label={door.title}
-        className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden"
+        className="ai-panel-in w-full max-w-lg h-full sm:h-auto sm:max-h-full border border-neon-cyan/40 bg-[#020617]/95 rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden"
       >
-        <button onClick={onClose} aria-label="Close" className="absolute top-3.5 right-3.5 text-gray-400 hover:text-neon-cyan transition-colors">
+        <button onClick={onClose} aria-label="Close" className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-neon-cyan transition-colors">
           <X size={16} />
         </button>
         <div className="flex items-center gap-2.5 border-b border-gray-800/80 pb-2 pr-6">
@@ -99,7 +101,7 @@ const GalleryPanel = ({ door, onClose }: { door: DoorItem; onClose: () => void }
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2.5 font-mono text-xs p-1">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-2.5 font-mono text-xs p-1" style={{ touchAction: 'pan-y' }}>
           {items.length === 0 && <p className="text-slate-400 text-center py-8">Nothing here yet. Check back soon.</p>}
           {items.map((item, index) => {
             const key = `${index}-${item.title}`;
@@ -144,7 +146,6 @@ const GalleryPanel = ({ door, onClose }: { door: DoorItem; onClose: () => void }
           })}
         </div>
       </div>
-    </div>
   );
 };
 
@@ -181,7 +182,8 @@ export default function AICorePortal() {
 
   const ariaContextRef = useRef<AriaContext>({});
   const feedRef = useRef<HTMLDivElement>(null);
-  const bgVideoRef = useRef<HTMLVideoElement>(null);
+  const bgVideoRef = useRef<HTMLVideoElement | null>(null);
+  const sceneWrapRef = useRef<HTMLDivElement>(null);
   const timersRef = useRef<number[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const remoteFailuresRef = useRef(0);
@@ -252,6 +254,7 @@ export default function AICorePortal() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+      if (document.querySelector('.ai-holo-focus')) return;
       if (galleryDoor) {
         event.preventDefault();
         setGalleryDoor(null);
@@ -394,11 +397,24 @@ export default function AICorePortal() {
 
   const showCanvas = !sceneFailed;
   const handleRobotSelect = useCallback(() => {
+    if (look.dragged) return;
     setGalleryDoor(null);
     setIsBotVisible(true);
   }, []);
   const canvasDpr = useMemo<[number, number]>(() => [1, compact ? 1.5 : 1.75], [compact]);
   const canvasCamera = useMemo(() => ({ position: [0, 0, 0] as [number, number, number], fov: compact ? 68 : 55, near: 0.1, far: 250 }), [compact]);
+  const panelOpen = isBotVisible || Boolean(galleryDoor);
+
+  // Drag (or tilt the phone) to look around the city panorama.
+  useEffect(() => {
+    const el = sceneWrapRef.current;
+    if (!el || sceneFailed) return undefined;
+    return attachLookAround(el, () => {
+      const vfov = ((compact ? 68 : 55) * Math.PI) / 180;
+      return 2 * Math.atan(Math.tan(vfov / 2) * (window.innerWidth / Math.max(1, window.innerHeight)));
+    });
+  }, [compact, sceneFailed]);
+
   const handleCanvasCreated = useCallback(({ gl }: { gl: { domElement: HTMLCanvasElement } }) => {
     gl.domElement.addEventListener('webglcontextlost', (event) => {
       event.preventDefault();
@@ -407,8 +423,9 @@ export default function AICorePortal() {
   }, []);
 
   return (
+    <HoloFocusProvider reducedMotion={reducedMotion}>
     <div
-      className="fixed inset-0 w-screen h-screen z-[9990] bg-[#020617] text-white overflow-hidden font-sans select-none"
+      className="fixed inset-0 w-screen h-[100dvh] z-[9990] bg-[#020617] text-white overflow-hidden font-sans select-none"
       style={{ visibility: phase === 'standby' ? 'hidden' : 'visible' }}
       role="dialog"
       aria-modal={phase !== 'standby'}
@@ -423,7 +440,10 @@ export default function AICorePortal() {
         >
           {worldVideo.src ? (
             <video
-              ref={bgVideoRef}
+              ref={(el) => {
+                bgVideoRef.current = el;
+                panoramaVideo.element = el;
+              }}
               muted
               loop
               playsInline
@@ -441,7 +461,7 @@ export default function AICorePortal() {
 
       {/* 3D world: warp tunnel, UAV carrier with the robot, escort drones */}
       {showCanvas && (
-        <div className="absolute inset-0 z-10" style={{ touchAction: 'none' }}>
+        <div ref={sceneWrapRef} className="absolute inset-0 z-10" style={{ touchAction: 'none' }}>
           <SceneBoundary onError={() => setSceneFailed(true)}>
             <Canvas
               dpr={canvasDpr}
@@ -470,12 +490,15 @@ export default function AICorePortal() {
       {/* Without WebGL the warp is drawn with CSS */}
       {sceneFailed && aiModeState === 'portal' && <FlatWarp />}
 
-      {/* HUD controls & Door Hub */}
+      {/* HUD: top bar, the panel area and the card dock, stacked so nothing overlaps on a phone */}
       {aiModeState === 'world' && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-3 sm:p-6">
+        <div
+          className="absolute inset-0 z-30 pointer-events-none flex flex-col gap-2 sm:gap-3 p-3 sm:p-6"
+          style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
           {/* Top Bar Navigation */}
           <div
-            className={`flex justify-between items-center w-full gap-2 z-50 transition-all duration-700 ease-out ${
+            className={`shrink-0 flex justify-between items-center w-full gap-2 z-50 transition-all duration-700 ease-out ${
               hudVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-3 pointer-events-none'
             }`}
           >
@@ -484,99 +507,47 @@ export default function AICorePortal() {
               <span className="font-bold tracking-wide">WHITE AI ROBOTICS WORLD</span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleTriggerReturn}
-                className="border border-pink-500/60 text-pink-400 bg-slate-950/80 hover:bg-pink-500 hover:text-black font-mono text-[10px] sm:text-xs px-3 py-1.5 rounded-md transition-all duration-300 flex items-center gap-1 font-bold shadow-[0_0_12px_rgba(255,46,99,0.3)]"
-              >
-                <X size={12} />
-                <span>EXIT WORLD</span>
-              </button>
-            </div>
+            <button
+              onClick={handleTriggerReturn}
+              className="border border-pink-500/60 text-pink-400 bg-slate-950/80 hover:bg-pink-500 hover:text-black font-mono text-[10px] sm:text-xs px-3 py-1.5 rounded-md transition-all duration-300 flex items-center gap-1 font-bold shadow-[0_0_12px_rgba(255,46,99,0.3)]"
+            >
+              <X size={12} />
+              <span>EXIT WORLD</span>
+            </button>
           </div>
 
-          {/* Interactive Doors Hub Bar */}
-          <div
-            className={`w-full flex flex-col items-center justify-end mb-1 sm:mb-3 z-40 gap-1 transition-all duration-700 ease-out delay-150 ${
-              hudVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
-            }`}
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-          >
-            <div className="bg-slate-950/90 border border-neon-cyan/30 rounded-xl p-2 max-w-2xl w-[98%] sm:w-auto shadow-[0_0_25px_rgba(3,233,244,0.2)]">
-              <div className="text-[9px] sm:text-[10px] font-mono text-gray-400 text-center uppercase tracking-wider mb-1 font-bold flex items-center justify-center gap-1.5">
-                <Bot size={11} className="text-neon-cyan" />
-                <span>AI Robotics Doors Hub</span>
-              </div>
+          {/* Panel area: open panels fill exactly the space between the top bar and the dock */}
+          <div className="relative flex-1 min-h-0 flex items-center justify-center">
+            {!panelOpen && hudVisible && (
+              <p className="ai-look-hint absolute bottom-1 left-1/2 -translate-x-1/2 font-mono text-[10px] text-cyan-100/70 tracking-wider whitespace-nowrap pointer-events-none">
+                {compact ? 'DRAG OR TILT TO LOOK AROUND' : 'DRAG TO LOOK AROUND THE CITY'}
+              </p>
+            )}
+            {galleryDoor && <GalleryPanel door={galleryDoor} onClose={() => setGalleryDoor(null)} />}
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                {DOORS.map((door) => {
-                  const isActive = activeDoorId === door.id && (isBotVisible || galleryDoor?.id === door.id);
-                  return (
-                    <button
-                      key={door.id}
-                      onClick={() => handleDoorSelect(door)}
-                      aria-label={door.status === 'locked' ? `${door.title} (coming soon)` : door.title}
-                      className={`flex flex-col items-start p-2 sm:p-2.5 rounded-lg border font-mono text-left transition-all duration-300 relative overflow-hidden ${
-                        door.status === 'locked'
-                          ? 'border-gray-800 bg-slate-900/40 text-gray-500 cursor-not-allowed'
-                          : isActive
-                          ? 'border-neon-cyan bg-neon-cyan/15 text-white shadow-[0_0_15px_rgba(3,233,244,0.3)]'
-                          : 'border-slate-800 bg-slate-950/70 text-slate-300 hover:border-neon-cyan/50 hover:bg-slate-900/90'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between w-full mb-0.5">
-                        <span className="text-[10px] sm:text-xs font-bold flex items-center gap-1">
-                          {door.type === 'ai' && <Bot size={12} className="text-neon-cyan" />}
-                          {door.type === 'projects' && <FolderGit2 size={12} className="text-green-400" />}
-                          {door.type === 'vlogs' && <Video size={12} className={door.status === 'locked' ? 'text-gray-500' : 'text-neon-cyan'} />}
-                          {door.type === 'creations' && <Sparkles size={12} className={door.status === 'locked' ? 'text-gray-500' : 'text-neon-cyan'} />}
-                          <span>{door.title}</span>
-                        </span>
-                        {door.status === 'locked' ? (
-                          <Lock size={10} className="text-gray-500" />
-                        ) : (
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                        )}
-                      </div>
-
-                      <div className="text-[8px] sm:text-[9px] text-gray-400 leading-tight line-clamp-1">{door.subtitle}</div>
-
-                      {door.status === 'locked' && (
-                        <div className="absolute top-1 right-1 text-[7px] border border-gray-700 bg-black/60 px-1 rounded text-gray-400 uppercase">Soon</div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {galleryDoor && <GalleryPanel door={galleryDoor} onClose={() => setGalleryDoor(null)} />}
-
-          {/* ARIA assistant card */}
-          {isBotVisible && (
-            <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center p-2 sm:p-6 pb-20 sm:pb-24">
+            {/* ARIA assistant card */}
+            {isBotVisible && (
               <div
                 role="dialog"
                 aria-label="ARIA assistant"
-                className="w-[94%] sm:w-full max-w-lg max-h-[68vh] sm:max-h-[76vh] border border-neon-cyan/40 bg-[#020617]/95 rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden select-text"
+                className="ai-panel-in w-full max-w-lg h-full sm:h-auto sm:max-h-full border border-neon-cyan/40 bg-[#020617]/95 rounded-2xl p-3 sm:p-5 shadow-[0_0_40px_rgba(3,233,244,0.25)] flex flex-col gap-2 pointer-events-auto relative overflow-hidden select-text"
               >
                 <button
                   onClick={() => setIsBotVisible(false)}
                   aria-label="Close ARIA"
-                  className="absolute top-3.5 right-3.5 text-gray-400 hover:text-neon-cyan transition-colors"
+                  className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-neon-cyan transition-colors"
                 >
                   <X size={16} />
                 </button>
 
                 {/* Header */}
-                <div className="flex items-center gap-2.5 border-b border-gray-800/80 pb-2">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 flex items-center justify-center text-neon-cyan shadow-[0_0_10px_rgba(3,233,244,0.2)]">
+                <div className="flex items-center gap-2.5 border-b border-gray-800/80 pb-2 pr-8">
+                  <div className="w-8 h-8 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 flex items-center justify-center text-neon-cyan shadow-[0_0_10px_rgba(3,233,244,0.2)]">
                     <Bot size={16} />
                   </div>
                   <div>
                     <h3 className="font-mono text-xs sm:text-sm font-bold text-white leading-tight">ARIA · WHITE AI INTELLIGENCE</h3>
-                    <p className="text-[8px] sm:text-[10px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1.5 mt-0.5">
+                    <p className="text-[9px] sm:text-[10px] font-mono text-neon-cyan tracking-wider uppercase flex items-center gap-1.5 mt-0.5">
                       <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
                       <span>{ARIA_LLM_ENABLED ? 'Online · Claude-assisted' : 'Online · Portfolio knowledge'}</span>
                     </p>
@@ -588,6 +559,7 @@ export default function AICorePortal() {
                   ref={feedRef}
                   aria-live="polite"
                   className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin flex flex-col gap-2 font-mono text-xs p-2.5 bg-black/70 border border-gray-900 rounded-xl"
+                  style={{ touchAction: 'pan-y' }}
                 >
                   {chatMessages.map((msg) => (
                     <div key={msg.id} className="w-full flex flex-col">
@@ -604,14 +576,14 @@ export default function AICorePortal() {
                   )}
                 </div>
 
-                {/* Topic chips (follow the conversation) */}
-                <div className="flex flex-wrap gap-1 justify-center py-0.5">
+                {/* Topic chips (follow the conversation): one swipeable row on phones */}
+                <div className="flex sm:flex-wrap gap-1.5 sm:justify-center py-0.5 overflow-x-auto sm:overflow-visible scrollbar-none -mx-1 px-1" style={{ touchAction: 'pan-x' }}>
                   {suggestions.slice(0, 8).map((cat) => (
                     <button
                       key={cat}
                       onClick={() => handleSendMessage(cat)}
                       disabled={isTyping}
-                      className="border border-neon-cyan/30 hover:border-neon-cyan text-neon-cyan/90 hover:text-neon-cyan bg-slate-950/60 font-mono text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md transition-all duration-200 font-semibold disabled:opacity-50"
+                      className="shrink-0 border border-neon-cyan/30 hover:border-neon-cyan text-neon-cyan/90 hover:text-neon-cyan bg-slate-950/60 font-mono text-[10px] px-2.5 py-1 rounded-md transition-all duration-200 font-semibold disabled:opacity-50"
                     >
                       {cat}
                     </button>
@@ -634,7 +606,7 @@ export default function AICorePortal() {
                     enterKeyHint="send"
                     aria-label="Ask ARIA a question"
                     placeholder="Ask ARIA about projects, skills, experience..."
-                    className="flex-1 min-w-0 bg-black/80 border border-gray-800 rounded-lg px-3 py-1.5 font-mono text-base sm:text-xs text-white focus:outline-none focus:border-neon-cyan placeholder:text-gray-600"
+                    className="flex-1 min-w-0 bg-black/80 border border-gray-800 rounded-lg px-3 py-2 font-mono text-base sm:text-xs text-white focus:outline-none focus:border-neon-cyan placeholder:text-gray-600"
                   />
                   <button
                     type="submit"
@@ -646,10 +618,147 @@ export default function AICorePortal() {
                   </button>
                 </form>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Card dock: swipeable cards on phones, a row of four on wider screens. Hidden on phones while a panel is open. */}
+          <div
+            className={`shrink-0 w-full flex justify-center transition-all duration-700 ease-out delay-150 ${
+              hudVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
+            } ${compact && panelOpen ? 'hidden' : ''}`}
+          >
+            <DoorDock activeId={panelOpen ? activeDoorId : null} onAction={handleDoorSelect} compact={compact} />
+          </div>
         </div>
       )}
+    </div>
+    </HoloFocusProvider>
+  );
+}
+
+// ==========================================
+// 8. Card dock and the popped-out card views
+// ==========================================
+function doorIcon(door: DoorItem, size: number) {
+  if (door.type === 'ai') return <Bot size={size} />;
+  if (door.type === 'projects') return <FolderGit2 size={size} />;
+  if (door.type === 'vlogs') return <Video size={size} />;
+  return <Sparkles size={size} />;
+}
+
+function doorAction(door: DoorItem): string {
+  if (door.status === 'locked') return 'Ask ARIA meanwhile';
+  if (door.type === 'ai') return 'Talk to ARIA';
+  if (door.type === 'projects') return 'Open the projects';
+  return 'Watch now';
+}
+
+function DoorFocusView({ door, onAction }: { door: DoorItem; onAction: () => void }) {
+  const locked = door.status === 'locked';
+  return (
+    <div className="font-mono flex flex-col gap-4">
+      <div className="flex items-start gap-3 pr-8">
+        <div className="ai-icon-glow shrink-0 w-14 h-14 rounded-2xl bg-neon-cyan/10 border border-neon-cyan/50 flex items-center justify-center text-neon-cyan">
+          {doorIcon(door, 26)}
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">{door.title}</h3>
+          <p className="text-xs sm:text-sm text-neon-cyan mt-1">{door.subtitle}</p>
+          <span
+            className={`inline-flex items-center gap-1.5 mt-2 text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full border ${
+              locked ? 'border-amber-400/40 text-amber-300 bg-amber-400/10' : 'border-emerald-400/40 text-emerald-300 bg-emerald-400/10'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${locked ? 'bg-amber-300' : 'bg-emerald-400 animate-pulse'}`} />
+            {locked ? 'COMING SOON' : 'LIVE'}
+          </span>
+        </div>
+      </div>
+      <p className="text-sm text-slate-200 leading-relaxed">{door.description}</p>
+      <ul className="grid gap-2">
+        {door.highlights.map((h) => (
+          <li key={h} className="flex items-start gap-2 text-xs sm:text-sm text-slate-300 border border-slate-800/80 bg-slate-900/50 rounded-lg px-3 py-2">
+            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-neon-cyan shrink-0" />
+            <span>{h}</span>
+          </li>
+        ))}
+      </ul>
+      <button
+        onClick={onAction}
+        className="mt-1 w-full flex items-center justify-center gap-2 rounded-xl bg-neon-cyan text-black font-bold text-sm py-3 hover:bg-cyan-300 transition-colors shadow-[0_0_24px_rgba(3,233,244,0.45)]"
+      >
+        {doorAction(door)} <ArrowRight size={16} />
+      </button>
+    </div>
+  );
+}
+
+function DoorDock({ activeId, onAction, compact }: { activeId: string | null; onAction: (door: DoorItem) => void; compact: boolean }) {
+  const focus = useHoloFocus();
+  const show = (door: DoorItem, el: HTMLElement) => {
+    sfx.playClick();
+    focus.open({
+      key: `door-${door.id}`,
+      origin: el,
+      label: door.title,
+      content: (
+        <DoorFocusView
+          door={door}
+          onAction={() => {
+            focus.close();
+            onAction(door);
+          }}
+        />
+      ),
+    });
+  };
+
+  return (
+    <div className="w-full max-w-4xl bg-slate-950/80 border border-neon-cyan/30 rounded-2xl p-2 sm:p-2.5 shadow-[0_0_25px_rgba(3,233,244,0.2)] backdrop-blur-sm">
+      <div className="text-[9px] sm:text-[10px] font-mono text-gray-400 text-center uppercase tracking-wider mb-1.5 font-bold flex items-center justify-center gap-1.5">
+        <Bot size={11} className="text-neon-cyan" />
+        <span>AI Robotics Doors Hub</span>
+        {compact && <span className="text-gray-500 normal-case tracking-normal font-normal">· swipe, tap to open</span>}
+      </div>
+      <div
+        className={compact ? 'flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-2 px-2 pb-0.5' : 'grid grid-cols-2 lg:grid-cols-4 gap-2'}
+        style={compact ? { touchAction: 'pan-x', scrollPaddingInline: '0.5rem' } : undefined}
+      >
+        {DOORS.map((door) => {
+          const locked = door.status === 'locked';
+          const active = activeId === door.id;
+          return (
+            <button
+              key={door.id}
+              onClick={(event) => show(door, event.currentTarget)}
+              aria-label={`${door.title}${locked ? ' (coming soon)' : ''}: open card`}
+              className={`ai-holo-card snap-center shrink-0 ${compact ? 'w-[68vw] max-w-[250px]' : ''} relative overflow-hidden text-left font-mono rounded-xl border p-2.5 sm:p-3 transition-colors duration-300 ${
+                active
+                  ? 'border-neon-cyan bg-neon-cyan/15 shadow-[0_0_18px_rgba(3,233,244,0.35)]'
+                  : locked
+                  ? 'border-slate-700/80 bg-slate-900/70'
+                  : 'border-neon-cyan/30 bg-slate-950/80 hover:border-neon-cyan/70'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center ${
+                    locked ? 'border-slate-600 text-slate-400 bg-slate-800/60' : 'border-neon-cyan/40 text-neon-cyan bg-neon-cyan/10'
+                  }`}
+                >
+                  {doorIcon(door, 17)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className={`text-[13px] font-bold leading-tight truncate ${locked ? 'text-slate-300' : 'text-white'}`}>{door.title}</div>
+                  <div className="text-[11px] text-slate-400 leading-snug truncate mt-0.5">{door.subtitle}</div>
+                </div>
+                {locked ? <Lock size={12} className="text-slate-500 shrink-0" /> : <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />}
+              </div>
+              <div className="mt-1.5 text-[9px] tracking-wider font-bold text-neon-cyan/80">{locked ? 'COMING SOON · TAP TO PREVIEW' : 'LIVE · TAP TO OPEN'}</div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

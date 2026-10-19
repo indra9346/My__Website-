@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from 'react';
 import { Activity, Award, Briefcase, Cpu, ExternalLink, FolderGit2, Github, Shield } from 'lucide-react';
 import { ARIA_PROFILE } from '../../../../supabase/functions/_shared/aria-knowledge';
 import { skillCheckSentence, type AriaBlock } from './engine';
+import { ZoomableCard } from '../HoloFocus';
 
 const P = ARIA_PROFILE;
 
@@ -299,6 +300,18 @@ function BlockView({ block }: { block: AriaBlock }) {
   }
 }
 
+const BLOCK_LABEL: Record<string, string> = {
+  bio: 'Profile summary',
+  experience: 'Current roles',
+  projects: 'Projects',
+  project: 'Project',
+  skills: 'Tech stack',
+  education: 'Education',
+  contact: 'Contact',
+  certifications: 'Certifications',
+  resume: 'Resume',
+};
+
 export default function AriaMessage({ message }: { message: AriaChatMessage }) {
   if (message.sender === 'user') {
     return <div className="text-right text-neon-cyan font-semibold break-words">{message.text}</div>;
@@ -307,7 +320,14 @@ export default function AriaMessage({ message }: { message: AriaChatMessage }) {
     return (
       <div className="flex flex-col gap-2">
         {message.blocks.map((block, i) => (
-          <BlockView key={i} block={block} />
+          block.kind === 'text' ? (
+            <BlockView key={i} block={block} />
+          ) : (
+            // Data cards pop out into the large holographic view when tapped.
+            <ZoomableCard key={i} id={`msg-${message.id}-${i}`} label={BLOCK_LABEL[block.kind] ?? 'Card'}>
+              <BlockView block={block} />
+            </ZoomableCard>
+          )
         ))}
       </div>
     );
