@@ -5,7 +5,14 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, useInView } from "framer-motion";
 import PromoBanner from "./PromoBanner";
-import { PROJECTS_QUERY_KEY, Project, fetchProjects, groupProjectsByCategory } from "@/lib/projects";
+import {
+  COMPANY_CATEGORY,
+  PROJECTS_QUERY_KEY,
+  Project,
+  fetchProjects,
+  groupProjectsByCategory,
+  groupProjectsByCompany,
+} from "@/lib/projects";
 
 const ProjectCard = ({ project, index }: { project: Project; index: number }) => {
   const ref = useRef(null);
@@ -49,6 +56,12 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
               <Code size={48} className="text-neon-cyan" />
             )}
           </div>
+          {project.status === 'ongoing' && (
+            <span className="absolute top-3 left-3 z-20 inline-flex items-center gap-1.5 text-xs font-mono bg-black/70 border border-emerald-500/40 text-emerald-400 px-2.5 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Ongoing
+            </span>
+          )}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
             <h3 className="text-xl font-bold text-white">{project.title}</h3>
           </div>
@@ -89,6 +102,46 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
     </motion.div>
   );
 };
+
+const ProjectGrid = ({ projects }: { projects: Project[] }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    {projects.map((project, index) => (
+      <ProjectCard key={project.id} project={project} index={index} />
+    ))}
+  </div>
+);
+
+const CompanyProjects = ({ projects }: { projects: Project[] }) => (
+  <div className="space-y-14">
+    {groupProjectsByCompany(projects).map(group => (
+      <div key={group.name}>
+        <div className="flex items-center gap-4 mb-8">
+          {group.company && (
+            <div className="h-12 min-w-12 px-2 rounded-xl bg-black/90 border border-neon-cyan/30 flex items-center justify-center shrink-0 overflow-hidden">
+              <img src={group.company.logo} alt={`${group.name} logo`} className="h-8 w-auto max-w-[96px] object-contain" />
+            </div>
+          )}
+          <div>
+            <h4 className="text-xl font-bold text-white">{group.name}</h4>
+            {group.company && <p className="text-sm text-gray-400">{group.company.role}</p>}
+          </div>
+        </div>
+        {group.ongoing.length > 0 && (
+          <div className="mb-10">
+            <h5 className="text-sm font-mono uppercase tracking-wider text-emerald-400 mb-5">Ongoing Projects</h5>
+            <ProjectGrid projects={group.ongoing} />
+          </div>
+        )}
+        {group.completed.length > 0 && (
+          <div>
+            <h5 className="text-sm font-mono uppercase tracking-wider text-gray-400 mb-5">Completed Projects</h5>
+            <ProjectGrid projects={group.completed} />
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+);
 
 const ProjectsSection = () => {
   const sectionRef = useRef(null);
@@ -143,11 +196,11 @@ const ProjectsSection = () => {
               {category}
             </h3>
             {category === "Client Projects" && <PromoBanner />}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {categoryProjects.map((project, index) => (
-                <ProjectCard key={project.id} project={project} index={index} />
-              ))}
-            </div>
+            {category === COMPANY_CATEGORY ? (
+              <CompanyProjects projects={categoryProjects} />
+            ) : (
+              <ProjectGrid projects={categoryProjects} />
+            )}
           </div>
         ))}
 

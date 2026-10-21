@@ -1,6 +1,19 @@
 import { supabase } from '@/integrations/supabase/client';
+import swanDigitalLogo from '@/assets/swan-digital-logo.png';
+import hostingBabaLogo from '@/assets/hosting-baba-logo.png';
 
-export const PROJECT_CATEGORIES = ['Client Projects', 'Personal Projects', 'Open Source', 'Freelance'];
+// Work done at the companies below; shown first, one block per company.
+export const COMPANY_CATEGORY = 'Company Projects';
+
+export const PROJECT_CATEGORIES = [COMPANY_CATEGORY, 'Client Projects', 'Personal Projects', 'Open Source', 'Freelance'];
+
+// The current workplaces listed in the About section.
+export const COMPANIES = [
+  { name: 'Swan Digital Solutions', role: 'Full Stack Developer', logo: swanDigitalLogo },
+  { name: 'Hosting Baba', role: 'Full Stack Developer', logo: hostingBabaLogo },
+];
+
+export type ProjectStatus = 'completed' | 'ongoing';
 
 // Matches the column default in the database.
 export const DEFAULT_CATEGORY = 'Personal Projects';
@@ -17,6 +30,8 @@ export type Project = {
   Demo: string | null;
   Display_Order: number | null;
   category: string;
+  company: string | null;
+  status: ProjectStatus;
   created_at: string;
 };
 
@@ -36,14 +51,32 @@ export const fetchProjects = async (): Promise<Project[]> => {
   return (data ?? []) as unknown as Project[];
 };
 
-// Categories appear in the order of their first project.
+// Company projects come first; the other categories appear in the order of their first project.
 export const groupProjectsByCategory = (projects: Project[]) =>
-  projects.reduce((acc, project) => {
-    const cat = project.category || DEFAULT_CATEGORY;
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(project);
-    return acc;
-  }, {} as Record<string, Project[]>);
+  [...projects]
+    .sort((a, b) => Number(b.category === COMPANY_CATEGORY) - Number(a.category === COMPANY_CATEGORY))
+    .reduce((acc, project) => {
+      const cat = project.category || DEFAULT_CATEGORY;
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(project);
+      return acc;
+    }, {} as Record<string, Project[]>);
+
+// One block per company (in COMPANIES order, then any other name), each split into ongoing and completed.
+export const groupProjectsByCompany = (projects: Project[]) => {
+  const names = [...new Set([...COMPANIES.map(c => c.name), ...projects.map(p => p.company || 'Other')])];
+  return names
+    .map(name => {
+      const own = projects.filter(p => (p.company || 'Other') === name);
+      return {
+        name,
+        company: COMPANIES.find(c => c.name === name),
+        ongoing: own.filter(p => p.status === 'ongoing'),
+        completed: own.filter(p => p.status !== 'ongoing'),
+      };
+    })
+    .filter(group => group.ongoing.length + group.completed.length > 0);
+};
 
 const QUOTES = '"“”';
 const WRAPPED_IN_QUOTES = new RegExp(`^[${QUOTES}]([^${QUOTES}]*)[${QUOTES}],?$`);

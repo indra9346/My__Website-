@@ -8,13 +8,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
 import {
+  COMPANIES,
+  COMPANY_CATEGORY,
   DEFAULT_CATEGORY,
   PROJECT_CATEGORIES,
   PROJECTS_QUERY_KEY,
   Project,
+  ProjectStatus,
   cleanText,
   fetchProjects,
   groupProjectsByCategory,
+  groupProjectsByCompany,
   normalizeLink,
   parseTags,
   titleKey,
@@ -29,6 +33,8 @@ type ProjectForm = {
   Demo: string;
   order: string;
   category: string;
+  company: string;
+  status: ProjectStatus;
 };
 
 type ProjectRow = Omit<Project, 'id' | 'created_at'>;
@@ -42,6 +48,8 @@ const emptyForm = (order: number): ProjectForm => ({
   Demo: '',
   order: String(order),
   category: 'Client Projects',
+  company: '',
+  status: 'completed',
 });
 
 const toForm = (project: Project): ProjectForm => ({
@@ -53,7 +61,19 @@ const toForm = (project: Project): ProjectForm => ({
   Demo: project.Demo || '',
   order: project.Display_Order == null ? '' : String(project.Display_Order),
   category: project.category || DEFAULT_CATEGORY,
+  company: project.company || '',
+  status: project.status === 'ongoing' ? 'ongoing' : 'completed',
 });
+
+const StatusBadge = ({ status }: { status: ProjectStatus }) =>
+  status === 'ongoing' ? (
+    <span className="inline-flex items-center gap-1.5 text-xs font-mono bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-full">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+      Ongoing
+    </span>
+  ) : (
+    <span className="text-xs text-muted-foreground">Completed</span>
+  );
 
 // Turns the form into the row that gets saved, or throws a message the admin can act on.
 const toRow = (form: ProjectForm): ProjectRow => {
@@ -67,6 +87,9 @@ const toRow = (form: ProjectForm): ProjectRow => {
     throw new Error('Order must be a whole number.');
   }
 
+  const isCompanyProject = form.category === COMPANY_CATEGORY;
+  if (isCompanyProject && !form.company) throw new Error('Choose which company this project was for.');
+
   return {
     title,
     Description: description,
@@ -76,6 +99,8 @@ const toRow = (form: ProjectForm): ProjectRow => {
     Demo: normalizeLink(form.Demo, 'Live Demo URL'),
     Display_Order: order,
     category: form.category,
+    company: isCompanyProject ? form.company : null,
+    status: form.status,
   };
 };
 
@@ -185,9 +210,51 @@ const AdminProjects = () => {
 
   const groupedProjects = groupProjectsByCategory(projects || []);
   const categoryOptions = PROJECT_CATEGORIES.includes(form.category) ? PROJECT_CATEGORIES : [...PROJECT_CATEGORIES, form.category];
+  const companyNames = COMPANIES.map(c => c.name);
+  const companyOptions = !form.company || companyNames.includes(form.company) ? companyNames : [...companyNames, form.company];
   const tagPreview = parseTags(form.tags);
 
   const inputClass = "w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-neon-cyan text-foreground";
+
+  const renderTable = (rows: Project[]) => (
+    <div className="glass rounded-lg overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Tags</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Order</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((project) => {
+            const tags = (project.Tags || []).join(', ');
+            const isDeleting = deleteMutation.isPending && deleteMutation.variables === project.id;
+            return (
+              <TableRow key={project.id}>
+                <TableCell className="font-medium">{project.title}</TableCell>
+                <TableCell className="max-w-[200px] truncate" title={project.Description || ''}>{project.Description}</TableCell>
+                <TableCell className="max-w-[150px] truncate" title={tags}>{tags}</TableCell>
+                <TableCell className="whitespace-nowrap"><StatusBadge status={project.status} /></TableCell>
+                <TableCell>{project.Display_Order ?? '-'}</TableCell>
+                <TableCell className="text-right space-x-2 whitespace-nowrap">
+                  <Button variant="outline" size="sm" onClick={() => openEdit(project)} aria-label={`Edit ${project.title || 'project'}`}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(project)} disabled={deleteMutation.isPending} aria-label={`Delete ${project.title || 'project'}`}>
+                    {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   return (
     <div>
@@ -215,41 +282,22 @@ const AdminProjects = () => {
         Object.entries(groupedProjects).map(([category, categoryProjects]) => (
           <div key={category} className="mb-8">
             <h3 className="text-lg font-semibold text-neon-cyan mb-3">{category}</h3>
-            <div className="glass rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Tags</TableHead>
-                    <TableHead>Order</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {categoryProjects.map((project) => {
-                    const tags = (project.Tags || []).join(', ');
-                    const isDeleting = deleteMutation.isPending && deleteMutation.variables === project.id;
-                    return (
-                      <TableRow key={project.id}>
-                        <TableCell className="font-medium">{project.title}</TableCell>
-                        <TableCell className="max-w-[200px] truncate" title={project.Description || ''}>{project.Description}</TableCell>
-                        <TableCell className="max-w-[150px] truncate" title={tags}>{tags}</TableCell>
-                        <TableCell>{project.Display_Order ?? '-'}</TableCell>
-                        <TableCell className="text-right space-x-2 whitespace-nowrap">
-                          <Button variant="outline" size="sm" onClick={() => openEdit(project)} aria-label={`Edit ${project.title || 'project'}`}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(project)} disabled={deleteMutation.isPending} aria-label={`Delete ${project.title || 'project'}`}>
-                            {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            {category === COMPANY_CATEGORY ? (
+              groupProjectsByCompany(categoryProjects).map(group => (
+                <div key={group.name} className="mb-5">
+                  <h4 className="flex items-center gap-2 mb-2 text-sm font-semibold text-gray-300">
+                    {group.company && <img src={group.company.logo} alt="" className="h-5 w-auto max-w-[60px] object-contain" />}
+                    {group.name}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {group.ongoing.length} ongoing, {group.completed.length} completed
+                    </span>
+                  </h4>
+                  {renderTable([...group.ongoing, ...group.completed])}
+                </div>
+              ))
+            ) : (
+              renderTable(categoryProjects)
+            )}
           </div>
         ))
       )}
@@ -264,6 +312,24 @@ const AdminProjects = () => {
                 {categoryOptions.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
+              </select>
+            </div>
+            {form.category === COMPANY_CATEGORY && (
+              <div>
+                <label htmlFor="project-company" className="block mb-2 text-sm font-medium">Company</label>
+                <select id="project-company" value={form.company} onChange={(e) => setField('company', e.target.value)} className={inputClass} required>
+                  <option value="" disabled>Choose a company</option>
+                  {companyOptions.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div>
+              <label htmlFor="project-status" className="block mb-2 text-sm font-medium">Status</label>
+              <select id="project-status" value={form.status} onChange={(e) => setField('status', e.target.value)} className={inputClass}>
+                <option value="completed">Completed</option>
+                <option value="ongoing">Ongoing</option>
               </select>
             </div>
             <div>
