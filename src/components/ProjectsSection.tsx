@@ -3,21 +3,9 @@
 import { Github, ExternalLink, Code } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { motion, useInView } from "framer-motion";
 import PromoBanner from "./PromoBanner";
-
-type Project = {
-  id: string;
-  title: string | null;
-  Description: string | null;
-  Image: string | null;
-  Tags: string[] | null;
-  github: string | null;
-  Demo: string | null;
-  Display_Order: number | null;
-  category: string;
-};
+import { PROJECTS_QUERY_KEY, Project, fetchProjects, groupProjectsByCategory } from "@/lib/projects";
 
 const ProjectCard = ({ project, index }: { project: Project; index: number }) => {
   const ref = useRef(null);
@@ -107,23 +95,11 @@ const ProjectsSection = () => {
   const isInView = useInView(sectionRef, { once: true, margin: '-100px' });
 
   const { data: projects, isLoading, error } = useQuery({
-    queryKey: ["projects"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .order("Display_Order", { ascending: true });
-      if (error) throw error;
-      return data as unknown as Project[];
-    },
+    queryKey: PROJECTS_QUERY_KEY,
+    queryFn: fetchProjects,
   });
 
-  const groupedProjects = projects?.reduce((acc, project) => {
-    const cat = project.category || 'Personal Projects';
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(project);
-    return acc;
-  }, {} as Record<string, Project[]>);
+  const groupedProjects = projects && groupProjectsByCategory(projects);
 
   if (isLoading) {
     return (
