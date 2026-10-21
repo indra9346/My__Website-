@@ -17,6 +17,12 @@ grant select on table public.promotions to anon, authenticated;
 -- This database is shared with other apps, so "any signed-in user" also meant their
 -- users. Writes now need a portfolio platform admin (public.cp_platform_admins from
 -- the client access control plane migration). Make sure the owner is one.
+--
+-- The TileRoom app (indra9346/TileRoom) stores its users' projects in this same
+-- table: those rows have a user_id, portfolio rows do not. Its uploads reference
+-- them with ON DELETE CASCADE. So the portfolio rules only ever cover rows with
+-- no user_id, and TileRoom keeps its own "users read their own projects" rule.
+-- (TileRoom's server writes with the service role, which these rules do not affect.)
 insert into public.cp_platform_admins (user_id, email, display_name)
 select u.id, lower(u.email), 'K S Indra Kumar'
 from auth.users u
@@ -38,20 +44,25 @@ $$;
 
 create policy "projects_public_read" on public.projects
   for select to anon, authenticated
-  using (true);
+  using (user_id is null);
 
 create policy "projects_admin_insert" on public.projects
   for insert to authenticated
-  with check ((select public.is_control_plane_admin()));
+  with check (user_id is null and (select public.is_control_plane_admin()));
 
 create policy "projects_admin_update" on public.projects
   for update to authenticated
-  using ((select public.is_control_plane_admin()))
-  with check ((select public.is_control_plane_admin()));
+  using (user_id is null and (select public.is_control_plane_admin()))
+  with check (user_id is null and (select public.is_control_plane_admin()));
 
 create policy "projects_admin_delete" on public.projects
   for delete to authenticated
-  using ((select public.is_control_plane_admin()));
+  using (user_id is null and (select public.is_control_plane_admin()));
+
+-- Same rule TileRoom's master_schema.sql creates.
+create policy "projects_select_own" on public.projects
+  for select
+  using (auth.uid() = user_id);
 
 -- -----------------------------------------------------------------------------
 -- 3. Tidy values that were pasted from JSON
@@ -59,11 +70,11 @@ create policy "projects_admin_delete" on public.projects
 -- "\"I_Mall - Frontend Project\"" -> I_Mall - Frontend Project
 update public.projects
 set title = btrim(substring(title from '^\s*["“”]([^"“”]*)["“”],?\s*$'))
-where title ~ '^\s*["“”][^"“”]*["“”],?\s*$';
+where user_id is null and title ~ '^\s*["“”][^"“”]*["“”],?\s*$';
 
 update public.projects
 set "Description" = btrim(substring("Description" from '^\s*["“”]([^"“”]*)["“”],?\s*$'))
-where "Description" ~ '^\s*["“”][^"“”]*["“”],?\s*$';
+where user_id is null and "Description" ~ '^\s*["“”][^"“”]*["“”],?\s*$';
 
 -- {"[\"React\"", "\"Vite\"", ...} -> {React, Vite, ...}, keeping order and dropping repeats.
 update public.projects p
@@ -80,7 +91,7 @@ set "Tags" = coalesce((
     order by lower(tag), pos
   ) unique_tags
 ), '{}')
-where exists (
+where p.user_id is null and exists (
   select 1 from unnest(p."Tags") as e(element)
   where element ~ E'[][",\\n“”]' or element <> btrim(element)
 );
@@ -94,10 +105,12 @@ where exists (
 with ordered as (
   select id, row_number() over (order by "Display_Order" asc nulls last, created_at asc, id) as n
   from public.projects
+  where user_id is null
 )
 update public.projects p
 set "Display_Order" = o.n
 from ordered o
 where o.id = p.id
   and p."Display_Order" is distinct from o.n
-  and (select count(*) from public.projects) <> (select count(distinct "Display_Order") from public.projects);
+  and (select count(*) from public.projects where user_id is null)
+      <> (select count(distinct "Display_Order") from public.projects where user_id is null);

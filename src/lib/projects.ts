@@ -23,10 +23,13 @@ export type Project = {
 // Used by both the public Projects section and the admin page, so the order you
 // see in the admin is exactly the order visitors see. Equal order numbers fall
 // back to the oldest project first instead of whatever order the database picks.
+// The TileRoom app keeps its users' projects in this same table with a user_id;
+// portfolio projects have none, so only those are shown and edited here.
 export const fetchProjects = async (): Promise<Project[]> => {
   const { data, error } = await supabase
     .from('projects')
     .select('*')
+    .is('user_id', null)
     .order('Display_Order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true });
   if (error) throw error;
