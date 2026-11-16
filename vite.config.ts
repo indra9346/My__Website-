@@ -5,8 +5,9 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // ✅ Use relative paths for Vercel (fixes 404 issues)
-  base: "./",
+  // Absolute paths: with "./" a refresh on a nested page such as /admin/projects
+  // asked for /admin/assets/... and got the home page back instead of the script.
+  base: "/",
 
   server: {
     host: "::",

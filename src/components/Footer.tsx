@@ -1,4 +1,5 @@
 import { Github, Linkedin, Heart } from 'lucide-react';
+import iLogo from '../assets/i-logo.svg';
 
 const Footer = () => {
   return (
@@ -7,11 +8,14 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between items-center">
           
           {/* Left side - Name & tagline */}
-          <div className="mb-6 md:mb-0 text-center md:text-left">
+          <div className="mb-6 md:mb-0 flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+            <img src={iLogo} alt="K S Indra Kumar logo" width={56} height={56} loading="lazy" className="h-14 w-14" />
+            <div>
             <h2 className="text-xl font-bold gradient-text">K S INDRA KUMAR</h2>
             <p className="mt-1 text-gray-400 text-sm">
               Full Stack Developer | Java & Web Enthusiast
             </p>
+            </div>
           </div>
 
           {/* Right side - Social Links */}

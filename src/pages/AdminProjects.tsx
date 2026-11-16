@@ -16,13 +16,16 @@ import {
   Project,
   ProjectStatus,
   cleanText,
+  VENTURE,
+  buildProjectGroups,
   fetchProjects,
-  groupProjectsByCategory,
-  groupProjectsByCompany,
+  projectGroupMeta,
   normalizeLink,
   parseTags,
   titleKey,
 } from '@/lib/projects';
+import ProjectGroupMark from '@/components/projects/ProjectGroupMark';
+import '@/styles/home.css';
 
 type ProjectForm = {
   title: string;
@@ -208,7 +211,8 @@ const AdminProjects = () => {
     setFormError(null);
   };
 
-  const groupedProjects = groupProjectsByCategory(projects || []);
+  // The same groups, in the same order, as the public site shows them.
+  const groups = buildProjectGroups(projects || []);
   const categoryOptions = PROJECT_CATEGORIES.includes(form.category) ? PROJECT_CATEGORIES : [...PROJECT_CATEGORIES, form.category];
   const companyNames = COMPANIES.map(c => c.name);
   const companyOptions = !form.company || companyNames.includes(form.company) ? companyNames : [...companyNames, form.company];
@@ -224,6 +228,7 @@ const AdminProjects = () => {
             <TableHead>Title</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Tags</TableHead>
+            <TableHead>Category</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Order</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -238,6 +243,7 @@ const AdminProjects = () => {
                 <TableCell className="font-medium">{project.title}</TableCell>
                 <TableCell className="max-w-[200px] truncate" title={project.Description || ''}>{project.Description}</TableCell>
                 <TableCell className="max-w-[150px] truncate" title={tags}>{tags}</TableCell>
+                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{project.category || DEFAULT_CATEGORY}</TableCell>
                 <TableCell className="whitespace-nowrap"><StatusBadge status={project.status} /></TableCell>
                 <TableCell>{project.Display_Order ?? '-'}</TableCell>
                 <TableCell className="text-right space-x-2 whitespace-nowrap">
@@ -279,24 +285,19 @@ const AdminProjects = () => {
           No projects yet. Click Add Project to create the first one.
         </div>
       ) : (
-        Object.entries(groupedProjects).map(([category, categoryProjects]) => (
-          <div key={category} className="mb-8">
-            <h3 className="text-lg font-semibold text-neon-cyan mb-3">{category}</h3>
-            {category === COMPANY_CATEGORY ? (
-              groupProjectsByCompany(categoryProjects).map(group => (
-                <div key={group.name} className="mb-5">
-                  <h4 className="flex items-center gap-2 mb-2 text-sm font-semibold text-gray-300">
-                    {group.company && <img src={group.company.logo} alt="" className="h-5 w-auto max-w-[60px] object-contain" />}
-                    {group.name}
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {group.ongoing.length} ongoing, {group.completed.length} completed
-                    </span>
-                  </h4>
-                  {renderTable([...group.ongoing, ...group.completed])}
-                </div>
-              ))
+        groups.map(group => (
+          <div key={group.id} className="mb-8">
+            <h3 className="flex flex-wrap items-center gap-3 text-lg font-semibold text-neon-cyan mb-3">
+              <ProjectGroupMark id={group.id} />
+              {group.title}
+              <span className="text-xs font-normal text-muted-foreground">{projectGroupMeta(group)}</span>
+            </h3>
+            {group.id === 'venture' ? (
+              <p className="glass rounded-lg px-4 py-3 text-sm text-gray-300">
+                {VENTURE.name} ({VENTURE.host}) is shown on the site as a spotlight. Its text is part of the site itself, so it is not edited here.
+              </p>
             ) : (
-              renderTable(categoryProjects)
+              renderTable([...group.ongoing, ...group.completed])
             )}
           </div>
         ))

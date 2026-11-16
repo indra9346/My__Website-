@@ -1,6 +1,7 @@
 import { Mail, MapPin, Phone, Send, CheckCircle } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
+import iLogo from '../assets/i-logo.svg';
 
 const ContactSection = () => {
   const [name, setName] = useState('');
@@ -138,7 +139,15 @@ const ContactSection = () => {
               )}
             </AnimatePresence>
 
-            <form onSubmit={handleSubmit} className="glass p-6 md:p-8 rounded-lg space-y-6">
+            <form onSubmit={handleSubmit} className="relative isolate overflow-hidden glass p-6 md:p-8 rounded-lg space-y-6">
+              {/* The I logo as a faint watermark inside the form. */}
+              <img
+                src={iLogo}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                className="pointer-events-none select-none absolute -right-10 -bottom-10 -z-10 w-64 md:w-80 opacity-[0.10]"
+              />
               {/* Name */}
               <div className="relative">
                 <label htmlFor="name" className="block mb-2 text-sm font-medium">Name</label>

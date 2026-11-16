@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
-import { Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import iLogo from '@/assets/i-logo.svg';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { User } from '@supabase/supabase-js';
@@ -60,12 +61,23 @@ const AdminLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-gray-900 py-4 border-b border-gray-800">
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-neon-cyan">Admin Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-300">{user.email}</span>
+    <div className="relative isolate min-h-screen bg-background flex flex-col">
+      {/* The I logo as a large, faint watermark behind every admin page. */}
+      <img
+        src={iLogo}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none select-none fixed left-1/2 top-1/2 -z-10 w-[min(78vw,78vh)] -translate-x-1/2 -translate-y-1/2 opacity-[0.07]"
+      />
+      <header className="bg-gray-900/90 py-4 border-b border-gray-800">
+        <div className="container mx-auto px-4 flex flex-wrap justify-between items-center gap-3">
+          <Link to="/admin" className="flex items-center gap-3">
+            <img src={iLogo} alt="" className="h-9 w-9" />
+            <h1 className="text-xl font-bold text-neon-cyan">Admin Dashboard</h1>
+          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <a href="/" className="text-sm text-gray-300 hover:text-neon-cyan transition-colors">View site</a>
+            <span className="text-sm text-gray-300 break-all">{user.email}</span>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               Logout
             </Button>
