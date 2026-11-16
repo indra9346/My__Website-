@@ -67,7 +67,7 @@ const AdminLayout = () => {
         src={iLogo}
         alt=""
         aria-hidden="true"
-        className="pointer-events-none select-none fixed left-1/2 top-1/2 -z-10 w-[min(78vw,78vh)] -translate-x-1/2 -translate-y-1/2 opacity-[0.07]"
+        className="pointer-events-none select-none fixed left-1/2 top-1/2 -z-10 w-[min(78vw,78vh)] -translate-x-1/2 -translate-y-1/2"
       />
       <header className="bg-gray-900/90 py-4 border-b border-gray-800">
         <div className="container mx-auto px-4 flex flex-wrap justify-between items-center gap-3">
@@ -85,7 +85,7 @@ const AdminLayout = () => {
         </div>
       </header>
 
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-4 py-8 [&_.glass]:bg-[hsl(222_47%_11%/0.88)]">
         <Outlet />
       </main>
     </div>

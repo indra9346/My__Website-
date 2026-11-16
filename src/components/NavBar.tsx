@@ -226,7 +226,7 @@ const NavBar = () => {
             aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-navigation"
-            className="md:hidden text-muted-foreground hover:text-foreground"
+            className={`md:hidden text-muted-foreground hover:text-foreground ${isMobileMenuOpen ? 'invisible' : ''}`}
             onClick={() => setIsMobileMenuOpen((open) => !open)}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}

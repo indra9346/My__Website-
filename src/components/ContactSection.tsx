@@ -47,7 +47,7 @@ const ContactSection = () => {
   };
 
   const inputClass =
-    'w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white transition-all duration-300 focus:outline-none focus:border-neon-cyan focus:shadow-[0_0_15px_rgba(3,233,244,0.15)] placeholder:text-gray-500';
+    'w-full px-4 py-3 bg-gray-900/90 border border-gray-600 rounded-lg text-white transition-all duration-300 focus:outline-none focus:border-neon-cyan focus:shadow-[0_0_15px_rgba(3,233,244,0.15)] placeholder:text-gray-500';
 
   return (
     <section id="contact" className="py-24 bg-black/30" ref={ref}>
@@ -140,17 +140,17 @@ const ContactSection = () => {
             </AnimatePresence>
 
             <form onSubmit={handleSubmit} className="relative isolate overflow-hidden glass p-6 md:p-8 rounded-lg space-y-6">
-              {/* The I logo as a faint watermark inside the form. */}
+              {/* The I logo behind the form: centred, in its full colours. The fields are solid so what is typed stays clear. */}
               <img
                 src={iLogo}
                 alt=""
                 aria-hidden="true"
                 loading="lazy"
-                className="pointer-events-none select-none absolute -right-10 -bottom-10 -z-10 w-64 md:w-80 opacity-[0.10]"
+                className="pointer-events-none select-none absolute left-1/2 top-1/2 -z-10 w-[min(78%,24rem)] -translate-x-1/2 -translate-y-1/2"
               />
               {/* Name */}
               <div className="relative">
-                <label htmlFor="name" className="block mb-2 text-sm font-medium">Name</label>
+                <label htmlFor="name" className="block mb-2 text-sm font-medium [text-shadow:0_1px_3px_rgba(2,6,23,0.9)]">Name</label>
                 <input
                   id="name"
                   type="text"
@@ -164,7 +164,7 @@ const ContactSection = () => {
 
               {/* Email */}
               <div className="relative">
-                <label htmlFor="email" className="block mb-2 text-sm font-medium">Email</label>
+                <label htmlFor="email" className="block mb-2 text-sm font-medium [text-shadow:0_1px_3px_rgba(2,6,23,0.9)]">Email</label>
                 <input
                   id="email"
                   type="email"
@@ -178,7 +178,7 @@ const ContactSection = () => {
 
               {/* Message */}
               <div className="relative">
-                <label htmlFor="message" className="block mb-2 text-sm font-medium">Message</label>
+                <label htmlFor="message" className="block mb-2 text-sm font-medium [text-shadow:0_1px_3px_rgba(2,6,23,0.9)]">Message</label>
                 <textarea
                   id="message"
                   value={message}
@@ -192,7 +192,7 @@ const ContactSection = () => {
               <motion.button
                 type="submit"
                 disabled={isSending}
-                className="btn-neon w-full flex items-center justify-center gap-2 disabled:opacity-50"
+                className="btn-neon w-full flex items-center justify-center gap-2 disabled:opacity-50 bg-gray-900/90"
                 whileHover={{ scale: 1.02, boxShadow: '0 0 25px rgba(3,233,244,0.4)' }}
                 whileTap={{ scale: 0.98 }}
               >

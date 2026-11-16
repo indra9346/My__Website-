@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Home, User, Briefcase, Zap, Mail, FileText, Download, ChevronRight } from 'lucide-react';
+import { Home, User, Briefcase, Zap, Mail, FileText, Download, ChevronRight, X } from 'lucide-react';
 
 const sectionIcons: Record<string, ReactNode> = {
   home: <Home size={20} />,
@@ -52,6 +52,15 @@ const MobileNavOverlay = ({
           transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
           onClick={onClose}
         >
+          {/* Always on screen, wherever the page was scrolled to when the menu opened. */}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close menu"
+            className="fixed right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-border/70 bg-card/80 text-foreground"
+          >
+            <X size={22} />
+          </button>
           <motion.nav
             id="mobile-navigation"
             className="nav-mobile-panel"
