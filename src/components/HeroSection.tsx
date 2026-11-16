@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowDownCircle, ArrowDownRight, FileText, GraduationCap, Mail, MapPin } from 'lucide-react';
 import { useAI } from '../context/AIContext';
 import PeekingRobotButton from './ai/PeekingRobotButton';
+import HeroBackdrop from './hero/HeroBackdrop';
 import ProjectGroupMark from './projects/ProjectGroupMark';
 import swanDigitalLogo from '../assets/swan-digital-logo.png';
 import hostingBabaLogo from '../assets/hosting-baba-logo.png';
@@ -169,6 +170,8 @@ const HeroSection = () => {
 
   return (
     <section id="home" className="hero">
+      <HeroBackdrop />
+
       <div className="hero-inner container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="hero-grid">
           <motion.header className="hero-intro" variants={stagger} initial="hidden" animate="visible">
