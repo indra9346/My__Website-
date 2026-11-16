@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Untouched originals of pictures and films (kept on this PC only)
+originals/

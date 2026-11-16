@@ -1,5 +1,4 @@
-import { Github, Linkedin, Heart, Settings } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Github, Linkedin, Heart } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -36,20 +35,13 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Bottom text */}
+        {/* Bottom text. The admin panel has no link here on purpose: it is opened by its own address. */}
         <div className="mt-8 text-center text-gray-500 text-sm flex items-center justify-center gap-4">
           <span className="flex items-center">
             <span>© {new Date().getFullYear()} | Crafted with</span>
             <Heart size={14} className="mx-1 text-neon-pink" />
             <span>by Indra Kumar</span>
           </span>
-          <Link 
-            to="/admin" 
-            className="text-gray-400 hover:text-neon-cyan transition-colors"
-            aria-label="Admin"
-          >
-            <Settings size={16} />
-          </Link>
         </div>
       </div>
     </footer>

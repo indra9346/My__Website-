@@ -7,22 +7,22 @@ import SkillsSection from "../components/SkillsSection";
 import ContactSection from "../components/ContactSection";
 import Footer from "../components/Footer";
 import ParticlesBackground from "../components/ParticlesBackground";
+import { smoothScrollToId } from "../lib/smoothScroll";
+import "../styles/home.css";
 
 const Index = () => {
   useEffect(() => {
+    // Every in-page link (#about, #projects, ...) travels with the same smooth scroll.
+    // Links that already handled their own click (the project-group cards) are left alone.
     const handleClick = (e: Event) => {
+      if (e.defaultPrevented) return;
       const target = e.target as HTMLElement;
       const anchor = target.closest('a');
       if (!anchor) return;
       const href = anchor.getAttribute('href');
-      if (!href?.startsWith('#')) return;
+      if (!href?.startsWith('#') || href.length < 2) return;
       e.preventDefault();
-      const el = document.getElementById(href.slice(1));
-      if (el) {
-        const offset = 80;
-        const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
-        window.scrollTo({ top, behavior: 'smooth' });
-      }
+      smoothScrollToId(href.slice(1), { offset: 80 });
     };
 
     document.addEventListener('click', handleClick);

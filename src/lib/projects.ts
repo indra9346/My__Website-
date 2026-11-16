@@ -1,11 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import swanDigitalLogo from '@/assets/swan-digital-logo.png';
 import hostingBabaLogo from '@/assets/hosting-baba-logo.png';
+import sanchariMark from '@/assets/sanchari-mark.png';
 
 // Work done at the companies below; shown first, one block per company.
 export const COMPANY_CATEGORY = 'Company Projects';
 
-export const PROJECT_CATEGORIES = [COMPANY_CATEGORY, 'Client Projects', 'Personal Projects', 'Open Source', 'Freelance'];
+// Projects built while learning (a front-end build, a Java + Hibernate back end).
+export const ACADEMIC_CATEGORY = 'Academic Projects';
+
+export const PROJECT_CATEGORIES = [COMPANY_CATEGORY, 'Client Projects', 'Personal Projects', 'Open Source', ACADEMIC_CATEGORY, 'Freelance'];
 
 // The current workplaces listed in the About section.
 export const COMPANIES = [
@@ -76,6 +80,141 @@ export const groupProjectsByCompany = (projects: Project[]) => {
       };
     })
     .filter(group => group.ongoing.length + group.completed.length > 0);
+};
+
+// ---------------------------------------------------------------------------
+// Project groups on the public site.
+//
+// The cards under the photo on the home page and the blocks of the Projects
+// section are both built from buildProjectGroups(), so every card leads to a
+// block that really exists and both always show the same counts.
+// ---------------------------------------------------------------------------
+
+export type ProjectGroupId = 'hosting-baba' | 'swan-digital' | 'venture' | 'client' | 'personal' | 'academic';
+
+type ProjectGroupDefinition = {
+  id: ProjectGroupId;
+  /** id of the block inside the Projects section; the home-page card scrolls to it. */
+  anchor: string;
+  title: string;
+  summary: string;
+  /** Set for the two company groups: the value of the project's `company` field. */
+  companyName?: string;
+};
+
+// The order here is the order of the cards and of the blocks.
+export const PROJECT_GROUPS: ProjectGroupDefinition[] = [
+  {
+    id: 'hosting-baba',
+    anchor: 'projects-hosting-baba',
+    title: 'Hosting Baba Projects',
+    summary: 'Marketplaces, job portals and storefronts delivered at Hosting Baba.',
+    companyName: 'Hosting Baba',
+  },
+  {
+    id: 'swan-digital',
+    anchor: 'projects-swan-digital',
+    title: 'Swan Digital Projects',
+    summary: 'ERPs, school systems, an AI trial room and websites delivered at Swan Digital Solutions.',
+    companyName: 'Swan Digital Solutions',
+  },
+  {
+    id: 'venture',
+    anchor: 'projects-venture',
+    title: 'Co-Founded Venture',
+    summary: 'The travel venture I co-founded. I designed and built the whole platform myself.',
+  },
+  {
+    id: 'client',
+    anchor: 'projects-client',
+    title: 'Client Projects',
+    summary: 'Websites and platforms delivered directly to clients.',
+  },
+  {
+    id: 'personal',
+    anchor: 'projects-personal',
+    title: 'Personal & Open Source',
+    summary: 'Products started on my own, with the source code public.',
+  },
+  {
+    id: 'academic',
+    anchor: 'projects-academic',
+    title: 'Academic Projects',
+    summary: 'Foundation projects built while learning front-end and Java back-end development.',
+  },
+];
+
+// Sanchari Trips is not a row in the projects table: it is the one venture of my own,
+// so it is described here and shown as a spotlight instead of a regular card.
+export const VENTURE = {
+  name: 'Sanchari Trips',
+  role: 'Co-Founder & Technical Head',
+  url: 'https://www.sancharitrips.com',
+  host: 'sancharitrips.com',
+  image: '/projects/sanchari-trips.jpg',
+  logo: sanchariMark,
+  summary:
+    'Small-group road trips from Bengaluru in a six-seat car. I designed and built the whole platform, from the booking flow and payments to the admin panel the team works in.',
+  highlights: [
+    'Live seat map: travellers pick their own seat in the car',
+    'Direct UPI payments with QR code and UTR confirmation',
+    'Offers, coupons and a creator programme',
+    'Kannada and English language switch',
+    'Chat guide that answers from live trip data',
+    'Smart search across 430 places in Karnataka',
+    'Admin panel for bookings, payments, trips, media and staff access',
+    'Money and seat rules covered by automated tests',
+  ],
+  tags: ['Next.js', 'React', 'TypeScript', 'Supabase', 'PostgreSQL', 'Tailwind CSS', 'Three.js', 'Vitest', 'Vercel'],
+};
+
+// Saved before the "Academic Projects" category existed. They are shown as academic
+// while they still carry the default category; once their category is changed in
+// Admin > Manage Projects this list is no longer needed.
+const ACADEMIC_BEFORE_CATEGORY = new Set([
+  'f18d3eda-50ec-403f-9f45-717c5e06c3bf', // I_Mall - Frontend Project
+  '736d49be-28ed-4bd6-9fda-0fc4bb06237a', // Student Data Management - Backend Project
+]);
+
+const groupIdOf = (project: Project): ProjectGroupId => {
+  const category = project.category || DEFAULT_CATEGORY;
+  if (category === COMPANY_CATEGORY) {
+    return PROJECT_GROUPS.find(group => group.companyName && group.companyName === project.company)?.id ?? 'client';
+  }
+  if (category === ACADEMIC_CATEGORY) return 'academic';
+  if (category === DEFAULT_CATEGORY && ACADEMIC_BEFORE_CATEGORY.has(project.id)) return 'academic';
+  if (category === 'Client Projects' || category === 'Freelance') return 'client';
+  return 'personal';
+};
+
+export type ProjectGroup = ProjectGroupDefinition & {
+  company?: (typeof COMPANIES)[number];
+  projects: Project[];
+  ongoing: Project[];
+  completed: Project[];
+  /** Entries shown in the block; the venture spotlight counts as one. */
+  count: number;
+};
+
+// Groups in display order; a group with nothing in it is left out.
+export const buildProjectGroups = (projects: Project[]): ProjectGroup[] =>
+  PROJECT_GROUPS.map(definition => {
+    const own = projects.filter(project => groupIdOf(project) === definition.id);
+    return {
+      ...definition,
+      company: COMPANIES.find(company => company.name === definition.companyName),
+      projects: own,
+      ongoing: own.filter(project => project.status === 'ongoing'),
+      completed: own.filter(project => project.status !== 'ongoing'),
+      count: own.length + (definition.id === 'venture' ? 1 : 0),
+    };
+  }).filter(group => group.count > 0);
+
+// "4 projects · 1 ongoing"; the venture shows its name instead of a count.
+export const projectGroupMeta = (group: ProjectGroup) => {
+  if (group.id === 'venture') return `${VENTURE.name} · live`;
+  const total = `${group.count} ${group.count === 1 ? 'project' : 'projects'}`;
+  return group.ongoing.length > 0 ? `${total} · ${group.ongoing.length} ongoing` : total;
 };
 
 const QUOTES = '"“”';

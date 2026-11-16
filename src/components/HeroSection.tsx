@@ -1,337 +1,279 @@
-import { ArrowDownCircle } from 'lucide-react';
-import { useEffect, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import type { MouseEvent, PointerEvent } from 'react';
+import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowDown, ArrowDownCircle, ArrowDownRight, FileText, GraduationCap, Mail, MapPin } from 'lucide-react';
 import { useAI } from '../context/AIContext';
-
+import PeekingRobotButton from './ai/PeekingRobotButton';
+import ProjectGroupMark from './projects/ProjectGroupMark';
 import swanDigitalLogo from '../assets/swan-digital-logo.png';
 import hostingBabaLogo from '../assets/hosting-baba-logo.png';
-import PeekingRobotButton from './ai/PeekingRobotButton';
+import photo480 from '../assets/profile/indra-kumar-fullstack-480.webp';
+import photo720 from '../assets/profile/indra-kumar-fullstack-720.webp';
+import photo1086 from '../assets/profile/indra-kumar-fullstack-1086.webp';
+import { PROJECTS_QUERY_KEY, PROJECT_GROUPS, buildProjectGroups, fetchProjects, projectGroupMeta } from '@/lib/projects';
+import { goToProjectGroup } from '@/lib/smoothScroll';
 
-const roles = [
-  'Full Stack Developer',
-  'Software Developer',
-  'Java Developer',
-  'AI/ML Enthusiast',
-  'Web Developer',
+const ROLES = ['Full Stack Developer', 'Software Developer', 'Java Developer', 'AI/ML Enthusiast', 'Web Developer'];
+
+const CURRENT_ROLES = [
+  { company: 'Hosting Baba', title: 'Full Stack Developer', logo: hostingBabaLogo, wide: true },
+  { company: 'Swan Digital Solutions', title: 'Full Stack Developer', logo: swanDigitalLogo, wide: false },
 ];
 
-const HeroSection = () => {
-  const { enterAIMode } = useAI();
-  const [isLoaded, setIsLoaded] = useState(false);
+const CORE_STACK = ['React', 'TypeScript', 'Next.js', 'Java', 'PostgreSQL', 'Supabase'];
+
+const rise = {
+  hidden: { opacity: 0, y: 22 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } },
+};
+const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } } };
+
+// The role line types itself. Kept in its own component so only this text is
+// redrawn on every keystroke, not the whole hero.
+const TypedRole = () => {
+  const reducedMotion = useReducedMotion();
   const [roleIndex, setRoleIndex] = useState(0);
-  const [displayText, setDisplayText] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [text, setText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => setIsLoaded(true), 50);
-  }, []);
-
-  // Typing effect
-  useEffect(() => {
-    const currentRole = roles[roleIndex];
-    let timeout: ReturnType<typeof setTimeout>;
-
-    if (!isDeleting) {
-      if (displayText.length < currentRole.length) {
-        timeout = setTimeout(() => {
-          setDisplayText(currentRole.slice(0, displayText.length + 1));
-        }, 80);
-      } else {
-        timeout = setTimeout(() => setIsDeleting(true), 2000);
-      }
+    if (reducedMotion) return undefined;
+    const role = ROLES[roleIndex];
+    let timer: ReturnType<typeof setTimeout>;
+    if (!deleting) {
+      timer = text.length < role.length ? setTimeout(() => setText(role.slice(0, text.length + 1)), 80) : setTimeout(() => setDeleting(true), 2000);
+    } else if (text.length > 0) {
+      timer = setTimeout(() => setText(text.slice(0, -1)), 40);
     } else {
-      if (displayText.length > 0) {
-        timeout = setTimeout(() => {
-          setDisplayText(displayText.slice(0, -1));
-        }, 40);
-      } else {
-        setIsDeleting(false);
-        setRoleIndex((prev) => (prev + 1) % roles.length);
-      }
+      setDeleting(false);
+      setRoleIndex((index) => (index + 1) % ROLES.length);
+      return undefined;
     }
+    return () => clearTimeout(timer);
+  }, [text, deleting, roleIndex, reducedMotion]);
 
-    return () => clearTimeout(timeout);
-  }, [displayText, isDeleting, roleIndex]);
+  if (reducedMotion) return <>{ROLES[0]}</>;
+  return (
+    <>
+      {text}
+      <span className="hero-caret" />
+    </>
+  );
+};
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-    },
+// The photo leans a few degrees towards the pointer, like a card held in the hand.
+const HeroPhoto = () => {
+  const reducedMotion = useReducedMotion();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const pointerX = useMotionValue(0.5);
+  const pointerY = useMotionValue(0.5);
+  const x = useSpring(pointerX, { stiffness: 140, damping: 18 });
+  const y = useSpring(pointerY, { stiffness: 140, damping: 18 });
+  const rotateY = useTransform(x, [0, 1], [-6, 6]);
+  const rotateX = useTransform(y, [0, 1], [5, -5]);
+  const glareX = useTransform(x, [0, 1], [15, 85]);
+  const glareY = useTransform(y, [0, 1], [10, 90]);
+  const glare = useMotionTemplate`radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.5), transparent 45%)`;
+
+  const onMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (reducedMotion || event.pointerType !== 'mouse' || !cardRef.current) return;
+    const box = cardRef.current.getBoundingClientRect();
+    pointerX.set((event.clientX - box.left) / box.width);
+    pointerY.set((event.clientY - box.top) / box.height);
   };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' as const } },
-  };
-
-  const skillBadgeVariants = {
-    hidden: { opacity: 0, scale: 0.8 },
-    visible: (i: number) => ({
-      opacity: 1,
-      scale: 1,
-      transition: { delay: 0.8 + i * 0.05, duration: 0.3 },
-    }),
+  const onLeave = () => {
+    pointerX.set(0.5);
+    pointerY.set(0.5);
   };
 
   return (
-    <section
-      id="home"
-      className="min-h-screen flex flex-col justify-center relative overflow-hidden px-4 sm:px-6 lg:px-12 pb-16"
+    <motion.figure
+      className="hero-photo"
+      initial={{ opacity: 0, y: 26, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 hero-gradient-bg" />
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-[url('/grid-pattern.png')] bg-repeat opacity-10" />
-      
-      {/* Floating particles */}
-      {[...Array(6)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1 h-1 rounded-full bg-neon-cyan/40"
-          style={{
-            top: `${15 + i * 15}%`,
-            left: `${10 + i * 14}%`,
-          }}
-          animate={{
-            y: [0, -30, 0],
-            x: [0, 15, 0],
-            opacity: [0.2, 0.8, 0.2],
-            scale: [1, 1.5, 1],
-          }}
-          transition={{
-            duration: 4 + i,
-            repeat: Infinity,
-            delay: i * 0.5,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
+      <div className="hero-photo-float">
+        <span className="hero-photo-glow" aria-hidden="true" />
+        <span className="hero-photo-outline foil-frame" aria-hidden="true" />
+        <motion.div ref={cardRef} className="hero-photo-card foil-frame" style={{ rotateX, rotateY }} onPointerMove={onMove} onPointerLeave={onLeave}>
+          <img
+            src={photo720}
+            srcSet={`${photo480} 480w, ${photo720} 720w, ${photo1086} 1086w`}
+            sizes="(min-width: 1280px) 440px, (min-width: 1024px) 400px, (min-width: 480px) 420px, 92vw"
+            width={1086}
+            height={1448}
+            alt="K S Indra Kumar, Full-Stack Developer, at his desk with a laptop"
+            decoding="async"
+            {...{ fetchpriority: 'high' }}
+          />
+          <motion.span className="hero-photo-glare" style={{ background: glare }} aria-hidden="true" />
+        </motion.div>
+      </div>
+    </motion.figure>
+  );
+};
 
-      {/* Glowing orbs */}
-      <motion.div
-        className="absolute top-20 left-10 w-48 sm:w-64 h-48 sm:h-64 bg-neon-blue/20 rounded-full filter blur-3xl"
-        animate={{ y: [0, -20, 0], x: [0, 10, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute bottom-10 right-10 w-72 sm:w-96 h-72 sm:h-96 bg-neon-purple/20 rounded-full filter blur-3xl"
-        animate={{ y: [0, 20, 0], x: [0, -15, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-      />
+// One card per group of projects. A tap travels to that group in the Projects
+// section. The counts come from the same data the section itself shows.
+const WorkCards = () => {
+  const { data: projects, isError } = useQuery({ queryKey: PROJECTS_QUERY_KEY, queryFn: fetchProjects });
+  const groups = projects ? buildProjectGroups(projects) : null;
+  const cards = groups ?? PROJECT_GROUPS;
+  const total = groups?.reduce((sum, group) => sum + group.count, 0);
 
-      <div className="container mx-auto z-10">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-20 pt-24 sm:pt-20">
-          
-          {/* Profile Photo Avatar with floating + glowing border */}
-          <motion.div
-            className="md:w-1/2 flex justify-center mt-10 md:mt-0"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={isLoaded ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-          >
-            <motion.div
-              className="relative w-52 h-52 sm:w-64 sm:h-64 md:w-80 md:h-80 group"
-              animate={{ y: [0, -12, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              {/* Animated rotating glow */}
-              <motion.div
-                className="absolute -inset-2 rounded-full opacity-60 blur-lg"
-                style={{
-                  background: 'conic-gradient(from 0deg, #a855f7, #6366f1, #22d3ee, #a855f7)',
-                }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-              />
-              {/* Gradient border ring */}
-              <div
-                className="absolute inset-0 rounded-full p-[3px] animate-pulse-glow"
-                style={{
-                  background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #22d3ee 100%)',
-                }}
-              >
-                <div className="w-full h-full rounded-full bg-gray-900 overflow-hidden">
-                  <img
-                    src="/mypic.jpg"
-                    alt="K S Indra Kumar"
-                    className="w-full h-full object-cover object-top rounded-full transition-transform duration-500 group-hover:scale-110"
-                  />
-                </div>
-              </div>
-              {/* Reflection */}
-              <div className="avatar-reflection" />
-            </motion.div>
-          </motion.div>
-          
-          {/* Animated Text */}
-          <motion.div
-            className="md:w-1/2 text-center max-w-2xl lg:max-w-3xl space-y-3 sm:space-y-4 md:space-y-6"
-            variants={containerVariants}
-            initial="hidden"
-            animate={isLoaded ? 'visible' : 'hidden'}
-          >
-            <motion.h1 variants={itemVariants} className="text-xl sm:text-3xl font-bold leading-tight">
-              <span className="gradient-text">K S INDRA KUMAR</span>
+  const open = (event: MouseEvent<HTMLAnchorElement>, anchor: string) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    event.preventDefault();
+    goToProjectGroup(anchor);
+  };
+
+  return (
+    <motion.nav className="hero-work" aria-label="Project groups" variants={stagger} initial="hidden" animate="visible">
+      <motion.div className="hero-work-head" variants={rise}>
+        <h2 className="hero-work-title">Explore my work</h2>
+        <span className="hero-work-rule" aria-hidden="true" />
+        {total !== undefined && (
+          <span className="hero-work-count">
+            {total} projects in {cards.length} groups
+          </span>
+        )}
+      </motion.div>
+      <div className="work-grid">
+        {cards.map((card, index) => {
+          const group = groups?.find((item) => item.id === card.id);
+          return (
+            <motion.a key={card.id} href={`#${card.anchor}`} className="work-card foil-frame" variants={rise} onClick={(event) => open(event, card.anchor)}>
+              <span className="work-card-top">
+                <ProjectGroupMark id={card.id} />
+                <ArrowDownRight className="work-card-arrow" size={18} aria-hidden="true" />
+              </span>
+              <span className="work-card-index" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <span className="work-card-title">{card.title}</span>
+              <span className="work-card-meta">
+                {group ? projectGroupMeta(group) : isError ? 'Open this group' : <span className="work-card-meta-wait" aria-label="Loading" />}
+              </span>
+            </motion.a>
+          );
+        })}
+      </div>
+    </motion.nav>
+  );
+};
+
+const HeroSection = () => {
+  const { enterAIMode } = useAI();
+
+  return (
+    <section id="home" className="hero">
+      <div className="hero-inner container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="hero-grid">
+          <motion.header className="hero-intro" variants={stagger} initial="hidden" animate="visible">
+            <motion.p className="hero-eyebrow" variants={rise}>
+              <MapPin size={13} aria-hidden="true" />
+              Bengaluru, India
+            </motion.p>
+            <motion.p className="hero-hello" variants={rise}>
+              Hi, I'm
+            </motion.p>
+            <motion.h1 className="hero-name" variants={rise}>
+              K S Indra{' '}
+              <span className="hero-name-accent">
+                Kumar
+                <svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    {/* the underline runs from gold foil into silver foil */}
+                    <linearGradient id="hero-foil-line" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stopColor="#b8891f" />
+                      <stop offset="0.3" stopColor="#fff4c2" />
+                      <stop offset="0.55" stopColor="#e3c05c" />
+                      <stop offset="0.8" stopColor="#f4f6f9" />
+                      <stop offset="1" stopColor="#8b93a0" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M3 10 C 48 2, 122 2, 197 8" fill="none" stroke="url(#hero-foil-line)" strokeWidth="4" strokeLinecap="round" />
+                </svg>
+              </span>
             </motion.h1>
+            <motion.p className="hero-role" variants={rise} aria-label={ROLES[0]}>
+              <span aria-hidden="true">
+                <span className="hero-role-prompt">&gt;</span>
+                <TypedRole />
+              </span>
+            </motion.p>
+          </motion.header>
 
-            {/* Typing animation */}
-            <motion.h3
-              variants={itemVariants}
-              className="text-sm sm:text-lg text-neon-cyan leading-snug font-semibold font-mono h-7"
-            >
-              {displayText}
-              <span className="inline-block w-0.5 h-5 bg-neon-cyan ml-1 animate-blink align-middle" />
-            </motion.h3>
+          <HeroPhoto />
 
-            {/* Current Working Designations */}
-            <motion.div variants={itemVariants} className="pt-1 pb-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono mb-2.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_6px_#10b981]" />
-                </span>
-                <span className="tracking-wider uppercase font-semibold text-[11px] sm:text-xs">
-                  Current Working Designations
-                </span>
-              </div>
+          <WorkCards />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-xl mx-auto">
-                {/* Swan Digital Solutions */}
-                <motion.div
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  transition={{ duration: 0.2 }}
-                  className="relative group overflow-hidden rounded-xl border border-red-500/30 bg-gradient-to-br from-red-950/25 via-gray-900/85 to-black/95 p-3.5 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-red-500/70 hover:shadow-[0_0_25px_rgba(239,68,68,0.25)] text-left flex flex-col justify-between"
-                >
-                  <div className="absolute top-0 right-0 -mr-6 -mt-6 w-20 h-20 bg-red-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-red-500/20 transition-colors" />
-                  <div className="flex items-center justify-between gap-2 mb-2 relative z-10">
-                    <div className="w-11 h-11 rounded-lg bg-black/90 border border-red-500/40 p-1 flex items-center justify-center shrink-0 shadow-inner group-hover:border-red-400 group-hover:scale-105 transition-all overflow-hidden">
-                      <img
-                        src={swanDigitalLogo}
-                        alt="Swan Digital Solutions"
-                        className="w-full h-full object-contain rounded-md"
-                      />
-                    </div>
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 inline-flex items-center gap-1.5 shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Current
-                    </span>
-                  </div>
-                  <div className="relative z-10">
-                    <div className="text-[11px] sm:text-xs font-black tracking-wider uppercase text-red-400 group-hover:text-red-300 transition-colors">
-                      FULL STACK DEVELOPER
-                    </div>
-                    <p className="text-xs sm:text-sm font-semibold text-gray-200 truncate mt-0.5">
-                      Swan Digital Solutions
-                    </p>
-                  </div>
-                </motion.div>
-
-                {/* Hosting Baba */}
-                <motion.div
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  transition={{ duration: 0.2 }}
-                  className="relative group overflow-hidden rounded-xl border border-neon-cyan/30 bg-gradient-to-br from-cyan-950/25 via-gray-900/85 to-black/95 p-3.5 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-neon-cyan/70 hover:shadow-[0_0_25px_rgba(3,233,244,0.25)] text-left flex flex-col justify-between"
-                >
-                  <div className="absolute top-0 right-0 -mr-6 -mt-6 w-20 h-20 bg-neon-cyan/10 rounded-full blur-xl pointer-events-none group-hover:bg-neon-cyan/20 transition-colors" />
-                  <div className="flex items-center justify-between gap-2 mb-2 relative z-10">
-                    <div className="h-11 px-2.5 rounded-lg bg-black/90 border border-neon-cyan/40 flex items-center justify-center shrink-0 shadow-inner group-hover:border-neon-cyan group-hover:scale-105 transition-all overflow-hidden">
-                      <img
-                        src={hostingBabaLogo}
-                        alt="Hosting Baba"
-                        className="h-7 w-auto object-contain"
-                      />
-                    </div>
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 inline-flex items-center gap-1.5 shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Current
-                    </span>
-                  </div>
-                  <div className="relative z-10">
-                    <div className="text-[11px] sm:text-xs font-black tracking-wider uppercase text-neon-cyan group-hover:text-cyan-300 transition-colors">
-                      FULL STACK DEVELOPER
-                    </div>
-                    <p className="text-xs sm:text-sm font-semibold text-gray-200 truncate mt-0.5">
-                      Hosting Baba
-                    </p>
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-
-            <motion.p variants={itemVariants} className="text-sm sm:text-base text-gray-300 max-w-xl mx-auto leading-relaxed px-1 sm:px-0">
-              Java development and web technologies. Skilled in{' '}
-              <strong className="text-foreground">Java, HTML, CSS</strong>, with experience in <strong className="text-foreground">Hibernate</strong> and <strong className="text-foreground">PostgreSQL</strong>. I enjoy exploring <strong className="text-foreground">AI tools</strong> to make my work smarter, faster, and more impactful.
+          <motion.div className="hero-body" variants={stagger} initial="hidden" animate="visible">
+            <motion.p className="hero-summary" variants={rise}>
+              I design, build and ship complete web products: marketplaces, job portals, ERPs and AI-assisted tools, from the database to the
+              deployed interface.
             </motion.p>
 
-            {/* Skills List */}
-            <motion.div variants={itemVariants} className="pt-2">
-              <h4 className="font-semibold text-neon-cyan mb-2">Skills:</h4>
-              <ul className="flex flex-wrap gap-2 justify-center text-gray-200 text-xs sm:text-sm">
-                {['Java', 'JavaScript', 'React', 'C', 'DSA', 'Hibernate', 'HTML', 'CSS (Intermediate)', 'SQL', 'PostgreSQL', 'Python (Intermediate)'].map((skill, i) => (
-                  <motion.li
-                    key={skill}
-                    custom={i}
-                    variants={skillBadgeVariants}
-                    className="bg-gray-800/80 px-3 py-1 rounded-full border border-gray-700/50 hover:border-neon-cyan/50 hover:bg-gray-700/60 transition-all duration-300"
-                  >
-                    {skill}
-                  </motion.li>
+            <motion.div variants={rise}>
+              <p className="hero-label">
+                <span className="hero-live-dot" aria-hidden="true" />
+                Currently working as
+              </p>
+              <ul className="hero-roles">
+                {CURRENT_ROLES.map((role) => (
+                  <li key={role.company} className="hero-role-card foil-frame">
+                    <span className={`group-mark ${role.wide ? 'group-mark-wide' : 'group-mark-round'}`}>
+                      <img src={role.logo} alt="" />
+                    </span>
+                    <span className="min-w-0">
+                      <strong>{role.title}</strong>
+                      <small>{role.company}</small>
+                    </span>
+                  </li>
                 ))}
               </ul>
+              <p className="hero-fact">
+                <GraduationCap size={17} aria-hidden="true" />
+                <span>B.E. in Artificial Intelligence &amp; Machine Learning, SJC Institute of Technology (2026)</span>
+              </p>
             </motion.div>
 
-            {/* Action Buttons */}
-            <motion.div variants={itemVariants} className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 pt-4">
-              <motion.a
-                href="#projects"
-                className="text-center px-8 py-3 rounded-full font-semibold tracking-wide text-sm sm:text-base transition-all duration-300 hero-btn-primary"
-                whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(0, 201, 255, 0.6), 0 0 50px rgba(146, 254, 157, 0.3)' }}
-                whileTap={{ scale: 0.97 }}
-              >
-                See My Work
-              </motion.a>
+            <motion.ul className="hero-stack" variants={rise} aria-label="Core stack">
+              {CORE_STACK.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </motion.ul>
 
-              <motion.a
-                href="#contact"
-                className="text-center px-8 py-3 rounded-full border border-gray-500/60 text-gray-300 hover:text-white hover:border-neon-cyan hover:bg-white/5 transition-all duration-300 text-sm sm:text-base"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                Let's Connect
-              </motion.a>
-
-              <motion.a
-                href="/resume.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-center px-8 py-3 rounded-full font-semibold tracking-wide text-sm sm:text-base transition-all duration-300 hero-btn-primary"
-                whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(0, 201, 255, 0.6), 0 0 50px rgba(146, 254, 157, 0.3)' }}
-                whileTap={{ scale: 0.97 }}
-              >
+            <motion.div className="hero-actions" variants={rise}>
+              <a href="#projects" className="hero-cta hero-cta-primary">
+                View my work
+                <ArrowDown size={17} aria-hidden="true" />
+              </a>
+              <a href="/resume.pdf" target="_blank" rel="noopener noreferrer" className="hero-cta hero-cta-ghost">
+                <FileText size={17} aria-hidden="true" />
                 View Resume
-              </motion.a>
+              </a>
+              <a href="#contact" className="hero-cta hero-cta-ghost">
+                <Mail size={17} aria-hidden="true" />
+                Get in touch
+              </a>
+            </motion.div>
 
-              {/* A small robot lives in this button: it peeks out and beckons visitors in. */}
-              <div className="w-full sm:basis-full flex flex-col sm:flex-row sm:justify-center pt-11 sm:pt-12">
-                <PeekingRobotButton onClick={enterAIMode} />
-              </div>
+            {/* A small robot lives in this button: it peeks out and beckons visitors in. */}
+            <motion.div className="hero-ai" variants={rise}>
+              <PeekingRobotButton onClick={enterAIMode} />
             </motion.div>
           </motion.div>
         </div>
-      </div>
 
-      {/* Scroll indicator */}
-      <motion.div
-        className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <a href="#about" aria-label="Scroll down">
-          <ArrowDownCircle className="text-gray-400 hover:text-neon-cyan transition-colors" size={28} />
-        </a>
-      </motion.div>
+        <div className="hero-scroll">
+          <motion.a href="#about" aria-label="Scroll to About" animate={{ y: [0, 8, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+            <ArrowDownCircle className="text-gray-300 hover:text-neon-cyan transition-colors" size={28} />
+          </motion.a>
+        </div>
+      </div>
     </section>
   );
 };
