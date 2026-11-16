@@ -1,7 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import swanDigitalLogo from '@/assets/swan-digital-logo.png';
 import hostingBabaLogo from '@/assets/hosting-baba-logo.png';
-import sanchariMark from '@/assets/sanchari-mark.png';
 
 // Work done at the companies below; shown first, one block per company.
 export const COMPANY_CATEGORY = 'Company Projects';
@@ -9,7 +8,9 @@ export const COMPANY_CATEGORY = 'Company Projects';
 // Projects built while learning (a front-end build, a Java + Hibernate back end).
 export const ACADEMIC_CATEGORY = 'Academic Projects';
 
-export const PROJECT_CATEGORIES = [COMPANY_CATEGORY, 'Client Projects', 'Personal Projects', 'Open Source', ACADEMIC_CATEGORY, 'Freelance'];
+export const VENTURE_CATEGORY = 'Co-Founded Ventures';
+
+export const PROJECT_CATEGORIES = [COMPANY_CATEGORY, 'Client Projects', VENTURE_CATEGORY, 'Personal Projects', 'Open Source', ACADEMIC_CATEGORY, 'Freelance'];
 
 // The current workplaces listed in the About section.
 export const COMPANIES = [
@@ -36,6 +37,8 @@ export type Project = {
   category: string;
   company: string | null;
   status: ProjectStatus;
+  is_favorite: boolean;
+  favorite_order: number | null;
   created_at: string;
 };
 
@@ -90,7 +93,7 @@ export const groupProjectsByCompany = (projects: Project[]) => {
 // block that really exists and both always show the same counts.
 // ---------------------------------------------------------------------------
 
-export type ProjectGroupId = 'hosting-baba' | 'swan-digital' | 'venture' | 'client' | 'personal' | 'academic';
+export type ProjectGroupId = 'favorites' | 'hosting-baba' | 'swan-digital' | 'client' | 'personal' | 'academic';
 
 type ProjectGroupDefinition = {
   id: ProjectGroupId;
@@ -105,6 +108,12 @@ type ProjectGroupDefinition = {
 // The order here is the order of the cards and of the blocks.
 export const PROJECT_GROUPS: ProjectGroupDefinition[] = [
   {
+    id: 'favorites',
+    anchor: 'projects-favorites',
+    title: 'Favorites',
+    summary: 'Featured live projects, curated and ordered in Admin → Manage Projects.',
+  },
+  {
     id: 'hosting-baba',
     anchor: 'projects-hosting-baba',
     title: 'Hosting Baba Projects',
@@ -117,12 +126,6 @@ export const PROJECT_GROUPS: ProjectGroupDefinition[] = [
     title: 'Swan Digital Projects',
     summary: 'ERPs, school systems, an AI trial room and websites delivered at Swan Digital Solutions.',
     companyName: 'Swan Digital Solutions',
-  },
-  {
-    id: 'venture',
-    anchor: 'projects-venture',
-    title: 'Co-Founded Venture',
-    summary: 'The travel venture I co-founded. I designed and built the whole platform myself.',
   },
   {
     id: 'client',
@@ -144,30 +147,6 @@ export const PROJECT_GROUPS: ProjectGroupDefinition[] = [
   },
 ];
 
-// Sanchari Trips is not a row in the projects table: it is the one venture of my own,
-// so it is described here and shown as a spotlight instead of a regular card.
-export const VENTURE = {
-  name: 'Sanchari Trips',
-  role: 'Co-Founder & Technical Head',
-  url: 'https://www.sancharitrips.com',
-  host: 'sancharitrips.com',
-  image: '/projects/sanchari-trips.jpg',
-  logo: sanchariMark,
-  summary:
-    'Small-group road trips from Bengaluru in a six-seat car. I designed and built the whole platform, from the booking flow and payments to the admin panel the team works in.',
-  highlights: [
-    'Live seat map: travellers pick their own seat in the car',
-    'Direct UPI payments with QR code and UTR confirmation',
-    'Offers, coupons and a creator programme',
-    'Kannada and English language switch',
-    'Chat guide that answers from live trip data',
-    'Smart search across 430 places in Karnataka',
-    'Admin panel for bookings, payments, trips, media and staff access',
-    'Money and seat rules covered by automated tests',
-  ],
-  tags: ['Next.js', 'React', 'TypeScript', 'Supabase', 'PostgreSQL', 'Tailwind CSS', 'Three.js', 'Vitest', 'Vercel'],
-};
-
 // Saved before the "Academic Projects" category existed. They are shown as academic
 // while they still carry the default category; once their category is changed in
 // Admin > Manage Projects this list is no longer needed.
@@ -177,6 +156,7 @@ const ACADEMIC_BEFORE_CATEGORY = new Set([
 ]);
 
 const groupIdOf = (project: Project): ProjectGroupId => {
+  if (project.is_favorite) return 'favorites';
   const category = project.category || DEFAULT_CATEGORY;
   if (category === COMPANY_CATEGORY) {
     return PROJECT_GROUPS.find(group => group.companyName && group.companyName === project.company)?.id ?? 'client';
@@ -200,19 +180,22 @@ export type ProjectGroup = ProjectGroupDefinition & {
 export const buildProjectGroups = (projects: Project[]): ProjectGroup[] =>
   PROJECT_GROUPS.map(definition => {
     const own = projects.filter(project => groupIdOf(project) === definition.id);
+    if (definition.id === 'favorites') {
+      own.sort((a, b) => (a.favorite_order ?? Number.MAX_SAFE_INTEGER) - (b.favorite_order ?? Number.MAX_SAFE_INTEGER)
+        || (a.Display_Order ?? Number.MAX_SAFE_INTEGER) - (b.Display_Order ?? Number.MAX_SAFE_INTEGER));
+    }
     return {
       ...definition,
       company: COMPANIES.find(company => company.name === definition.companyName),
       projects: own,
       ongoing: own.filter(project => project.status === 'ongoing'),
       completed: own.filter(project => project.status !== 'ongoing'),
-      count: own.length + (definition.id === 'venture' ? 1 : 0),
+      count: own.length,
     };
   }).filter(group => group.count > 0);
 
-// "4 projects · 1 ongoing"; the venture shows its name instead of a count.
+// "4 projects · 1 ongoing".
 export const projectGroupMeta = (group: ProjectGroup) => {
-  if (group.id === 'venture') return `${VENTURE.name} · live`;
   const total = `${group.count} ${group.count === 1 ? 'project' : 'projects'}`;
   return group.ongoing.length > 0 ? `${total} · ${group.ongoing.length} ongoing` : total;
 };

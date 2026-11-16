@@ -16,7 +16,6 @@ import {
   Project,
   ProjectStatus,
   cleanText,
-  VENTURE,
   buildProjectGroups,
   fetchProjects,
   projectGroupMeta,
@@ -38,6 +37,8 @@ type ProjectForm = {
   category: string;
   company: string;
   status: ProjectStatus;
+  is_favorite: boolean;
+  favorite_order: string;
 };
 
 type ProjectRow = Omit<Project, 'id' | 'created_at'>;
@@ -53,6 +54,8 @@ const emptyForm = (order: number): ProjectForm => ({
   category: 'Client Projects',
   company: '',
   status: 'completed',
+  is_favorite: false,
+  favorite_order: '',
 });
 
 const toForm = (project: Project): ProjectForm => ({
@@ -66,6 +69,8 @@ const toForm = (project: Project): ProjectForm => ({
   category: project.category || DEFAULT_CATEGORY,
   company: project.company || '',
   status: project.status === 'ongoing' ? 'ongoing' : 'completed',
+  is_favorite: !!project.is_favorite,
+  favorite_order: project.favorite_order == null ? '' : String(project.favorite_order),
 });
 
 const StatusBadge = ({ status }: { status: ProjectStatus }) =>
@@ -90,6 +95,19 @@ const toRow = (form: ProjectForm): ProjectRow => {
     throw new Error('Order must be a whole number.');
   }
 
+  const favoriteOrder = Number(form.favorite_order);
+  if (form.is_favorite && (form.favorite_order.trim() === '' || !Number.isInteger(favoriteOrder) || favoriteOrder < 1)) {
+    throw new Error('Favorite position must be a whole number, 1 or more.');
+  }
+
+  const liveUrl = normalizeLink(form.Demo, 'Live URL');
+  if (liveUrl) {
+    const parsedLiveUrl = new URL(liveUrl);
+    if (/google\.[a-z.]+$/i.test(parsedLiveUrl.hostname) && /\/(search|url)$/i.test(parsedLiveUrl.pathname)) {
+      throw new Error('Live URL must link directly to the project, not a Google search or redirect.');
+    }
+  }
+
   const isCompanyProject = form.category === COMPANY_CATEGORY;
   if (isCompanyProject && !form.company) throw new Error('Choose which company this project was for.');
 
@@ -99,11 +117,13 @@ const toRow = (form: ProjectForm): ProjectRow => {
     Image: normalizeLink(form.Image, 'Image URL', true),
     Tags: parseTags(form.tags),
     github: normalizeLink(form.github, 'GitHub URL'),
-    Demo: normalizeLink(form.Demo, 'Live Demo URL'),
+    Demo: liveUrl,
     Display_Order: order,
     category: form.category,
     company: isCompanyProject ? form.company : null,
     status: form.status,
+    is_favorite: form.is_favorite,
+    favorite_order: form.is_favorite ? favoriteOrder : null,
   };
 };
 
@@ -132,6 +152,7 @@ const AdminProjects = () => {
   });
 
   const nextOrder = Math.max(0, ...(projects || []).map(p => p.Display_Order ?? 0)) + 1;
+  const nextFavoriteOrder = Math.max(0, ...(projects || []).filter(p => p.is_favorite).map(p => p.favorite_order ?? 0)) + 1;
 
   const saveMutation = useMutation({
     mutationFn: async ({ id, row }: { id: string | null; row: ProjectRow }) => {
@@ -206,7 +227,7 @@ const AdminProjects = () => {
     }
   };
 
-  const setField = (field: keyof ProjectForm, value: string) => {
+  const setField = (field: keyof ProjectForm, value: string | boolean) => {
     setForm(current => ({ ...current, [field]: value }));
     setFormError(null);
   };
@@ -228,6 +249,8 @@ const AdminProjects = () => {
             <TableHead>Title</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Tags</TableHead>
+            <TableHead>Live URL</TableHead>
+            <TableHead>Favorite</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Order</TableHead>
@@ -243,6 +266,18 @@ const AdminProjects = () => {
                 <TableCell className="font-medium">{project.title}</TableCell>
                 <TableCell className="max-w-[200px] truncate" title={project.Description || ''}>{project.Description}</TableCell>
                 <TableCell className="max-w-[150px] truncate" title={tags}>{tags}</TableCell>
+                <TableCell className="max-w-[210px] truncate" title={project.Demo || 'Missing live URL'}>
+                  {project.Demo ? (
+                    <a href={project.Demo} target="_blank" rel="noopener noreferrer" className="text-neon-cyan underline">
+                      {project.Demo.replace(/^https?:\/\//, '')}
+                    </a>
+                  ) : (
+                    <span className="text-red-400 text-xs font-semibold">Missing – add live URL</span>
+                  )}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {project.is_favorite ? <span className="text-amber-200">★ #{project.favorite_order ?? '—'}</span> : <span className="text-muted-foreground">—</span>}
+                </TableCell>
                 <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{project.category || DEFAULT_CATEGORY}</TableCell>
                 <TableCell className="whitespace-nowrap"><StatusBadge status={project.status} /></TableCell>
                 <TableCell>{project.Display_Order ?? '-'}</TableCell>
@@ -270,6 +305,9 @@ const AdminProjects = () => {
           <Plus className="w-4 h-4 mr-2" /> Add Project
         </Button>
       </div>
+      <p className="-mt-5 mb-6 text-sm text-muted-foreground">
+        Set each project’s direct live URL. Projects without a verified URL are marked in red. Use Favorites and its position field to control the featured section at the top of the public Projects page.
+      </p>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -292,13 +330,7 @@ const AdminProjects = () => {
               {group.title}
               <span className="text-xs font-normal text-muted-foreground">{projectGroupMeta(group)}</span>
             </h3>
-            {group.id === 'venture' ? (
-              <p className="glass rounded-lg px-4 py-3 text-sm text-gray-300">
-                {VENTURE.name} ({VENTURE.host}) is shown on the site as a spotlight. Its text is part of the site itself, so it is not edited here.
-              </p>
-            ) : (
-              renderTable([...group.ongoing, ...group.completed])
-            )}
+            {renderTable(group.id === 'favorites' ? group.projects : [...group.ongoing, ...group.completed])}
           </div>
         ))
       )}
@@ -326,6 +358,31 @@ const AdminProjects = () => {
                 </select>
               </div>
             )}
+            <div className="rounded-lg border border-amber-300/20 bg-amber-300/5 p-3 space-y-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-amber-100">
+                <input
+                  type="checkbox"
+                  checked={form.is_favorite}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setForm(current => ({
+                      ...current,
+                      is_favorite: checked,
+                      favorite_order: checked && !current.favorite_order ? String(nextFavoriteOrder) : current.favorite_order,
+                    }));
+                    setFormError(null);
+                  }}
+                />
+                Show in Favorites at the top
+              </label>
+              {form.is_favorite && (
+                <div>
+                  <label htmlFor="project-favorite-order" className="block mb-2 text-sm font-medium">Favorite position</label>
+                  <input id="project-favorite-order" type="number" min={1} step={1} value={form.favorite_order} onChange={(e) => setField('favorite_order', e.target.value)} className={inputClass} required />
+                  <p className="mt-1 text-xs text-muted-foreground">1 shows first. Use a unique position to set the Favorites order.</p>
+                </div>
+              )}
+            </div>
             <div>
               <label htmlFor="project-status" className="block mb-2 text-sm font-medium">Status</label>
               <select id="project-status" value={form.status} onChange={(e) => setField('status', e.target.value)} className={inputClass}>
@@ -361,8 +418,9 @@ const AdminProjects = () => {
               <input id="project-github" value={form.github} onChange={(e) => setField('github', e.target.value)} className={inputClass} placeholder="https://github.com/username/repo" />
             </div>
             <div>
-              <label htmlFor="project-demo" className="block mb-2 text-sm font-medium">Live Demo URL</label>
-              <input id="project-demo" value={form.Demo} onChange={(e) => setField('Demo', e.target.value)} className={inputClass} placeholder="https://example.com" />
+              <label htmlFor="project-demo" className="block mb-2 text-sm font-medium">Live URL</label>
+              <input id="project-demo" inputMode="url" value={form.Demo} onChange={(e) => setField('Demo', e.target.value)} className={inputClass} placeholder="https://example.com" />
+              <p className="mt-1 text-xs text-muted-foreground">Use the direct project URL. Leave blank only when no live site exists yet.</p>
             </div>
             <div>
               <label htmlFor="project-order" className="block mb-2 text-sm font-medium">Order</label>

@@ -1,7 +1,7 @@
-import { GitBranch, GraduationCap, Handshake } from 'lucide-react';
+import { GitBranch, GraduationCap, Handshake, Star } from 'lucide-react';
 import swanDigitalLogo from '@/assets/swan-digital-logo.png';
 import hostingBabaLogo from '@/assets/hosting-baba-logo.png';
-import { VENTURE, type ProjectGroupId } from '@/lib/projects';
+import { type ProjectGroupId } from '@/lib/projects';
 
 // The logo or icon that stands for a project group. Used by the cards under the
 // photo on the home page and by the headings of the Projects section, so the same
@@ -11,6 +11,12 @@ const ProjectGroupMark = ({ id, large = false }: { id: ProjectGroupId; large?: b
   const iconSize = large ? 24 : 19;
 
   switch (id) {
+    case 'favorites':
+      return (
+        <span className={`group-mark group-mark-icon${size}`}>
+          <Star size={iconSize} aria-hidden />
+        </span>
+      );
     case 'hosting-baba':
       return (
         <span className={`group-mark group-mark-wide${size}`}>
@@ -21,12 +27,6 @@ const ProjectGroupMark = ({ id, large = false }: { id: ProjectGroupId; large?: b
       return (
         <span className={`group-mark group-mark-round${size}`}>
           <img src={swanDigitalLogo} alt="" width={96} height={96} />
-        </span>
-      );
-    case 'venture':
-      return (
-        <span className={`group-mark group-mark-tile${size}`}>
-          <img src={VENTURE.logo} alt="" width={96} height={96} />
         </span>
       );
     case 'client':

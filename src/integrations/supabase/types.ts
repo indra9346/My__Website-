@@ -69,37 +69,49 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          company: string | null
           Demo: string | null
           Description: string | null
           Display_Order: number | null
           github: string | null
           id: string
           Image: string | null
+          is_favorite: boolean
+          favorite_order: number | null
           Tags: string[] | null
+          status: string
           title: string | null
         }
         Insert: {
           category?: string
           created_at?: string
+          company?: string | null
           Demo?: string | null
           Description?: string | null
           Display_Order?: number | null
           github?: string | null
           id?: string
           Image?: string | null
+          is_favorite?: boolean
+          favorite_order?: number | null
           Tags?: string[] | null
+          status?: string
           title?: string | null
         }
         Update: {
           category?: string
           created_at?: string
+          company?: string | null
           Demo?: string | null
           Description?: string | null
           Display_Order?: number | null
           github?: string | null
           id?: string
           Image?: string | null
+          is_favorite?: boolean
+          favorite_order?: number | null
           Tags?: string[] | null
+          status?: string
           title?: string | null
         }
         Relationships: []

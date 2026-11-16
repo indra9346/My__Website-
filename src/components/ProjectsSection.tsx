@@ -1,6 +1,6 @@
 "use client";
 
-import { Github, ExternalLink, Code, ArrowUpRight, Check } from "lucide-react";
+import { Github, ExternalLink, Code, Star } from "lucide-react";
 import { useState, useRef } from "react";
 import type { MouseEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -11,7 +11,6 @@ import {
   PROJECTS_QUERY_KEY,
   Project,
   ProjectGroup,
-  VENTURE,
   buildProjectGroups,
   fetchProjects,
   projectGroupMeta,
@@ -69,16 +68,21 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
           <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
             <h3 className="text-xl font-bold text-white">{project.title}</h3>
           </div>
+          {project.is_favorite && (
+            <span className="absolute top-3 right-3 z-20 inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-black/70 px-2.5 py-1 text-xs font-medium text-amber-200">
+              <Star size={13} fill="currentColor" aria-hidden="true" /> Favorite
+            </span>
+          )}
         </div>
         <div className="mb-4">
-          <p className="text-gray-300 text-sm">{project.Description}</p>
+          <p className="text-gray-300 text-sm whitespace-pre-line">{project.Description}</p>
         </div>
         <div className="flex flex-wrap gap-2 mb-4">
           {project.Tags?.map((tag, index) => (
             <span key={index} className="text-xs font-mono px-2 py-1 rounded-full bg-neon-blue/20 text-neon-blue">{tag}</span>
           ))}
         </div>
-        <div className="flex justify-between mt-auto">
+        <div className="flex items-center justify-between gap-4 mt-auto">
           {project.github && (
             <motion.a
               href={project.github}
@@ -93,14 +97,15 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
           {project.Demo && (
             <motion.a
               href={project.Demo}
-              className="text-muted-foreground hover:text-neon-cyan transition-colors"
+              className="ml-auto inline-flex items-center gap-2 rounded-full border border-neon-cyan/40 px-3 py-1.5 text-sm text-neon-cyan hover:bg-neon-cyan/10 transition-colors"
               target="_blank"
               rel="noopener noreferrer"
-              whileHover={{ scale: 1.2, x: 3 }}
+              whileHover={{ scale: 1.03, x: 2 }}
             >
-              <ExternalLink size={20} />
+              Live site <ExternalLink size={16} />
             </motion.a>
           )}
+          {!project.Demo && <span className="ml-auto text-xs text-gray-500">Live URL not added yet</span>}
         </div>
       </div>
     </motion.div>
@@ -132,76 +137,6 @@ const CompanyProjects = ({ group }: { group: ProjectGroup }) => (
     )}
   </>
 );
-
-// Sanchari Trips: the venture of my own, shown larger than a regular project card.
-const VentureSpotlight = () => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-60px' });
-
-  return (
-    <motion.article
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="glass rounded-2xl overflow-hidden border border-white/10 hover:border-neon-cyan/25 transition-colors duration-500 grid lg:grid-cols-[1.5fr_1fr] lg:grid-rows-[auto_1fr]"
-    >
-      {/* The picture keeps its own shape so the logo, the name and both screens stay in view. */}
-      <a
-        href={VENTURE.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group relative block aspect-[1600/840] overflow-hidden bg-gray-800 lg:col-start-1 lg:row-start-1"
-        aria-label={`Open ${VENTURE.host} in a new tab`}
-      >
-        <img
-          src={VENTURE.image}
-          alt={`${VENTURE.name} home page on a laptop and a phone`}
-          loading="lazy"
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-        <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 text-xs font-mono bg-black/70 border border-emerald-500/40 text-emerald-400 px-2.5 py-0.5 rounded-full">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          Live
-        </span>
-      </a>
-
-      <div className="p-6 md:p-8 lg:col-start-2 lg:row-start-1 lg:row-span-2">
-        <p className="text-xs font-mono uppercase tracking-wider text-neon-cyan">{VENTURE.role}</p>
-        <h4 className="text-2xl md:text-3xl font-bold text-white mt-2">{VENTURE.name}</h4>
-        <p className="text-gray-300 text-sm leading-relaxed mt-3">{VENTURE.summary}</p>
-
-        <ul className="grid sm:grid-cols-2 lg:grid-cols-1 gap-x-5 gap-y-2 mt-5">
-          {VENTURE.highlights.map((highlight) => (
-            <li key={highlight} className="flex items-start gap-2 text-sm text-gray-300">
-              <Check size={15} className="text-neon-cyan shrink-0 mt-0.5" aria-hidden="true" />
-              <span>{highlight}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="px-6 pb-6 md:px-8 md:pb-8 lg:pt-6 lg:col-start-1 lg:row-start-2 flex flex-wrap items-center gap-x-6 gap-y-4">
-        <div className="flex flex-wrap gap-2 flex-1 basis-64">
-          {VENTURE.tags.map((tag) => (
-            <span key={tag} className="text-xs font-mono px-2 py-1 rounded-full bg-neon-blue/20 text-neon-blue">{tag}</span>
-          ))}
-        </div>
-        <motion.a
-          href={VENTURE.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-neon inline-flex items-center gap-2 whitespace-nowrap"
-          whileHover={{ scale: 1.04, boxShadow: '0 0 20px rgba(3,233,244,0.4)' }}
-          whileTap={{ scale: 0.96 }}
-        >
-          Visit {VENTURE.host}
-          <ArrowUpRight size={16} aria-hidden="true" />
-        </motion.a>
-      </div>
-    </motion.article>
-  );
-};
 
 const openGroup = (event: MouseEvent<HTMLAnchorElement>, anchor: string) => {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
@@ -286,9 +221,7 @@ const ProjectsSection = () => {
             </div>
 
             {group.id === 'client' && <PromoBanner />}
-            {group.id === 'venture' ? (
-              <VentureSpotlight />
-            ) : group.company ? (
+            {group.company ? (
               <CompanyProjects group={group} />
             ) : (
               <ProjectGrid projects={group.projects} />
