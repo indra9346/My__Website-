@@ -21,6 +21,14 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  // Keep the two requested featured projects visually complete even if their
+  // older Supabase rows have not received the matching image yet.
+  const title = project.title?.toLowerCase() ?? '';
+  const bannerImage = project.Image || (
+    title.includes('sanchari') ? '/projects/sanchari-trips.jpg' :
+    title.includes('grain') && title.includes('bazar') ? '/projects/grain-bazar.jpg' :
+    null
+  );
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -49,9 +57,9 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
         <div className="relative h-48 mb-4 overflow-hidden rounded-lg">
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent z-10 opacity-70 group-hover:opacity-90 transition-opacity" />
           <div className="absolute inset-0 bg-gray-800 flex items-center justify-center text-4xl">
-            {project.Image ? (
+            {bannerImage ? (
               <img
-                src={project.Image}
+                src={bannerImage}
                 alt={project.title || "Project"}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
